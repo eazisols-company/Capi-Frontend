@@ -14,7 +14,197 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      connections: {
+        Row: {
+          countries: Json
+          created_at: string | null
+          custom_domain: string | null
+          domain_verified: boolean | null
+          id: string
+          name: string
+          pixel_access_token: string
+          pixel_id: string
+          ssl_enabled: boolean | null
+          submission_link: string | null
+          updated_at: string | null
+          use_custom_domain: boolean | null
+          user_id: string
+        }
+        Insert: {
+          countries?: Json
+          created_at?: string | null
+          custom_domain?: string | null
+          domain_verified?: boolean | null
+          id?: string
+          name: string
+          pixel_access_token: string
+          pixel_id: string
+          ssl_enabled?: boolean | null
+          submission_link?: string | null
+          updated_at?: string | null
+          use_custom_domain?: boolean | null
+          user_id: string
+        }
+        Update: {
+          countries?: Json
+          created_at?: string | null
+          custom_domain?: string | null
+          domain_verified?: boolean | null
+          id?: string
+          name?: string
+          pixel_access_token?: string
+          pixel_id?: string
+          ssl_enabled?: boolean | null
+          submission_link?: string | null
+          updated_at?: string | null
+          use_custom_domain?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      opt_in_settings: {
+        Row: {
+          created_at: string | null
+          font_family: string | null
+          form_title: string | null
+          id: string
+          logo_url: string | null
+          page_subtitle: string | null
+          page_title: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          submit_button_text: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          font_family?: string | null
+          form_title?: string | null
+          id?: string
+          logo_url?: string | null
+          page_subtitle?: string | null
+          page_title?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          submit_button_text?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          font_family?: string | null
+          form_title?: string | null
+          id?: string
+          logo_url?: string | null
+          page_subtitle?: string | null
+          page_title?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          submit_button_text?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          account_id: string
+          billing_address: Json | null
+          created_at: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          system_currency: Database["public"]["Enums"]["currency_type"] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id?: string
+          billing_address?: Json | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          system_currency?: Database["public"]["Enums"]["currency_type"] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          billing_address?: Json | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          system_currency?: Database["public"]["Enums"]["currency_type"] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          connection_id: string
+          country: string
+          created_at: string | null
+          deposit_amount: number
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          meta_response: Json | null
+          phone: string
+          status: Database["public"]["Enums"]["submission_status"] | null
+          submitted_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          country: string
+          created_at?: string | null
+          deposit_amount: number
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          meta_response?: Json | null
+          phone: string
+          status?: Database["public"]["Enums"]["submission_status"] | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          country?: string
+          created_at?: string | null
+          deposit_amount?: number
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          meta_response?: Json | null
+          phone?: string
+          status?: Database["public"]["Enums"]["submission_status"] | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +213,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      currency_type: "EUR" | "USD"
+      submission_status: "pending" | "submitted" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +341,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      currency_type: ["EUR", "USD"],
+      submission_status: ["pending", "submitted", "failed"],
+    },
   },
 } as const
