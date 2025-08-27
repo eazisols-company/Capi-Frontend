@@ -1,0 +1,147 @@
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import {
+  BarChart3,
+  Database,
+  Link,
+  Settings,
+  FileText,
+  TrendingUp,
+  LogOut,
+  User,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger,
+  useSidebar,
+  SidebarHeader,
+  SidebarFooter,
+} from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+
+const menuItems = [
+  { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
+  { title: "Submissions", url: "/submissions", icon: Database },
+  { title: "Connections", url: "/connections", icon: Link },
+  { title: "Opt-in Pages", url: "/opt-in", icon: FileText },
+  { title: "Settings", url: "/settings", icon: Settings },
+];
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const location = useLocation();
+  const { signOut, user } = useAuth();
+  const currentPath = location.pathname;
+  const collapsed = state === "collapsed";
+
+  const isActive = (path: string) => currentPath === path;
+  const getNavCls = ({ isActive }: { isActive: boolean }) =>
+    isActive 
+      ? "bg-primary text-primary-foreground font-medium shadow-lg" 
+      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground";
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  return (
+    <Sidebar
+      className={`${collapsed ? "w-14" : "w-64"} transition-all duration-300 border-r border-border bg-sidebar-background`}
+      collapsible="icon"
+    >
+      <SidebarHeader className="p-4">
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <TrendingUp className="h-6 w-6 text-primary animate-glow" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-lg text-primary">TrackiTerra</span>
+              <span className="text-xs text-muted-foreground">Meta CAPI Platform</span>
+            </div>
+          </div>
+        )}
+        {collapsed && (
+          <div className="flex justify-center">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <TrendingUp className="h-6 w-6 text-primary animate-glow" />
+            </div>
+          </div>
+        )}
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+            Navigation
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      end 
+                      className={({ isActive }) => `${getNavCls({ isActive })} interactive-button`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-4">
+        {!collapsed && user && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border">
+              <div className="p-2 rounded-full bg-primary/10">
+                <User className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user.email}
+                </p>
+                <p className="text-xs text-muted-foreground">Admin Account</p>
+              </div>
+            </div>
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              size="sm"
+              className="w-full interactive-button border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        )}
+        {collapsed && (
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              size="sm"
+              className="w-8 h-8 p-0 border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
