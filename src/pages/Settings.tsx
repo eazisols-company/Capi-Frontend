@@ -20,7 +20,7 @@ export default function Settings() {
     first_name: "",
     last_name: "",
     phone: "",
-    system_currency: "EUR",
+    system_currency: "EUR" as "EUR" | "USD",
     billing_address: {}
   });
 
@@ -45,7 +45,7 @@ export default function Settings() {
         first_name: data.first_name || "",
         last_name: data.last_name || "",
         phone: data.phone || "",
-        system_currency: data.system_currency || "EUR",
+        system_currency: (data.system_currency || "EUR") as "EUR" | "USD",
         billing_address: data.billing_address || {}
       });
     } catch (error) {
@@ -143,7 +143,7 @@ export default function Settings() {
               <Label>System Currency</Label>
               <Select
                 value={formData.system_currency}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, system_currency: value }))}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, system_currency: value as "EUR" | "USD" }))}
               >
                 <SelectTrigger>
                   <SelectValue />

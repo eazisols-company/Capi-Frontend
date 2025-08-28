@@ -18,16 +18,16 @@
     --primary: 48 96% 53%;
     --primary-foreground: 0 0% 4%;
     
-    /* Poison Green Secondary */
-    --secondary: 142 71% 45%;
+    /* Purple Secondary */
+    --secondary: 253 69% 51%;
     --secondary-foreground: 0 0% 98%;
     
     /* Muted colors for subtle elements */
     --muted: 0 0% 12%;
     --muted-foreground: 0 0% 65%;
     
-    /* Poison Green Accent */
-    --accent: 142 71% 45%;
+    /* Purple Accent */
+    --accent: 253 69% 51%;
     --accent-foreground: 0 0% 4%;
     
     /* Red for important notices */
@@ -45,7 +45,7 @@
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 48 96% 53%;
     --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 142 71% 45%;
+    --sidebar-accent: 253 69% 51%;
     --sidebar-accent-foreground: 0 0% 4%;
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 48 96% 53%;
@@ -61,11 +61,11 @@
     --popover-foreground: 0 0% 98%;
     --primary: 48 96% 53%;
     --primary-foreground: 0 0% 4%;
-    --secondary: 142 71% 45%;
+    --secondary: 253 69% 51%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 12%;
     --muted-foreground: 0 0% 65%;
-    --accent: 142 71% 45%;
+    --accent: 253 69% 51%;
     --accent-foreground: 0 0% 4%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
@@ -76,7 +76,7 @@
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 48 96% 53%;
     --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 142 71% 45%;
+    --sidebar-accent: 253 69% 51%;
     --sidebar-accent-foreground: 0 0% 4%;
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 48 96% 53%;
