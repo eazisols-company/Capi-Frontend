@@ -8,9 +8,9 @@ const Index = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-8">
-        <div className="inline-flex items-center gap-2 p-4 rounded-xl bg-primary/10 border border-primary/20 animate-glow">
-          <TrendingUp className="h-12 w-12 text-primary" />
-          <span className="text-4xl font-bold text-primary">TrackiTerra</span>
+        <div className="inline-flex items-center gap-2 p-4 rounded-xl bg-[#552bd6]/10 border border-[#552bd6]/20 animate-glow">
+          <TrendingUp className="h-12 w-12 text-[#552bd6]" />
+          <span className="text-4xl font-bold text-[#552bd6]">TrackiTerra</span>
         </div>
         <div className="space-y-4">
           <h1 className="text-5xl font-bold tracking-tight text-foreground">
@@ -23,7 +23,7 @@ const Index = () => {
         <div className="space-y-4">
           <Button 
             onClick={() => navigate("/auth")}
-            className="interactive-button bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg"
+            className="interactive-button bg-[#552bd6] hover:bg-[#552bd6]/90 text-white px-8 py-3 text-lg"
           >
             Access Dashboard
           </Button>

@@ -101,10 +101,10 @@
   
   @keyframes glow {
     from {
-      box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+      box-shadow: 0 0 20px #552bd6;
     }
     to {
-      box-shadow: 0 0 30px hsl(var(--primary) / 0.6);
+      box-shadow: 0 0 30px #552bd6;
     }
   }
   
