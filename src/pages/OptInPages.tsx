@@ -14,7 +14,7 @@ import {
   Save,
   RefreshCw
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
@@ -49,13 +49,8 @@ export default function OptInPages() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('opt_in_settings')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
+      const response = await apiClient.getOptInSettings();
+      const data = response.data.settings;
       
       if (data) {
         setSettings(data);
@@ -86,14 +81,7 @@ export default function OptInPages() {
     try {
       setSaving(true);
       
-      const { error } = await supabase
-        .from('opt_in_settings')
-        .upsert({
-          user_id: user?.id,
-          ...formData
-        });
-
-      if (error) throw error;
+      await apiClient.updateOptInSettings(formData);
 
       toast({
         title: "Success",

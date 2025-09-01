@@ -22,7 +22,7 @@ import {
   RefreshCw,
   Download
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
@@ -53,20 +53,8 @@ export default function Submissions() {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('submissions')
-        .select(`
-          *,
-          connections (
-            name,
-            pixel_id
-          )
-        `)
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSubmissions(data || []);
+      const response = await apiClient.getSubmissions();
+      setSubmissions(response.data.submissions || []);
     } catch (error) {
       console.error('Error fetching submissions:', error);
       toast({
@@ -81,13 +69,8 @@ export default function Submissions() {
 
   const fetchConnections = async () => {
     try {
-      const { data, error } = await supabase
-        .from('connections')
-        .select('*')
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-      setConnections(data || []);
+      const response = await apiClient.getConnections();
+      setConnections(response.data.connections || []);
     } catch (error) {
       console.error('Error fetching connections:', error);
     }
@@ -128,17 +111,7 @@ export default function Submissions() {
     try {
       setProcessingIds(prev => new Set(prev).add(submissionId));
       
-      // Here you would implement the actual Meta CAPI submission logic
-      // For now, we'll just update the status
-      const { error } = await supabase
-        .from('submissions')
-        .update({ 
-          status: 'submitted',
-          submitted_at: new Date().toISOString()
-        })
-        .eq('id', submissionId);
-
-      if (error) throw error;
+      await apiClient.submitToMeta(submissionId);
 
       toast({
         title: "Success",
@@ -352,8 +325,8 @@ export default function Submissions() {
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      <div className="text-right text-sm text-muted-foreground">
-                        <p>Connection: {submission.connections?.name}</p>
+                                              <div className="text-right text-sm text-muted-foreground">
+                        <p>Connection: {submission.connection_name}</p>
                         <p>{new Date(submission.created_at).toLocaleDateString()}</p>
                       </div>
                       

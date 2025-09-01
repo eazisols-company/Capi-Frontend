@@ -1,0 +1,180 @@
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+class ApiClient {
+  private client: AxiosInstance;
+
+  constructor() {
+    this.client = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Request interceptor to add JWT token
+    this.client.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    // Response interceptor to handle errors
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user');
+          window.location.href = '/auth';
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  // Health check
+  async healthCheck() {
+    return this.client.get('/health');
+  }
+
+  // Authentication methods
+  async register(userData: {
+    email: string;
+    password: string;
+    first_name: string;
+    last_name: string;
+  }) {
+    return this.client.post('/api/auth/register', userData);
+  }
+
+  async login(credentials: { email: string; password: string }) {
+    return this.client.post('/api/auth/login', credentials);
+  }
+
+  async getCurrentUser() {
+    return this.client.get('/api/auth/me');
+  }
+
+  // User profile methods
+  async getProfile() {
+    return this.client.get('/api/users/profile');
+  }
+
+  async updateProfile(profileData: {
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    system_currency?: string;
+    billing_address?: {
+      street?: string;
+      city?: string;
+      country?: string;
+      postal_code?: string;
+    };
+  }) {
+    return this.client.put('/api/users/profile', profileData);
+  }
+
+  // Connections methods
+  async getConnections() {
+    return this.client.get('/api/connections');
+  }
+
+  async createConnection(connectionData: {
+    name: string;
+    pixel_id: string;
+    pixel_access_token: string;
+    countries: Array<{ country: string; value: number }>;
+    submission_link?: string;
+    use_custom_domain?: boolean;
+    custom_domain?: string;
+  }) {
+    return this.client.post('/api/connections', connectionData);
+  }
+
+  async updateConnection(connectionId: string, connectionData: any) {
+    return this.client.put(`/api/connections/${connectionId}`, connectionData);
+  }
+
+  async deleteConnection(connectionId: string) {
+    return this.client.delete(`/api/connections/${connectionId}`);
+  }
+
+  // Submissions methods
+  async getSubmissions(params?: {
+    limit?: number;
+    offset?: number;
+    status?: string;
+    country?: string;
+    connection_id?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = queryParams.toString() 
+      ? `/api/submissions?${queryParams.toString()}` 
+      : '/api/submissions';
+    
+    return this.client.get(url);
+  }
+
+  async createSubmission(submissionData: {
+    connection_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    country: string;
+    deposit_amount: number;
+  }) {
+    return this.client.post('/api/submissions', submissionData);
+  }
+
+  async submitToMeta(submissionId: string) {
+    return this.client.put(`/api/submissions/${submissionId}/submit-to-meta`);
+  }
+
+  // Analytics methods
+  async getDashboardAnalytics(period: string = '7d') {
+    return this.client.get(`/api/analytics/dashboard?period=${period}`);
+  }
+
+  // Opt-in settings methods
+  async getOptInSettings() {
+    return this.client.get('/api/opt-in-settings');
+  }
+
+  async updateOptInSettings(settingsData: {
+    primary_color?: string;
+    secondary_color?: string;
+    logo_url?: string;
+    page_title?: string;
+    page_subtitle?: string;
+    form_title?: string;
+    submit_button_text?: string;
+    font_family?: string;
+  }) {
+    return this.client.put('/api/opt-in-settings', settingsData);
+  }
+}
+
+export const apiClient = new ApiClient();
+export default apiClient;

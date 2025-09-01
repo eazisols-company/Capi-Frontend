@@ -15,7 +15,7 @@ import {
   Target,
   Zap
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
@@ -39,14 +39,8 @@ export default function Dashboard() {
 
   const fetchProfile = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
-      
-      if (error) throw error;
-      setProfile(data);
+      const response = await apiClient.getProfile();
+      setProfile(response.data.profile);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -54,59 +48,16 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Calculate date range based on filter
-      const endDate = new Date();
-      const startDate = new Date();
-      
-      switch (timeFilter) {
-        case '1d':
-          startDate.setDate(endDate.getDate() - 1);
-          break;
-        case '7d':
-          startDate.setDate(endDate.getDate() - 7);
-          break;
-        case '30d':
-          startDate.setDate(endDate.getDate() - 30);
-          break;
-        case '90d':
-          startDate.setDate(endDate.getDate() - 90);
-          break;
-      }
-
-      // Fetch submissions data
-      const { data: submissions, error: submissionsError } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (submissionsError) throw submissionsError;
-
-      // Calculate stats
-      const totalSubmissions = submissions?.length || 0;
-      const successfulSubmissions = submissions?.filter(s => s.status === 'submitted').length || 0;
-      const totalDeposits = submissions?.reduce((sum, s) => sum + parseFloat(String(s.deposit_amount || '0')), 0) || 0;
-      const conversionRate = totalSubmissions > 0 ? (successfulSubmissions / totalSubmissions) * 100 : 0;
-
-      // Get top countries
-      const countryStats = submissions?.reduce((acc: any, submission) => {
-        acc[submission.country] = (acc[submission.country] || 0) + 1;
-        return acc;
-      }, {}) || {};
-
-      const topCountries = Object.entries(countryStats)
-        .sort(([,a], [,b]) => (b as number) - (a as number))
-        .slice(0, 5)
-        .map(([country, count]) => ({ country, count }));
+      // Use analytics endpoint for dashboard data
+      const response = await apiClient.getDashboardAnalytics(timeFilter);
+      const analytics = response.data.analytics;
 
       setStats({
-        totalSubmissions,
-        totalDeposits,
-        conversionRate,
-        topCountries,
-        recentSubmissions: submissions?.slice(0, 5) || []
+        totalSubmissions: analytics.total_submissions,
+        totalDeposits: analytics.total_deposits,
+        conversionRate: analytics.conversion_rate,
+        topCountries: analytics.top_countries,
+        recentSubmissions: analytics.recent_submissions || []
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);

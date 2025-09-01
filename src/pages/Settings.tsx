@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings as SettingsIcon, User, CreditCard, Save } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
@@ -32,13 +32,8 @@ export default function Settings() {
 
   const fetchProfile = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.getProfile();
+      const data = response.data.profile;
       
       setProfile(data);
       setFormData({
@@ -58,12 +53,7 @@ export default function Settings() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const { error } = await supabase
-        .from('profiles')
-        .update(formData)
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
+      await apiClient.updateProfile(formData);
 
       toast({
         title: "Success",

@@ -21,7 +21,7 @@ import {
   Shield,
   AlertCircle
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
@@ -59,14 +59,8 @@ export default function Connections() {
   const fetchConnections = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('connections')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setConnections(data || []);
+      const response = await apiClient.getConnections();
+      setConnections(response.data.connections || []);
     } catch (error) {
       console.error('Error fetching connections:', error);
       toast({
@@ -145,7 +139,6 @@ export default function Connections() {
       }
 
       const connectionData = {
-        user_id: user?.id,
         name: formData.name,
         pixel_id: formData.pixel_id,
         pixel_access_token: formData.pixel_access_token,
@@ -155,21 +148,11 @@ export default function Connections() {
         custom_domain: formData.custom_domain
       };
 
-      let error;
       if (editingConnection) {
-        const { error: updateError } = await supabase
-          .from('connections')
-          .update(connectionData)
-          .eq('id', editingConnection.id);
-        error = updateError;
+        await apiClient.updateConnection(editingConnection._id, connectionData);
       } else {
-        const { error: insertError } = await supabase
-          .from('connections')
-          .insert([connectionData]);
-        error = insertError;
+        await apiClient.createConnection(connectionData);
       }
-
-      if (error) throw error;
 
       toast({
         title: "Success",
@@ -193,12 +176,7 @@ export default function Connections() {
     if (!confirm('Are you sure you want to delete this connection?')) return;
 
     try {
-      const { error } = await supabase
-        .from('connections')
-        .delete()
-        .eq('id', connectionId);
-
-      if (error) throw error;
+      await apiClient.deleteConnection(connectionId);
 
       toast({
         title: "Success",
@@ -455,10 +433,10 @@ export default function Connections() {
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
+                                          <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(connection.id)}
+                      onClick={() => handleDelete(connection._id)}
                       className="interactive-button text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     >
                       <Trash2 className="h-4 w-4" />

@@ -15,6 +15,13 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("signin");
+  
+  // Clear errors when switching tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setError("");
+  };
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -91,10 +98,26 @@ export default function Auth() {
           setError(error.message);
         }
       } else {
-        toast({
-          title: "Account Created",
-          description: "Please check your email to verify your account.",
+        // Clear the form
+        setSignUpForm({
+          email: "",
+          password: "",
+          confirmPassword: "",
+          firstName: "",
+          lastName: "",
         });
+        
+        // Show success message
+        toast({
+          title: "Account Created Successfully!",
+          description: "You can now sign in with your credentials.",
+        });
+        
+        // Pre-fill sign in email for convenience
+        setSignInForm(prev => ({ ...prev, email: signUpForm.email }));
+        
+        // Switch to sign in tab
+        setActiveTab("signin");
       }
     } catch (err: any) {
       setError("An unexpected error occurred");
@@ -132,7 +155,7 @@ export default function Auth() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2 bg-muted">
                 <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Sign In
