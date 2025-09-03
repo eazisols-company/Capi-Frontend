@@ -20,7 +20,8 @@ import {
   XCircle,
   ExternalLink,
   Shield,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -423,6 +424,19 @@ export default function Connections() {
                       <CardDescription>
                         Pixel ID: {connection.pixel_id}
                       </CardDescription>
+                      {connection.optin_page_url && (
+                        <div className="mt-1">
+                          <a 
+                            href={connection.optin_page_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline flex items-center gap-1"
+                          >
+                            Opt-in Page: {connection.optin_page_url}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -482,7 +496,7 @@ export default function Connections() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   {/* Countries */}
                   <div>
                     <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
@@ -522,6 +536,40 @@ export default function Connections() {
                     </div>
                   </div>
 
+                  {/* Opt-in Page Status */}
+                  <div>
+                    <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-accent" />
+                      Opt-in Page
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex items-center gap-2">
+                        {connection.optin_page_configured ? (
+                          <Badge variant="default" className="text-xs bg-secondary">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Configured
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Not Set Up
+                          </Badge>
+                        )}
+                      </div>
+                      {/* {connection.optin_page_url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(connection.optin_page_url, '_blank')}
+                          className="text-xs h-7"
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          View Page
+                        </Button>
+                      )} */}
+                    </div>
+                  </div>
+
                   {/* Redirect Link */}
                   <div>
                     <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
@@ -535,7 +583,10 @@ export default function Connections() {
                         rel="noopener noreferrer"
                         className="text-sm text-primary hover:underline flex items-center gap-1"
                       >
-                        {connection.submission_link.substring(0, 40)}...
+                        {connection.submission_link.length > 25 
+                          ? connection.submission_link.substring(0, 25) + '...'
+                          : connection.submission_link
+                        }
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (

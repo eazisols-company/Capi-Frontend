@@ -166,11 +166,13 @@ class ApiClient {
   }
 
   // Opt-in settings methods
-  async getOptInSettings() {
-    return this.client.get('/api/opt-in-settings');
+  async getOptInSettings(connectionId?: string) {
+    const params = connectionId ? `?connection_id=${connectionId}` : '';
+    return this.client.get(`/api/opt-in-settings${params}`);
   }
 
   async updateOptInSettings(settingsData: {
+    connection_id?: string;
     primary_color?: string;
     secondary_color?: string;
     logo_url?: string;
@@ -181,6 +183,63 @@ class ApiClient {
     font_family?: string;
   }) {
     return this.client.put('/api/opt-in-settings', settingsData);
+  }
+
+  // Public opt-in methods (no authentication required)
+  async getPublicOptInSettings(connectionId?: string, domain?: string) {
+    const params = new URLSearchParams();
+    if (connectionId) params.append('connection_id', connectionId);
+    if (domain) params.append('domain', domain);
+    
+    const url = params.toString() 
+      ? `/api/public/optin-settings?${params.toString()}` 
+      : '/api/public/optin-settings';
+    
+    // Create a new client instance without auth headers for public endpoints
+    // Use the same base URL as the main client for consistency
+    const publicClient = axios.create({
+      baseURL: this.client.defaults.baseURL || import.meta.env.VITE_API_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    return publicClient.get(url);
+  }
+
+  async createPublicSubmission(submissionData: {
+    connection_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    country: string;
+    deposit_amount: number;
+    source_url?: string;
+    user_agent?: string;
+    ip_address?: string;
+  }) {
+    // Create a new client instance without auth headers for public endpoints
+    const publicClient = axios.create({
+      baseURL: this.client.defaults.baseURL || import.meta.env.VITE_API_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    return publicClient.post('/api/public/submissions', submissionData);
+  }
+
+  async resolveDomain(domain: string) {
+    // Create a new client instance without auth headers for public endpoints
+    const publicClient = axios.create({
+      baseURL: this.client.defaults.baseURL || import.meta.env.VITE_API_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    return publicClient.get(`/api/public/resolve-domain/${domain}`);
   }
 }
 

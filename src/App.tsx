@@ -12,6 +12,7 @@ import Connections from "./pages/Connections";
 import OptInPages from "./pages/OptInPages";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import PublicOptIn from "./pages/PublicOptIn";
 import { AuthProvider } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public Routes (No Authentication Required) */}
+            <Route path="/optin/:connectionId" element={<PublicOptIn />} />
+            <Route path="/optin" element={<PublicOptIn />} />
+            
+            {/* Main App Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<DashboardLayout />}>

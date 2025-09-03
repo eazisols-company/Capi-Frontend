@@ -12,8 +12,10 @@ import {
   Type,
   Image as ImageIcon,
   Save,
-  RefreshCw
+  RefreshCw,
+  Link as LinkIcon
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -34,11 +36,14 @@ const FONT_OPTIONS = [
 
 export default function OptInPages() {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<any[]>([]);
+  const [connections, setConnections] = useState<any[]>([]);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   const [formData, setFormData] = useState({
+    connection_id: "",
     primary_color: "#FACC15",
     secondary_color: "#10B981",
     logo_url: "",
@@ -52,27 +57,52 @@ export default function OptInPages() {
   useEffect(() => {
     if (user) {
       fetchSettings();
+      fetchConnections();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (selectedConnectionId && settings.length > 0) {
+      const connectionSettings = settings.find(s => s.connection_id === selectedConnectionId);
+      if (connectionSettings) {
+        setFormData({
+          connection_id: selectedConnectionId,
+          primary_color: connectionSettings.primary_color || "#FACC15",
+          secondary_color: connectionSettings.secondary_color || "#10B981",
+          logo_url: connectionSettings.logo_url || "",
+          page_title: connectionSettings.page_title || "Join Our Premium Trading Platform",
+          page_subtitle: connectionSettings.page_subtitle || "Start your trading journey today",
+          form_title: connectionSettings.form_title || "Get Started",
+          submit_button_text: connectionSettings.submit_button_text || "Join Now",
+          font_family: connectionSettings.font_family || "Inter"
+        });
+      } else {
+        // Reset to defaults if no settings exist for this connection
+        setFormData({
+          connection_id: selectedConnectionId,
+          primary_color: "#FACC15",
+          secondary_color: "#10B981",
+          logo_url: "",
+          page_title: "Join Our Premium Trading Platform",
+          page_subtitle: "Start your trading journey today",
+          form_title: "Get Started",
+          submit_button_text: "Join Now",
+          font_family: "Inter"
+        });
+      }
+    }
+  }, [selectedConnectionId, settings]);
 
   const fetchSettings = async () => {
     try {
       setLoading(true);
       const response = await apiClient.getOptInSettings();
-      const data = response.data.settings;
+      const data = response.data.data;
       
-      if (data) {
-        setSettings(data);
-        setFormData({
-          primary_color: data.primary_color || "#FACC15",
-          secondary_color: data.secondary_color || "#10B981",
-          logo_url: data.logo_url || "",
-          page_title: data.page_title || "Join Our Premium Trading Platform",
-          page_subtitle: data.page_subtitle || "Start your trading journey today",
-          form_title: data.form_title || "Get Started",
-          submit_button_text: data.submit_button_text || "Join Now",
-          font_family: data.font_family || "Inter"
-        });
+      if (data && data.settings) {
+        setSettings(Array.isArray(data.settings) ? data.settings : [data.settings]);
+      } else {
+        setSettings([]);
       }
     } catch (error) {
       console.error('Error fetching opt-in settings:', error);
@@ -94,11 +124,43 @@ export default function OptInPages() {
     }
   };
 
+  const fetchConnections = async () => {
+    try {
+      const response = await apiClient.getConnections();
+      const connectionsData = response.data.connections || [];
+      setConnections(connectionsData);
+      
+      // Auto-select first connection if none selected
+      if (connectionsData.length > 0 && !selectedConnectionId) {
+        setSelectedConnectionId(connectionsData[0]._id);
+      }
+    } catch (error) {
+      console.error('Error fetching connections:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch connections",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleSave = async () => {
+    if (!selectedConnectionId) {
+      toast({
+        title: "Error",
+        description: "Please select a connection first",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setSaving(true);
       
-      await apiClient.updateOptInSettings(formData);
+      await apiClient.updateOptInSettings({
+        ...formData,
+        connection_id: selectedConnectionId
+      });
 
       toast({
         title: "Success",
@@ -106,6 +168,7 @@ export default function OptInPages() {
       });
 
       fetchSettings(); // Refresh data
+      fetchConnections(); // Refresh connections to update optin_page_configured status
     } catch (error) {
       console.error('Error saving opt-in settings:', error);
       console.error('Error details:', {
@@ -158,13 +221,14 @@ export default function OptInPages() {
             Opt-in Page Customization
           </h1>
           <p className="text-muted-foreground">
-            Customize the appearance of your lead capture pages
+            Customize the appearance of your lead capture pages for each connection
           </p>
         </div>
         <div className="flex gap-3">
           <Button 
             onClick={() => {
               setFormData({
+                connection_id: selectedConnectionId,
                 primary_color: "#FACC15",
                 secondary_color: "#10B981",
                 logo_url: "",
@@ -181,13 +245,14 @@ export default function OptInPages() {
             }}
             variant="outline"
             className="interactive-button"
+            disabled={!selectedConnectionId}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset to Default
           </Button>
           <Button 
             onClick={handleSave}
-            disabled={saving || !formData.page_title.trim() || !formData.form_title.trim()}
+            disabled={saving || !formData.page_title.trim() || !formData.form_title.trim() || !selectedConnectionId}
             className="interactive-button bg-primary hover:bg-primary/90"
           >
             {saving ? (
@@ -199,6 +264,77 @@ export default function OptInPages() {
           </Button>
         </div>
       </div>
+
+      {/* Connection Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LinkIcon className="h-5 w-5 text-primary" />
+            Select Connection
+          </CardTitle>
+          <CardDescription>
+            Choose which connection to customize the opt-in page for
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Select
+              value={selectedConnectionId}
+              onValueChange={setSelectedConnectionId}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a connection" />
+              </SelectTrigger>
+              <SelectContent>
+                {connections.map((connection) => (
+                  <SelectItem key={connection._id} value={connection._id}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{connection.name}</span>
+                      <div className="flex items-center gap-2 ml-4">
+                        {connection.optin_page_configured ? (
+                          <Badge variant="default" className="text-xs bg-secondary">
+                            Configured
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            Not Set Up
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {selectedConnectionId && (
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {connections.find(c => c._id === selectedConnectionId)?.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Pixel ID: {connections.find(c => c._id === selectedConnectionId)?.pixel_id}
+                    </p>
+                  </div>
+                  {connections.find(c => c._id === selectedConnectionId)?.optin_page_url && (
+                    console.log(connections.find(c => c._id === selectedConnectionId)?.optin_page_url),
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(connections.find(c => c._id === selectedConnectionId)?.optin_page_url, '_blank')}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Live Page
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Customization Panel */}
@@ -502,7 +638,11 @@ export default function OptInPages() {
                             borderColor: `${formData.secondary_color}40`
                           }}
                         >
-                          <SelectValue placeholder="Select Country" />
+                          <SelectValue placeholder={
+                            selectedConnectionId && connections.find(c => c._id === selectedConnectionId)?.countries?.length > 0
+                              ? `${connections.find(c => c._id === selectedConnectionId)?.countries[0].country} ($${connections.find(c => c._id === selectedConnectionId)?.countries[0].value})`
+                              : "Select Country"
+                          } />
                         </SelectTrigger>
                       </Select>
                       <Input 
