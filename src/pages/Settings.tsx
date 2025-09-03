@@ -24,6 +24,15 @@ export default function Settings() {
     billing_address: {}
   });
 
+  // Store original data for comparison
+  const [originalFormData, setOriginalFormData] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    system_currency: "EUR" as "EUR" | "USD",
+    billing_address: {}
+  });
+
   const [passwordData, setPasswordData] = useState({
     current_password: "",
     new_password: "",
@@ -31,6 +40,17 @@ export default function Settings() {
   });
 
   const [changingPassword, setChangingPassword] = useState(false);
+
+  // Utility function to check if form data has changed
+  const hasFormDataChanged = () => {
+    return (
+      formData.first_name !== originalFormData.first_name ||
+      formData.last_name !== originalFormData.last_name ||
+      formData.phone !== originalFormData.phone ||
+      formData.system_currency !== originalFormData.system_currency ||
+      JSON.stringify(formData.billing_address) !== JSON.stringify(originalFormData.billing_address)
+    );
+  };
 
   useEffect(() => {
     if (user) {
@@ -43,14 +63,17 @@ export default function Settings() {
       const response = await apiClient.getProfile();
       const data = response.data.profile;
       
-      setProfile(data);
-      setFormData({
+      const profileData = {
         first_name: data.first_name || "",
         last_name: data.last_name || "",
         phone: data.phone || "",
         system_currency: (data.system_currency || "EUR") as "EUR" | "USD",
         billing_address: data.billing_address || {}
-      });
+      };
+      
+      setProfile(data);
+      setFormData(profileData);
+      setOriginalFormData(profileData); // Store original data for comparison
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -68,6 +91,8 @@ export default function Settings() {
         description: "Settings updated successfully"
       });
 
+      // Update original form data to reflect the new saved state
+      setOriginalFormData({ ...formData });
       fetchProfile();
     } catch (error: any) {
       console.error('Error updating profile:', error);
@@ -152,7 +177,11 @@ export default function Settings() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Account Settings</h1>
           <p className="text-muted-foreground">Manage your account preferences and billing information</p>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="interactive-button bg-primary hover:bg-primary/90">
+        <Button 
+          onClick={handleSave} 
+          disabled={saving || !hasFormDataChanged()} 
+          className="interactive-button bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <Save className="h-4 w-4 mr-2" />
           Save Changes
         </Button>
