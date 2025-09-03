@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 class ApiClient {
   private client: AxiosInstance;
@@ -63,6 +63,14 @@ class ApiClient {
 
   async getCurrentUser() {
     return this.client.get('/api/auth/me');
+  }
+
+  async changePassword(passwordData: {
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
+  }) {
+    return this.client.put('/api/users/change-password', passwordData);
   }
 
   // User profile methods
