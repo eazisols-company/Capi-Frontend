@@ -17,10 +17,19 @@ import {
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { extractApiErrorMessage } from "@/lib/utils";
 
 const FONT_OPTIONS = [
-  "Inter", "Roboto", "Open Sans", "Lato", "Montserrat", 
-  "Poppins", "Source Sans Pro", "Nunito", "Raleway", "Ubuntu"
+  { value: "Inter", label: "Inter", cssName: "'Inter', sans-serif" },
+  { value: "Roboto", label: "Roboto", cssName: "'Roboto', sans-serif" },
+  { value: "Open Sans", label: "Open Sans", cssName: "'Open Sans', sans-serif" },
+  { value: "Lato", label: "Lato", cssName: "'Lato', sans-serif" },
+  { value: "Montserrat", label: "Montserrat", cssName: "'Montserrat', sans-serif" },
+  { value: "Poppins", label: "Poppins", cssName: "'Poppins', sans-serif" },
+  { value: "Source Sans Pro", label: "Source Sans Pro", cssName: "'Source Sans Pro', sans-serif" },
+  { value: "Nunito", label: "Nunito", cssName: "'Nunito', sans-serif" },
+  { value: "Raleway", label: "Raleway", cssName: "'Raleway', sans-serif" },
+  { value: "Ubuntu", label: "Ubuntu", cssName: "'Ubuntu', sans-serif" }
 ];
 
 export default function OptInPages() {
@@ -67,9 +76,17 @@ export default function OptInPages() {
       }
     } catch (error) {
       console.error('Error fetching opt-in settings:', error);
+      console.error('Error details:', {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        message: error?.message
+      });
+      
+      const errorMessage = extractApiErrorMessage(error, "Failed to fetch opt-in page settings");
       toast({
-        title: "Error",
-        description: "Failed to fetch opt-in page settings",
+        title: "Error Fetching Settings",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -91,9 +108,17 @@ export default function OptInPages() {
       fetchSettings(); // Refresh data
     } catch (error) {
       console.error('Error saving opt-in settings:', error);
+      console.error('Error details:', {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        message: error?.message
+      });
+      
+      const errorMessage = extractApiErrorMessage(error, "Failed to save opt-in page settings");
       toast({
-        title: "Error",
-        description: "Failed to save opt-in page settings",
+        title: "Error Saving Settings",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -136,18 +161,43 @@ export default function OptInPages() {
             Customize the appearance of your lead capture pages
           </p>
         </div>
-        <Button 
-          onClick={handleSave}
-          disabled={saving}
-          className="interactive-button bg-primary hover:bg-primary/90"
-        >
-          {saving ? (
-            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Save Changes
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => {
+              setFormData({
+                primary_color: "#FACC15",
+                secondary_color: "#10B981",
+                logo_url: "",
+                page_title: "Join Our Premium Trading Platform",
+                page_subtitle: "Start your trading journey today",
+                form_title: "Get Started",
+                submit_button_text: "Join Now",
+                font_family: "Inter"
+              });
+              toast({
+                title: "Reset",
+                description: "Settings reset to default values"
+              });
+            }}
+            variant="outline"
+            className="interactive-button"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reset to Default
+          </Button>
+          <Button 
+            onClick={handleSave}
+            disabled={saving || !formData.page_title.trim() || !formData.form_title.trim()}
+            className="interactive-button bg-primary hover:bg-primary/90"
+          >
+            {saving ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Save Changes
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -218,14 +268,20 @@ export default function OptInPages() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
+                              <div className="space-y-2">
                 <Label htmlFor="logo_url">Logo URL</Label>
                 <Input
                   id="logo_url"
                   value={formData.logo_url}
                   onChange={(e) => setFormData(prev => ({ ...prev, logo_url: e.target.value }))}
                   placeholder="https://your-domain.com/logo.png"
+                  type="url"
                 />
+                {formData.logo_url && (
+                  <p className="text-xs text-muted-foreground">
+                    Preview: {formData.logo_url.length > 50 ? formData.logo_url.substring(0, 50) + '...' : formData.logo_url}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="logo_upload">Or Upload Logo</Label>
@@ -262,7 +318,11 @@ export default function OptInPages() {
                   value={formData.page_title}
                   onChange={(e) => setFormData(prev => ({ ...prev, page_title: e.target.value }))}
                   placeholder="Join Our Premium Trading Platform"
+                  maxLength={100}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.page_title.length}/100 characters
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="page_subtitle">Page Subtitle</Label>
@@ -271,7 +331,11 @@ export default function OptInPages() {
                   value={formData.page_subtitle}
                   onChange={(e) => setFormData(prev => ({ ...prev, page_subtitle: e.target.value }))}
                   placeholder="Start your trading journey today"
+                  maxLength={150}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.page_subtitle.length}/150 characters
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="form_title">Form Title</Label>
@@ -280,7 +344,11 @@ export default function OptInPages() {
                   value={formData.form_title}
                   onChange={(e) => setFormData(prev => ({ ...prev, form_title: e.target.value }))}
                   placeholder="Get Started"
+                  maxLength={50}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.form_title.length}/50 characters
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="submit_button_text">Submit Button Text</Label>
@@ -289,7 +357,11 @@ export default function OptInPages() {
                   value={formData.submit_button_text}
                   onChange={(e) => setFormData(prev => ({ ...prev, submit_button_text: e.target.value }))}
                   placeholder="Join Now"
+                  maxLength={30}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.submit_button_text.length}/30 characters
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -317,8 +389,8 @@ export default function OptInPages() {
                   </SelectTrigger>
                   <SelectContent>
                     {FONT_OPTIONS.map((font) => (
-                      <SelectItem key={font} value={font}>
-                        <span style={{ fontFamily: font }}>{font}</span>
+                      <SelectItem key={font.value} value={font.value}>
+                        <span style={{ fontFamily: font.cssName }}>{font.label}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -337,18 +409,18 @@ export default function OptInPages() {
                 Live Preview
               </CardTitle>
               <CardDescription>
-                See how your opt-in page will look to visitors
+                See how your opt-in page will look to visitors (responsive design)
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div 
-                className="border rounded-lg p-8 bg-background min-h-[600px]"
+                className="border rounded-lg p-8 bg-background min-h-[600px] overflow-hidden"
                 style={{ 
-                  fontFamily: formData.font_family,
+                  fontFamily: FONT_OPTIONS.find(f => f.value === formData.font_family)?.cssName || "'Inter', sans-serif",
                   background: 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 100%)'
                 }}
               >
-                <div className="max-w-md mx-auto text-center space-y-6">
+                <div className="max-w-sm sm:max-w-md mx-auto text-center space-y-4 sm:space-y-6">
                   {/* Logo */}
                   {formData.logo_url && (
                     <div className="mb-8">
@@ -380,44 +452,76 @@ export default function OptInPages() {
                     </h2>
                     
                     <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Input 
                           placeholder="First Name" 
-                          className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+                          className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200"
+                          style={{ 
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderColor: `${formData.secondary_color}40`,
+                            '--tw-ring-color': formData.secondary_color
+                          } as React.CSSProperties}
                           disabled
                         />
                         <Input 
                           placeholder="Last Name" 
-                          className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+                          className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200"
+                          style={{ 
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderColor: `${formData.secondary_color}40`,
+                            '--tw-ring-color': formData.secondary_color
+                          } as React.CSSProperties}
                           disabled
                         />
                       </div>
                       <Input 
                         placeholder="Email Address" 
-                        className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+                        className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200"
+                        style={{ 
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          borderColor: `${formData.secondary_color}40`,
+                          '--tw-ring-color': formData.secondary_color
+                        } as React.CSSProperties}
                         disabled
                       />
                       <Input 
                         placeholder="Phone Number" 
-                        className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+                        className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200"
+                        style={{ 
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          borderColor: `${formData.secondary_color}40`,
+                          '--tw-ring-color': formData.secondary_color
+                        } as React.CSSProperties}
                         disabled
                       />
                       <Select disabled>
-                        <SelectTrigger className="bg-white/20 border-white/30 text-white">
+                        <SelectTrigger 
+                          className="border-2 text-white transition-all duration-200"
+                          style={{ 
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderColor: `${formData.secondary_color}40`
+                          }}
+                        >
                           <SelectValue placeholder="Select Country" />
                         </SelectTrigger>
                       </Select>
                       <Input 
                         placeholder="Deposit Amount" 
-                        className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+                        className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200"
+                        style={{ 
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          borderColor: `${formData.secondary_color}40`,
+                          '--tw-ring-color': formData.secondary_color
+                        } as React.CSSProperties}
                         disabled
                       />
                       
                       <Button 
-                        className="w-full text-white font-semibold py-3"
+                        className="w-full text-white font-semibold py-3 transition-all duration-300 hover:shadow-lg transform hover:scale-105"
                         style={{ 
                           backgroundColor: formData.primary_color,
-                          borderColor: formData.primary_color
+                          borderColor: formData.primary_color,
+                          boxShadow: `0 4px 15px ${formData.primary_color}40`
                         }}
                         disabled
                       >
