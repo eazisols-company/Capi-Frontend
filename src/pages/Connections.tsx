@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   Link as LinkIcon, 
   Plus, 
@@ -24,6 +25,7 @@ import {
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { extractApiErrorMessage } from "@/lib/utils";
 
 const COUNTRIES = [
   "United States", "United Kingdom", "Germany", "France", "Italy", "Spain", "Netherlands",
@@ -39,6 +41,7 @@ export default function Connections() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingConnection, setDeletingConnection] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -56,16 +59,23 @@ export default function Connections() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (deletingConnection) {
+      handleDelete();
+    }
+  }, [deletingConnection]);
+
   const fetchConnections = async () => {
     try {
       setLoading(true);
       const response = await apiClient.getConnections();
       setConnections(response.data.connections || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching connections:', error);
+      
       toast({
         title: "Error",
-        description: "Failed to fetch connections",
+        description: extractApiErrorMessage(error, "Failed to fetch connections"),
         variant: "destructive"
       });
     } finally {
@@ -142,7 +152,10 @@ export default function Connections() {
         name: formData.name,
         pixel_id: formData.pixel_id,
         pixel_access_token: formData.pixel_access_token,
-        countries: validCountries,
+        countries: validCountries.map(c => ({
+          country: c.country,
+          value: parseFloat(c.value) || 0
+        })),
         submission_link: formData.submission_link,
         use_custom_domain: formData.use_custom_domain,
         custom_domain: formData.custom_domain
@@ -162,35 +175,39 @@ export default function Connections() {
       setIsDialogOpen(false);
       resetForm();
       fetchConnections();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving connection:', error);
+      
       toast({
         title: "Error",
-        description: "Failed to save connection",
+        description: extractApiErrorMessage(error, "Failed to save connection"),
         variant: "destructive"
       });
     }
   };
 
-  const handleDelete = async (connectionId: string) => {
-    if (!confirm('Are you sure you want to delete this connection?')) return;
+  const handleDelete = async () => {
+    if (!deletingConnection) return;
 
     try {
-      await apiClient.deleteConnection(connectionId);
+      await apiClient.deleteConnection(deletingConnection._id);
 
       toast({
         title: "Success",
         description: "Connection deleted successfully"
       });
 
+      setDeletingConnection(null);
       fetchConnections();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting connection:', error);
+      
       toast({
         title: "Error",
-        description: "Failed to delete connection",
+        description: extractApiErrorMessage(error, "Failed to delete connection"),
         variant: "destructive"
       });
+      setDeletingConnection(null);
     }
   };
 
@@ -409,7 +426,7 @@ export default function Connections() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge 
+                    {/* <Badge 
                       variant={connection.domain_verified ? "default" : "secondary"}
                       className={connection.domain_verified ? "bg-secondary" : ""}
                     >
@@ -424,7 +441,7 @@ export default function Connections() {
                           Pending
                         </>
                       )}
-                    </Badge>
+                    </Badge> */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -433,14 +450,34 @@ export default function Connections() {
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                                          <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(connection._id)}
-                      className="interactive-button text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                                          <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="interactive-button text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Connection</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete the connection "{connection.name}"? This action cannot be undone and will permanently remove all associated data.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => setDeletingConnection(connection)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete Connection
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardHeader>
