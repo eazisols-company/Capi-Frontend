@@ -6,80 +6,78 @@
 
 @layer base {
   :root {
-    /* Dark theme - Deep Black Background */
+    /* 🌑 Dark theme - Deep Black Background */
     --background: 0 0% 4%;
     --foreground: 0 0% 98%;
     --card: 0 0% 6%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 6%;
     --popover-foreground: 0 0% 98%;
-    
-    /* Yellow Primary Color */
-    --primary: 48 96% 53%;
+
+    /* 🔥 Brand Color (Orange) */
+    --brand: 25 95% 53%; /* Orange */
+
+    /* Brand mappings */
+    --primary: var(--brand);
     --primary-foreground: 0 0% 4%;
-    
-    /* Yellow Secondary */
-    --secondary: 48 96% 53%;
+    --secondary: var(--brand);
     --secondary-foreground: 0 0% 4%;
-    
-    /* Muted colors for subtle elements */
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 65%;
-    
-    /* Yellow Accent */
-    --accent: 48 96% 53%;
+    --accent: var(--brand);
     --accent-foreground: 0 0% 4%;
-    
-    /* Red for important notices */
+
+    /* 🛑 Red for destructive actions */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    
-    /* Border and input styling */
+
+    /* Borders / inputs */
     --border: 0 0% 15%;
     --input: 0 0% 15%;
-    --ring: 48 96% 53%;
+    --ring: var(--brand);
     --radius: 0.75rem;
-    
-    /* Sidebar colors */
+
+    /* Sidebar */
     --sidebar-background: 0 0% 6%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 48 96% 53%;
+    --sidebar-primary: var(--brand);
     --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 48 96% 53%;
+    --sidebar-accent: var(--brand);
     --sidebar-accent-foreground: 0 0% 4%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 48 96% 53%;
+    --sidebar-ring: var(--brand);
   }
 
   .dark {
-    /* Same colors for consistency - always dark theme */
+    /* Same values for always-dark theme */
     --background: 0 0% 4%;
     --foreground: 0 0% 98%;
     --card: 0 0% 6%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 6%;
     --popover-foreground: 0 0% 98%;
-    --primary: 48 96% 53%;
+
+    --brand: 25 95% 53%; /* Orange */
+    --primary: var(--brand);
     --primary-foreground: 0 0% 4%;
-    --secondary: 48 96% 53%;
+    --secondary: var(--brand);
     --secondary-foreground: 0 0% 4%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 48 96% 53%;
+    --accent: var(--brand);
     --accent-foreground: 0 0% 4%;
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
+
     --border: 0 0% 15%;
     --input: 0 0% 15%;
-    --ring: 48 96% 53%;
+    --ring: var(--brand);
+
     --sidebar-background: 0 0% 6%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 48 96% 53%;
+    --sidebar-primary: var(--brand);
     --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 48 96% 53%;
+    --sidebar-accent: var(--brand);
     --sidebar-accent-foreground: 0 0% 4%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 48 96% 53%;
+    --sidebar-ring: var(--brand);
   }
 }
 
@@ -94,7 +92,7 @@
 }
 
 @layer components {
-  /* Interactive Elements with Smooth Animations */
+  /* ✨ Interactive Elements with Smooth Animations */
   .animate-glow {
     animation: glow 2s ease-in-out infinite alternate;
   }
@@ -150,3 +148,9 @@
     }
   }
 }
+
+/* 🎨 Extra Themes (optional: apply on <body> or <html>) */
+.theme-orange { --brand: 25 95% 53%; }
+.theme-blue { --brand: 210 96% 53%; }
+.theme-green { --brand: 142 72% 45%; }
+.theme-purple { --brand: 270 80% 65%; }

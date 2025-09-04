@@ -145,7 +145,7 @@ export default function Auth() {
           </div>
         </div>
 
-        <Card className="gradient-border slide-in">
+        <Card className="slide-in">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center text-foreground">
               Access Your Dashboard
