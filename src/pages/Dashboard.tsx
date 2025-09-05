@@ -212,22 +212,22 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full interactive-button bg-primary hover:bg-primary/90" size="sm">
+            <Button className="w-full interactive-button bg-primary hover:bg-primary/90" size="sm" onClick={() => window.location.href = '/submissions'}>
               <Users className="h-4 w-4 mr-2" />
               View All Submissions
             </Button>
-            <Button className="w-full interactive-button bg-secondary hover:bg-secondary/90" size="sm" variant="secondary">
+            <Button className="w-full interactive-button bg-secondary hover:bg-secondary/90" size="sm" variant="secondary" onClick={() => window.location.href = '/connections'}>
               <Activity className="h-4 w-4 mr-2" />
-              Add New Connection
+              View All Connections
             </Button>
-            <Button className="w-full interactive-button" size="sm" variant="outline">
+            {/* <Button className="w-full interactive-button" size="sm" variant="outline">
               <BarChart3 className="h-4 w-4 mr-2" />
               Export Analytics
             </Button>
             <Button className="w-full interactive-button" size="sm" variant="outline">
               <Calendar className="h-4 w-4 mr-2" />
               Schedule Report
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
       </div>
