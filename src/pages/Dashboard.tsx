@@ -218,7 +218,7 @@ export default function Dashboard() {
             </Button>
             <Button className="w-full interactive-button bg-secondary hover:bg-secondary/90" size="sm" variant="secondary" onClick={() => window.location.href = '/connections'}>
               <Activity className="h-4 w-4 mr-2" />
-              View All Connections
+              Add New Connections
             </Button>
             {/* <Button className="w-full interactive-button" size="sm" variant="outline">
               <BarChart3 className="h-4 w-4 mr-2" />
