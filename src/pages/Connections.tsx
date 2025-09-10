@@ -46,6 +46,8 @@ export default function Connections() {
 
   const [formData, setFormData] = useState({
     name: "",
+    platform: 'Facebook',
+    environment: 'Production',
     pixel_id: "",
     pixel_access_token: "",
     countries: [{ country: "", value: "" }],
@@ -87,6 +89,8 @@ export default function Connections() {
   const resetForm = () => {
     setFormData({
       name: "",
+      platform: 'Facebook',
+      environment: 'Production',
       pixel_id: "",
       pixel_access_token: "",
       countries: [{ country: "", value: "" }],
@@ -101,6 +105,8 @@ export default function Connections() {
     setEditingConnection(connection);
     setFormData({
       name: connection.name,
+      platform: connection.platform || 'Facebook',
+      environment: connection.environment || 'Production',
       pixel_id: connection.pixel_id,
       pixel_access_token: connection.pixel_access_token,
       countries: connection.countries || [{ country: "", value: "" }],

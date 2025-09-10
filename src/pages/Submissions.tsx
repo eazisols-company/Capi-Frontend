@@ -25,6 +25,7 @@ import {
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { SubmissionDetailsModal } from "@/components/SubmissionDetailsModal";
 
 export default function Submissions() {
   const { user } = useAuth();
@@ -38,6 +39,8 @@ export default function Submissions() {
   const [connectionFilter, setConnectionFilter] = useState("all");
   const [autoSubmission, setAutoSubmission] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -133,6 +136,20 @@ export default function Submissions() {
         return newSet;
       });
     }
+  };
+
+  const handleSubmissionClick = (submission: any) => {
+    setSelectedSubmission(submission);
+    setIsModalOpen(true);
+  };
+
+  const getConnectionForSubmission = (submission: any) => {
+    return connections.find(conn => conn.id === submission.connection_id);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedSubmission(null);
   };
 
   const getStatusIcon = (status: string) => {
@@ -286,7 +303,8 @@ export default function Submissions() {
               {filteredSubmissions.map((submission) => (
                 <div 
                   key={submission.id} 
-                  className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all bg-card"
+                  className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all bg-card cursor-pointer"
+                  onClick={() => handleSubmissionClick(submission)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -333,7 +351,10 @@ export default function Submissions() {
                       {submission.status === 'pending' && !autoSubmission && (
                         <Button
                           size="sm"
-                          onClick={() => handleManualSubmission(submission.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleManualSubmission(submission.id);
+                          }}
                           disabled={processingIds.has(submission.id)}
                           className="interactive-button bg-secondary hover:bg-secondary/90"
                         >
@@ -366,6 +387,14 @@ export default function Submissions() {
           )}
         </CardContent>
       </Card>
+
+      {/* Submission Details Modal */}
+      <SubmissionDetailsModal
+        submission={selectedSubmission}
+        connection={selectedSubmission ? getConnectionForSubmission(selectedSubmission) : undefined}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+      />
     </div>
   );
 }
