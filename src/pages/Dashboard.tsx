@@ -13,10 +13,12 @@ import {
   BarChart3,
   Activity,
   Target,
-  Zap
+  Zap,
+  Copy
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 import { getCurrencySymbol } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -44,6 +46,31 @@ export default function Dashboard() {
       setProfile(response.data.profile);
     } catch (error) {
       console.error('Error fetching profile:', error);
+    }
+  };
+
+  const copyClientId = async () => {
+    if (profile?.account_id) {
+      try {
+        await navigator.clipboard.writeText(profile.account_id);
+        toast({
+          title: "Copied!",
+          description: "Client ID copied to clipboard",
+        });
+      } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = profile.account_id;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        toast({
+          title: "Copied!",
+          description: "Client ID copied to clipboard",
+        });
+      }
     }
   };
 
@@ -115,8 +142,14 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-4">
             {profile && (
-              <Badge variant="outline" className="text-primary border-primary/20">
+              <Badge 
+                variant="outline" 
+                className="text-primary border-primary/20 cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-2"
+                onClick={copyClientId}
+                title="Click to copy Client ID"
+              >
                 Account: {profile.account_id}
+                <Copy className="h-3 w-3" />
               </Badge>
             )}
             <Select value={timeFilter} onValueChange={setTimeFilter}>

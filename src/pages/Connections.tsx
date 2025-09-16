@@ -175,6 +175,16 @@ export default function Connections() {
         return;
       }
 
+      // Validate custom domain field when custom domain is enabled
+      if (formData.use_custom_domain && !formData.custom_domain.trim()) {
+        toast({
+          title: "Error",
+          description: "Custom domain is required when 'Use Custom Domain' is enabled.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const validCountries = formData.countries.filter(c => c.country && c.value);
       
       if (validCountries.length === 0) {
