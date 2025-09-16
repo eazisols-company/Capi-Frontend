@@ -155,6 +155,26 @@ export default function Connections() {
     e.preventDefault();
     
     try {
+      // Validate Pixel ID length (must be exactly 16 digits)
+      if (formData.pixel_id.length !== 16 || !/^\d{16}$/.test(formData.pixel_id)) {
+        toast({
+          title: "Error",
+          description: "Invalid Pixel ID. Pixel ID must be exactly 16 digits.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validate System Access Token length (must be exactly 236 characters)
+      if (formData.pixel_access_token.length !== 236) {
+        toast({
+          title: "Error",
+          description: "Invalid System Access Token. System Access Token must be exactly 236 characters long.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const validCountries = formData.countries.filter(c => c.country && c.value);
       
       if (validCountries.length === 0) {
@@ -287,7 +307,7 @@ export default function Connections() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pixel_access_token">Pixel Access Token</Label>
+                    <Label htmlFor="pixel_access_token">System Access Token</Label>
                     <Input
                       id="pixel_access_token"
                       type="password"
