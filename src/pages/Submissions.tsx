@@ -152,6 +152,115 @@ export default function Submissions() {
     setSelectedSubmission(null);
   };
 
+  const exportToCSV = () => {
+    if (filteredSubmissions.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No submissions to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Define CSV headers with better organization
+    const headers = [
+      'First Name',
+      'Last Name',
+      'Email Address',
+      'Phone Number',
+      'Country',
+      'Deposit Amount',
+      'Submission Status',
+      'Connection Name',
+      'Connection ID',
+      'Submission Date'
+    ];
+
+    // Helper function to format phone numbers properly
+    const formatPhoneNumber = (phone: string | number) => {
+      if (!phone) return '';
+      let phoneStr = String(phone);
+
+      // Handle scientific notation
+      if (/[eE][+-]?\d+/.test(phoneStr)) {
+        phoneStr = Number(phone).toLocaleString('fullwide', { useGrouping: false });
+      }
+
+      // Remove decimals
+      phoneStr = phoneStr.split('.')[0];
+
+      // Ensure international format keeps '+'
+      if (phoneStr.length > 10 && !phoneStr.startsWith('+')) {
+        phoneStr = '+' + phoneStr;
+      }
+
+      // Force Excel to treat it as text
+      return `="${phoneStr}"`;
+    };
+
+
+    // Helper function to format dates nicely
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    // Convert submissions to CSV format with better formatting
+    const csvData = filteredSubmissions.map(submission => [
+      submission.first_name || 'N/A',
+      submission.last_name || 'N/A',
+      submission.email || 'N/A',
+      formatPhoneNumber(submission.phone) || 'N/A',
+      submission.country || 'N/A',
+      submission.deposit_amount ? `$${submission.deposit_amount}` : 'N/A',
+      submission.status ? submission.status.charAt(0).toUpperCase() + submission.status.slice(1) : 'N/A',
+      submission.connection_name || 'N/A',
+      submission.connection_id || 'N/A',
+      formatDate(submission.created_at)
+    ]);
+
+    // Combine headers and data
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => {
+        // Handle numbers and strings properly for CSV
+        const fieldStr = String(field);
+        // If field contains comma, newline, or quotes, wrap in quotes
+        if (fieldStr.includes(',') || fieldStr.includes('\n') || fieldStr.includes('"')) {
+          return `"${fieldStr.replace(/"/g, '""')}"`;
+        }
+        return fieldStr;
+      }).join(','))
+      .join('\n');
+
+    // Create and download file with better filename
+    const now = new Date();
+    const timestamp = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+    const filename = `Lead_Submissions_Export_${timestamp}_${timeStr}.csv`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export Successful",
+      description: `Exported ${filteredSubmissions.length} submissions to ${filename}`,
+    });
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'submitted':
@@ -204,7 +313,10 @@ export default function Submissions() {
                 Auto-submit to Meta CAPI
               </Label>
             </div>
-            <Button className="interactive-button">
+            <Button 
+              className="interactive-button"
+              onClick={exportToCSV}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export Data
             </Button>
