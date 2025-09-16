@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { extractApiErrorMessage } from "@/lib/utils";
+import { extractApiErrorMessage, getCurrencySymbol } from "@/lib/utils";
 
 const FONT_OPTIONS = [
   { value: "Inter", label: "Inter", cssName: "'Inter', sans-serif" },
@@ -41,6 +41,7 @@ export default function OptInPages() {
   const [selectedConnectionId, setSelectedConnectionId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     connection_id: "",
@@ -58,6 +59,7 @@ export default function OptInPages() {
     if (user) {
       fetchSettings();
       fetchConnections();
+      fetchProfile();
     }
   }, [user]);
 
@@ -141,6 +143,15 @@ export default function OptInPages() {
         description: "Failed to fetch connections",
         variant: "destructive"
       });
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const response = await apiClient.getProfile();
+      setProfile(response.data.profile);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
     }
   };
 
@@ -640,7 +651,7 @@ export default function OptInPages() {
                         >
                           <SelectValue placeholder={
                             selectedConnectionId && connections.find(c => c._id === selectedConnectionId)?.countries?.length > 0
-                              ? `${connections.find(c => c._id === selectedConnectionId)?.countries[0].country} ($${connections.find(c => c._id === selectedConnectionId)?.countries[0].value})`
+                              ? `${connections.find(c => c._id === selectedConnectionId)?.countries[0].country} (${getCurrencySymbol(profile?.system_currency)}${connections.find(c => c._id === selectedConnectionId)?.countries[0].value})`
                               : "Select Country"
                           } />
                         </SelectTrigger>

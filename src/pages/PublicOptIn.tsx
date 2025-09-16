@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
+import { getCurrencySymbol } from "@/lib/utils";
 
 interface OptInSettings {
   connection_id: string;
@@ -324,7 +325,7 @@ export default function PublicOptIn() {
                 <SelectContent>
                   {connection.countries.map((countryData) => (
                     <SelectItem key={countryData.country} value={countryData.country}>
-                      {countryData.country} (${countryData.value})
+                      {countryData.country} ({getCurrencySymbol('EUR')}{countryData.value})
                     </SelectItem>
                   ))}
                 </SelectContent>

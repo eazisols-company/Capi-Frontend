@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
+import { getCurrencySymbol } from "@/lib/utils";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export default function Dashboard() {
     },
     {
       title: "Total Deposits",
-      value: `${profile?.system_currency || 'EUR'} ${stats.totalDeposits.toLocaleString()}`,
+      value: `${getCurrencySymbol(profile?.system_currency)} ${stats.totalDeposits.toLocaleString()}`,
       icon: DollarSign,
       color: "text-secondary",
       bgColor: "bg-secondary/10",
@@ -263,7 +264,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-foreground">
-                      {profile?.system_currency || 'EUR'} {parseFloat(submission.deposit_amount).toLocaleString()}
+                      {getCurrencySymbol(profile?.system_currency)} {parseFloat(submission.deposit_amount).toLocaleString()}
                     </p>
                     <Badge 
                       variant={submission.status === 'submitted' ? 'default' : 

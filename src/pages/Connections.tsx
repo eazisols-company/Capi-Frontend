@@ -26,7 +26,7 @@ import {
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { extractApiErrorMessage } from "@/lib/utils";
+import { extractApiErrorMessage, getCurrencySymbol } from "@/lib/utils";
 
 const COUNTRIES = [
   "United States", "United Kingdom", "Germany", "France", "Italy", "Spain", "Netherlands",
@@ -43,6 +43,7 @@ export default function Connections() {
   const [editingConnection, setEditingConnection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [deletingConnection, setDeletingConnection] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -59,6 +60,7 @@ export default function Connections() {
   useEffect(() => {
     if (user) {
       fetchConnections();
+      fetchProfile();
     }
   }, [user]);
 
@@ -83,6 +85,15 @@ export default function Connections() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const response = await apiClient.getProfile();
+      setProfile(response.data.profile);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
     }
   };
 
@@ -311,14 +322,18 @@ export default function Connections() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="w-32">
+                    <div className="w-32 relative">
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">
+                        {getCurrencySymbol(profile?.system_currency)}
+                      </div>
                       <Input
                         type="number"
                         value={country.value}
                         onChange={(e) => updateCountryField(index, 'value', e.target.value)}
-                        placeholder="Value"
+                        placeholder="0.00"
                         min="0"
                         step="0.01"
+                        className="pl-8"
                       />
                     </div>
                     {formData.countries.length > 1 && (
@@ -513,7 +528,7 @@ export default function Connections() {
                       {connection.countries?.map((country: any, index: number) => (
                         <div key={index} className="flex justify-between text-sm">
                           <span className="text-muted-foreground">{country.country}</span>
-                          <span className="text-foreground font-medium">${country.value}</span>
+                          <span className="text-foreground font-medium">{getCurrencySymbol(profile?.system_currency)}{country.value}</span>
                         </div>
                       ))}
                     </div>

@@ -139,8 +139,8 @@ export default function Submissions() {
   };
 
   const handleSubmissionClick = (submission: any) => {
-    // setSelectedSubmission(submission);
-    // setIsModalOpen(true);
+    setSelectedSubmission(submission);
+    setIsModalOpen(true);
   };
 
   const getConnectionForSubmission = (submission: any) => {

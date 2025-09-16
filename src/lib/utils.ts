@@ -56,3 +56,19 @@ export function extractApiErrorMessage(error: any, fallbackMessage: string = "An
   
   return fallbackMessage;
 }
+
+/**
+ * Converts currency code to symbol
+ * @param currency - The currency code (EUR, USD)
+ * @returns The corresponding currency symbol
+ */
+export function getCurrencySymbol(currency?: string): string {
+  switch (currency) {
+    case 'USD':
+      return '$';
+    case 'EUR':
+      return '€';
+    default:
+      return '€'; // Default to EUR
+  }
+}
