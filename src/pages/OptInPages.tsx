@@ -696,6 +696,13 @@ export default function OptInPages() {
                       style={{ backgroundColor: formData.secondary_color }}
                     />
                   </div>
+
+                  {/* Powered by Trackiterra */}
+                  <div className="mt-8 pt-4 border-t border-white/20">
+                    <p className="text-xs text-gray-400 text-center">
+                      Powered by Trackiterra
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
