@@ -42,6 +42,50 @@ const FONT_OPTIONS = [
   { value: "Ubuntu", label: "Ubuntu", cssName: "'Ubuntu', sans-serif" }
 ];
 
+const COUNTRY_CODES = [
+  { code: "+1", country: "US/CA", flag: "🇺🇸" },
+  { code: "+44", country: "UK", flag: "🇬🇧" },
+  { code: "+49", country: "DE", flag: "🇩🇪" },
+  { code: "+33", country: "FR", flag: "🇫🇷" },
+  { code: "+32", country: "BE", flag: "🇧🇪" },
+  { code: "+41", country: "CH", flag: "🇨🇭" },
+  { code: "+43", country: "AT", flag: "🇦🇹" },
+  { code: "+46", country: "SE", flag: "🇸🇪" },
+  { code: "+47", country: "NO", flag: "🇳🇴" },
+  { code: "+45", country: "DK", flag: "🇩🇰" },
+  { code: "+358", country: "FI", flag: "🇫🇮" },
+  { code: "+31", country: "NL", flag: "🇳🇱" },
+  { code: "+39", country: "IT", flag: "🇮🇹" },
+  { code: "+34", country: "ES", flag: "🇪🇸" },
+  { code: "+351", country: "PT", flag: "🇵🇹" },
+  { code: "+61", country: "AU", flag: "🇦🇺" },
+  { code: "+81", country: "JP", flag: "🇯🇵" },
+  { code: "+82", country: "KR", flag: "🇰🇷" },
+  { code: "+65", country: "SG", flag: "🇸🇬" },
+  { code: "+852", country: "HK", flag: "🇭🇰" },
+  { code: "+55", country: "BR", flag: "🇧🇷" },
+  { code: "+52", country: "MX", flag: "🇲🇽" },
+  { code: "+54", country: "AR", flag: "🇦🇷" },
+  { code: "+56", country: "CL", flag: "🇨🇱" },
+  { code: "+57", country: "CO", flag: "🇨🇴" },
+  { code: "+91", country: "IN", flag: "🇮🇳" },
+  { code: "+92", country: "PK", flag: "🇵🇰" },
+  { code: "+86", country: "CN", flag: "🇨🇳" },
+  { code: "+27", country: "ZA", flag: "🇿🇦" },
+  { code: "+234", country: "NG", flag: "🇳🇬" },
+  { code: "+20", country: "EG", flag: "🇪🇬" },
+  { code: "+971", country: "AE", flag: "🇦🇪" },
+  { code: "+966", country: "SA", flag: "🇸🇦" },
+  { code: "+90", country: "TR", flag: "🇹🇷" },
+  { code: "+48", country: "PL", flag: "🇵🇱" },
+  { code: "+7", country: "RU", flag: "🇷🇺" },
+  { code: "+380", country: "UA", flag: "🇺🇦" },
+  { code: "+30", country: "GR", flag: "🇬🇷" },
+  { code: "+420", country: "CZ", flag: "🇨🇿" },
+  { code: "+36", country: "HU", flag: "🇭🇺" },
+  { code: "+40", country: "RO", flag: "🇷🇴" }
+];
+
 export default function PublicOptIn() {
   const { connectionId } = useParams();
   const [searchParams] = useSearchParams();
@@ -56,6 +100,7 @@ export default function PublicOptIn() {
     last_name: "",
     email: "",
     phone: "",
+    country_code: "+1",
     country: "",
     deposit_amount: ""
   });
@@ -105,19 +150,14 @@ export default function PublicOptIn() {
     try {
       setSubmitting(true);
       
-      // Find the deposit amount for the selected country
-      const selectedCountryData = optInData.connection.countries.find(
-        c => c.country === formData.country
-      );
-      
-      const depositAmount = selectedCountryData?.value || parseFloat(formData.deposit_amount) || 0;
+      const depositAmount = parseFloat(formData.deposit_amount) || 0;
 
       const submissionData = {
         connection_id: optInData.connection_id,
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
-        phone: formData.phone,
+        phone: `${formData.country_code}${formData.phone}`,
         country: formData.country,
         deposit_amount: depositAmount,
         source_url: window.location.href,
@@ -290,20 +330,54 @@ export default function PublicOptIn() {
 
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-white">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="+1 234 567 8900"
-                required
-                className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
-                style={{ 
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  borderColor: `${settings.secondary_color}60`,
-                  '--tw-ring-color': settings.secondary_color
-                } as React.CSSProperties}
-              />
+              <div className="flex gap-2">
+                <Select
+                  value={formData.country_code}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, country_code: value }))}
+                >
+                  <SelectTrigger 
+                    className="border-2 text-white transition-all duration-200 w-28"
+                    style={{ 
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      borderColor: `${settings.secondary_color}60`
+                    }}
+                  >
+                    <SelectValue>
+                      {formData.country_code && (
+                        <div className="flex items-center gap-1">
+                          <span>{COUNTRY_CODES.find(cc => cc.code === formData.country_code)?.flag}</span>
+                          <span>{formData.country_code}</span>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_CODES.map((countryCode) => (
+                      <SelectItem key={countryCode.code} value={countryCode.code}>
+                        <div className="flex items-center gap-2">
+                          <span>{countryCode.flag}</span>
+                          <span>{countryCode.code}</span>
+                          <span className="text-xs text-gray-500">{countryCode.country}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="234 567 8900"
+                  required
+                  className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 flex-1"
+                  style={{ 
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    borderColor: `${settings.secondary_color}60`,
+                    '--tw-ring-color': settings.secondary_color
+                  } as React.CSSProperties}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -325,11 +399,29 @@ export default function PublicOptIn() {
                 <SelectContent>
                   {connection.countries.map((countryData) => (
                     <SelectItem key={countryData.country} value={countryData.country}>
-                      {countryData.country} ({getCurrencySymbol('EUR')}{countryData.value})
+                      {countryData.country}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="deposit" className="text-white">Deposit Amount</Label>
+              <Input
+                id="deposit"
+                type="number"
+                value={formData.deposit_amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, deposit_amount: e.target.value }))}
+                placeholder="Enter deposit amount"
+                required
+                className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
+                style={{ 
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  borderColor: `${settings.secondary_color}60`,
+                  '--tw-ring-color': settings.secondary_color
+                } as React.CSSProperties}
+              />
             </div>
 
             <Button 

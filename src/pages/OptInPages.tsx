@@ -34,6 +34,50 @@ const FONT_OPTIONS = [
   { value: "Ubuntu", label: "Ubuntu", cssName: "'Ubuntu', sans-serif" }
 ];
 
+const COUNTRY_CODES = [
+  { code: "+1", country: "US/CA", flag: "🇺🇸" },
+  { code: "+44", country: "UK", flag: "🇬🇧" },
+  { code: "+49", country: "DE", flag: "🇩🇪" },
+  { code: "+33", country: "FR", flag: "🇫🇷" },
+  { code: "+32", country: "BE", flag: "🇧🇪" },
+  { code: "+41", country: "CH", flag: "🇨🇭" },
+  { code: "+43", country: "AT", flag: "🇦🇹" },
+  { code: "+46", country: "SE", flag: "🇸🇪" },
+  { code: "+47", country: "NO", flag: "🇳🇴" },
+  { code: "+45", country: "DK", flag: "🇩🇰" },
+  { code: "+358", country: "FI", flag: "🇫🇮" },
+  { code: "+31", country: "NL", flag: "🇳🇱" },
+  { code: "+39", country: "IT", flag: "🇮🇹" },
+  { code: "+34", country: "ES", flag: "🇪🇸" },
+  { code: "+351", country: "PT", flag: "🇵🇹" },
+  { code: "+61", country: "AU", flag: "🇦🇺" },
+  { code: "+81", country: "JP", flag: "🇯🇵" },
+  { code: "+82", country: "KR", flag: "🇰🇷" },
+  { code: "+65", country: "SG", flag: "🇸🇬" },
+  { code: "+852", country: "HK", flag: "🇭🇰" },
+  { code: "+55", country: "BR", flag: "🇧🇷" },
+  { code: "+52", country: "MX", flag: "🇲🇽" },
+  { code: "+54", country: "AR", flag: "🇦🇷" },
+  { code: "+56", country: "CL", flag: "🇨🇱" },
+  { code: "+57", country: "CO", flag: "🇨🇴" },
+  { code: "+91", country: "IN", flag: "🇮🇳" },
+  { code: "+92", country: "PK", flag: "🇵🇰" },
+  { code: "+86", country: "CN", flag: "🇨🇳" },
+  { code: "+27", country: "ZA", flag: "🇿🇦" },
+  { code: "+234", country: "NG", flag: "🇳🇬" },
+  { code: "+20", country: "EG", flag: "🇪🇬" },
+  { code: "+971", country: "AE", flag: "🇦🇪" },
+  { code: "+966", country: "SA", flag: "🇸🇦" },
+  { code: "+90", country: "TR", flag: "🇹🇷" },
+  { code: "+48", country: "PL", flag: "🇵🇱" },
+  { code: "+7", country: "RU", flag: "🇷🇺" },
+  { code: "+380", country: "UA", flag: "🇺🇦" },
+  { code: "+30", country: "GR", flag: "🇬🇷" },
+  { code: "+420", country: "CZ", flag: "🇨🇿" },
+  { code: "+36", country: "HU", flag: "🇭🇺" },
+  { code: "+40", country: "RO", flag: "🇷🇴" }
+];
+
 export default function OptInPages() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<any[]>([]);
@@ -631,16 +675,34 @@ export default function OptInPages() {
                         } as React.CSSProperties}
                         disabled
                       />
-                      <Input 
-                        placeholder="Phone Number" 
-                        className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200"
-                        style={{ 
-                          backgroundColor: 'rgba(255,255,255,0.1)',
-                          borderColor: `${formData.secondary_color}40`,
-                          '--tw-ring-color': formData.secondary_color
-                        } as React.CSSProperties}
-                        disabled
-                      />
+                      <div className="flex gap-2">
+                        <Select disabled>
+                          <SelectTrigger 
+                            className="border-2 text-white transition-all duration-200 w-28"
+                            style={{ 
+                              backgroundColor: 'rgba(255,255,255,0.1)',
+                              borderColor: `${formData.secondary_color}40`
+                            }}
+                          >
+                            <SelectValue>
+                              <div className="flex items-center gap-1">
+                                <span>🇺🇸</span>
+                                <span>+1</span>
+                              </div>
+                            </SelectValue>
+                          </SelectTrigger>
+                        </Select>
+                        <Input 
+                          placeholder="Phone Number" 
+                          className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200 flex-1"
+                          style={{ 
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderColor: `${formData.secondary_color}40`,
+                            '--tw-ring-color': formData.secondary_color
+                          } as React.CSSProperties}
+                          disabled
+                        />
+                      </div>
                       <Select disabled>
                         <SelectTrigger 
                           className="border-2 text-white transition-all duration-200"
@@ -651,7 +713,7 @@ export default function OptInPages() {
                         >
                           <SelectValue placeholder={
                             selectedConnectionId && connections.find(c => c._id === selectedConnectionId)?.countries?.length > 0
-                              ? `${connections.find(c => c._id === selectedConnectionId)?.countries[0].country} (${getCurrencySymbol(profile?.system_currency)}${connections.find(c => c._id === selectedConnectionId)?.countries[0].value})`
+                              ? connections.find(c => c._id === selectedConnectionId)?.countries[0].country
                               : "Select Country"
                           } />
                         </SelectTrigger>
