@@ -37,6 +37,7 @@ export default function Submissions() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
   const [connectionFilter, setConnectionFilter] = useState("all");
+  const [eventFilter, setEventFilter] = useState("all");
   const [autoSubmission, setAutoSubmission] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
@@ -51,7 +52,7 @@ export default function Submissions() {
 
   useEffect(() => {
     filterSubmissions();
-  }, [submissions, searchTerm, statusFilter, countryFilter, connectionFilter]);
+  }, [submissions, searchTerm, statusFilter, countryFilter, connectionFilter, eventFilter]);
 
   const fetchSubmissions = async () => {
     try {
@@ -105,6 +106,11 @@ export default function Submissions() {
     // Connection filter
     if (connectionFilter !== "all") {
       filtered = filtered.filter(submission => submission.connection_id === connectionFilter);
+    }
+
+    // Event filter
+    if (eventFilter !== "all") {
+      filtered = filtered.filter(submission => submission.custom_event_name === eventFilter);
     }
 
     setFilteredSubmissions(filtered);
@@ -170,6 +176,7 @@ export default function Submissions() {
       'Phone Number',
       'Country',
       'Deposit Amount',
+      'Custom Event Name',
       'Submission Status',
       'Connection Name',
       'Connection ID',
@@ -220,6 +227,7 @@ export default function Submissions() {
       formatPhoneNumber(submission.phone) || 'N/A',
       submission.country || 'N/A',
       submission.deposit_amount ? `$${submission.deposit_amount}` : 'N/A',
+      submission.custom_event_name || 'N/A',
       submission.status ? submission.status.charAt(0).toUpperCase() + submission.status.slice(1) : 'N/A',
       submission.connection_name || 'N/A',
       submission.connection_id || 'N/A',
@@ -288,6 +296,7 @@ export default function Submissions() {
   };
 
   const uniqueCountries = [...new Set(submissions.map(s => s.country))];
+  const uniqueEventNames = [...new Set(submissions.map(s => s.custom_event_name).filter(Boolean))];
 
   return (
     <div className="space-y-6 slide-in">
@@ -326,7 +335,7 @@ export default function Submissions() {
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -375,6 +384,18 @@ export default function Submissions() {
                 </SelectContent>
               </Select>
 
+              <Select value={eventFilter} onValueChange={setEventFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by event" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Events</SelectItem>
+                  {uniqueEventNames.map(eventName => (
+                    <SelectItem key={eventName} value={eventName}>{eventName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <Button 
                 variant="outline" 
                 onClick={() => {
@@ -382,6 +403,7 @@ export default function Submissions() {
                   setStatusFilter("all");
                   setCountryFilter("all");
                   setConnectionFilter("all");
+                  setEventFilter("all");
                 }}
                 className="interactive-button"
               >
@@ -450,6 +472,13 @@ export default function Submissions() {
                             <DollarSign className="h-3 w-3" />
                             {submission.deposit_amount}
                           </div>
+                          {/* {submission.custom_event_name && (
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="text-xs">
+                                {submission.custom_event_name}
+                              </Badge>
+                            </div>
+                          )} */}
                         </div>
                       </div>
                     </div>
@@ -490,7 +519,7 @@ export default function Submissions() {
               <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-semibold text-foreground mb-2">No submissions found</h3>
               <p className="text-muted-foreground">
-                {searchTerm || statusFilter !== "all" || countryFilter !== "all" || connectionFilter !== "all"
+                {searchTerm || statusFilter !== "all" || countryFilter !== "all" || connectionFilter !== "all" || eventFilter !== "all"
                   ? "Try adjusting your filters to see more results."
                   : "Submissions will appear here once leads are captured."
                 }

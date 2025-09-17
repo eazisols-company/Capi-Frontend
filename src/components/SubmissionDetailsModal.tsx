@@ -107,7 +107,11 @@ export function SubmissionDetailsModal({
   };
 
   const getEventType = () => {
-    // Determine from submission data or default to Lead
+    // Use custom_event_name if available, otherwise fallback to logic-based determination
+    if (submission.custom_event_name) {
+      return submission.custom_event_name;
+    }
+    // Fallback logic for backward compatibility
     if (submission.deposit_amount > 0) return 'Purchase';
     return 'Lead';
   };
