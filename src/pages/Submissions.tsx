@@ -36,7 +36,7 @@ export default function Submissions() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
-  const [connectionFilter, setConnectionFilter] = useState("all");
+  const [connectionFilter, setConnectionFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState("all");
   const [autoSubmission, setAutoSubmission] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -74,7 +74,17 @@ export default function Submissions() {
   const fetchConnections = async () => {
     try {
       const response = await apiClient.getConnections();
-      setConnections(response.data.connections || []);
+      const connectionsData = response.data.connections || [];
+      
+      // Filter out connections with undefined IDs and normalize ID field
+      const validConnections = connectionsData
+        .filter(conn => conn.id || conn._id)
+        .map(conn => ({
+          ...conn,
+          id: conn.id || conn._id // Normalize ID field (handle both id and _id)
+        }));
+      
+      setConnections(validConnections);
     } catch (error) {
       console.error('Error fetching connections:', error);
     }
@@ -104,8 +114,10 @@ export default function Submissions() {
     }
 
     // Connection filter
-    if (connectionFilter !== "all") {
-      filtered = filtered.filter(submission => submission.connection_id === connectionFilter);
+    if (connectionFilter && connectionFilter !== "all") {
+      filtered = filtered.filter(submission => {
+        return String(submission.connection_id) === String(connectionFilter);
+      });
     }
 
     // Event filter
@@ -150,7 +162,7 @@ export default function Submissions() {
   };
 
   const getConnectionForSubmission = (submission: any) => {
-    return connections.find(conn => conn.id === submission.connection_id);
+    return connections.find(conn => String(conn.id) === String(submission.connection_id));
   };
 
   const handleModalClose = () => {
@@ -229,7 +241,7 @@ export default function Submissions() {
       submission.deposit_amount ? `$${submission.deposit_amount}` : 'N/A',
       submission.custom_event_name || 'N/A',
       submission.status ? submission.status.charAt(0).toUpperCase() + submission.status.slice(1) : 'N/A',
-      submission.connection_name || 'N/A',
+      submission.connection_name || getConnectionForSubmission(submission)?.name || 'N/A',
       submission.connection_id || 'N/A',
       formatDate(submission.created_at)
     ]);
@@ -370,14 +382,17 @@ export default function Submissions() {
                 </SelectContent>
               </Select>
 
-              <Select value={connectionFilter} onValueChange={setConnectionFilter}>
+              <Select 
+                value={connectionFilter || "all"} 
+                onValueChange={(value) => setConnectionFilter(value || "all")}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by connection" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Connections</SelectItem>
-                  {connections.map(connection => (
-                    <SelectItem key={connection.id} value={connection.id}>
+                  {connections.filter(conn => conn.id && conn.name).map((connection, index) => (
+                    <SelectItem key={`connection-${connection.id}-${index}`} value={String(connection.id)}>
                       {connection.name}
                     </SelectItem>
                   ))}
@@ -485,7 +500,7 @@ export default function Submissions() {
                     
                     <div className="flex items-center gap-3">
                                               <div className="text-right text-sm text-muted-foreground">
-                        <p>Connection: {submission.connection_name}</p>
+                        <p>Connection: {submission.connection_name || getConnectionForSubmission(submission)?.name || 'Unknown'}</p>
                         <p>{new Date(submission.created_at).toLocaleDateString()}</p>
                       </div>
                       
