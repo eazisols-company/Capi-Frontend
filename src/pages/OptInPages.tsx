@@ -677,19 +677,21 @@ export default function OptInPages() {
                       />
                       <div className="flex gap-2">
                         <Select disabled>
-                          <SelectTrigger 
+                          <SelectTrigger
                             className="border-2 text-white transition-all duration-200 w-28"
-                            style={{ 
+                            style={{
                               backgroundColor: 'rgba(255,255,255,0.1)',
-                              borderColor: `${formData.secondary_color}40`
+                              borderColor: `${formData.secondary_color}40`,
                             }}
                           >
-                            <SelectValue>
-                              <div className="flex items-center gap-1">
-                                <span>🇺🇸</span>
-                                <span>+1</span>
-                              </div>
-                            </SelectValue>
+                            <SelectValue
+                              placeholder={
+                                <div className="flex items-center gap-1">
+                                  <span>🇺🇸</span>
+                                  <span>+1</span>
+                                </div>
+                              }
+                            />
                           </SelectTrigger>
                         </Select>
                         <Input 
