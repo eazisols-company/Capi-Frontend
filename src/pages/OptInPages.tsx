@@ -761,10 +761,10 @@ export default function OptInPages() {
                     />
                   </div>
 
-                  {/* Powered by Trackiterra */}
+                  {/* Powered by TrackAff */}
                   <div className="mt-8 pt-4 border-t border-white/20">
                     <p className="text-xs text-gray-400 text-center">
-                      Powered by Trackiterra
+                      Powered by TrackAff
                     </p>
                   </div>
                 </div>

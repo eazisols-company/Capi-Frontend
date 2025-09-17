@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#F57125"/>
+  
+  <!-- Upper triangle (white) -->
+  <path d="M16 4 L24 16 L16 16 L8 16 Z" fill="white"/>
+  
+  <!-- Lower triangle (darker orange for contrast) -->
+  <path d="M8 16 L16 16 L24 16 L16 28 Z" fill="#E55A0F"/>
+  
+  <!-- Subtle center lines for definition -->
+  <line x1="16" y1="4" x2="16" y2="28" stroke="#D14D08" stroke-width="0.5" opacity="0.6"/>
+  <line x1="8" y1="16" x2="24" y2="16" stroke="#D14D08" stroke-width="0.5" opacity="0.6"/>
+</svg>

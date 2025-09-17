@@ -116,7 +116,7 @@ export default function PublicOptIn() {
 
       // Try to get settings by domain first, then by connection ID
       const domain = window.location.hostname;
-      const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'trackiterra.app';
+      const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'trackAff.app';
       let response;
 
       // Check if this is a custom domain (not localhost, not the base domain)

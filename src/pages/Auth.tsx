@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Eye, EyeOff, TrendingUp } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 
@@ -237,8 +237,7 @@ export default function Auth() {
         {/* Logo and Branding */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20">
-            <TrendingUp className="h-8 w-8 text-primary animate-glow" />
-            <span className="text-2xl font-bold text-primary">TrackiTerra</span>
+            <img src="/trackaff_logo.png" alt="TrackAff" className="h-8 w-auto" />
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">

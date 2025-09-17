@@ -6,7 +6,6 @@ import {
   Link,
   Settings,
   FileText,
-  TrendingUp,
   LogOut,
   User,
 } from "lucide-react";
@@ -60,20 +59,15 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-              <TrendingUp className="h-6 w-6 text-primary animate-glow" />
-            </div>
+            <img src="/trackaff_logo.png" alt="TrackAff" className="h-8 w-auto" />
             <div className="flex flex-col">
-              <span className="font-bold text-lg text-primary">TrackiTerra</span>
               <span className="text-xs text-muted-foreground">Meta CAPI Platform</span>
             </div>
           </div>
         )}
         {collapsed && (
           <div className="flex justify-center">
-            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-              <TrendingUp className="h-6 w-6 text-primary animate-glow" />
-            </div>
+            <img src="/trackaff_logo.png" alt="TrackAff" className="h-6 w-auto" />
           </div>
         )}
       </SidebarHeader>

@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -9,8 +8,7 @@ const Index = () => {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-8">
         <div className="inline-flex items-center gap-2 p-4 rounded-xl bg-primary/10 border border-primary/20 animate-glow">
-          <TrendingUp className="h-12 w-12 text-primary" />
-          <span className="text-4xl font-bold text-primary">TrackiTerra</span>
+          <img src="/trackaff_logo.png" alt="TrackAff" className="h-12 w-auto" />
         </div>
         <div className="space-y-4">
           <h1 className="text-5xl font-bold tracking-tight text-foreground">

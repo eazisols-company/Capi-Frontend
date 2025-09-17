@@ -443,7 +443,7 @@ export default function Connections() {
                     />
                     <div className="text-xs text-muted-foreground space-y-1">
                       <p>To set up your custom domain:</p>
-                      <p>1. Add a CNAME record: <code className="bg-muted px-1 rounded">tracking.yourdomain.com → trackiterra.app</code></p>
+                      <p>1. Add a CNAME record: <code className="bg-muted px-1 rounded">tracking.yourdomain.com → trackAff.app</code></p>
                       <p>2. SSL will be automatically provisioned once DNS propagates</p>
                     </div>
                   </div>
@@ -739,7 +739,7 @@ export default function Connections() {
                         {connection.use_custom_domain ? (
                           <>Custom: {connection.custom_domain}</>
                         ) : (
-                          <>Default: trackiterra.app</>
+                          <>Default: trackAff.app</>
                         )}
                       </p>
                       {connection.ssl_enabled && (
