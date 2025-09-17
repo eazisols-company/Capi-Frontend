@@ -65,6 +65,18 @@ class ApiClient {
     return this.client.get('/api/auth/me');
   }
 
+  async forgotPassword(email: string) {
+    return this.client.post('/api/auth/forgot-password', { email });
+  }
+
+  async resetPassword(resetData: {
+    token: string;
+    new_password: string;
+    confirm_password: string;
+  }) {
+    return this.client.post('/api/auth/reset-password', resetData);
+  }
+
   async changePassword(passwordData: {
     current_password: string;
     new_password: string;

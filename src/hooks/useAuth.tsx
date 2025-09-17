@@ -19,6 +19,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ error: any }>;
+  resetPassword: (token: string, newPassword: string, confirmPassword: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -99,12 +101,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      await apiClient.forgotPassword(email);
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Failed to send reset email';
+      return { error: { message: errorMessage } };
+    }
+  };
+
+  const resetPassword = async (token: string, newPassword: string, confirmPassword: string) => {
+    try {
+      await apiClient.resetPassword({
+        token,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      });
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Failed to reset password';
+      return { error: { message: errorMessage } };
+    }
+  };
+
   const value = {
     user,
     loading,
     signIn,
     signUp,
     signOut,
+    forgotPassword,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

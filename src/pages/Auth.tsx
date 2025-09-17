@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,14 +15,21 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const resetToken = searchParams.get('token');
   
   // Clear errors when switching tabs
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setError("");
+    setSuccess("");
   };
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, forgotPassword, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
@@ -44,6 +51,26 @@ export default function Auth() {
     firstName: "",
     lastName: "",
   });
+
+  const [forgotPasswordForm, setForgotPasswordForm] = useState({
+    email: "",
+  });
+
+  const [resetPasswordForm, setResetPasswordForm] = useState({
+    password: "",
+    confirmPassword: "",
+  });
+
+  // Check if we're on reset password page with token
+  useEffect(() => {
+    if (location.pathname === '/reset-password' && resetToken) {
+      setShowResetPassword(true);
+      setShowForgotPassword(false);
+    } else if (location.pathname === '/reset-password') {
+      setShowForgotPassword(true);
+      setShowResetPassword(false);
+    }
+  }, [location.pathname, resetToken]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +153,84 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const { error } = await forgotPassword(forgotPasswordForm.email);
+      
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess("Password reset instructions have been sent to your email.");
+        setForgotPasswordForm({ email: "" });
+        
+        toast({
+          title: "Email Sent",
+          description: "Check your email for password reset instructions.",
+        });
+      }
+    } catch (err: any) {
+      setError("Failed to send reset email. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+
+    if (resetPasswordForm.password !== resetPasswordForm.confirmPassword) {
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
+    if (resetPasswordForm.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!resetToken) {
+      setError("Invalid reset token");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await resetPassword(resetToken, resetPasswordForm.password, resetPasswordForm.confirmPassword);
+      
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess("Password has been reset successfully! You can now sign in with your new password.");
+        setResetPasswordForm({ password: "", confirmPassword: "" });
+        
+        toast({
+          title: "Password Reset Successful",
+          description: "You can now sign in with your new password.",
+        });
+        
+        setTimeout(() => {
+          navigate("/auth");
+          setShowResetPassword(false);
+          setShowForgotPassword(false);
+        }, 2000);
+      }
+    } catch (err: any) {
+      setError("Failed to reset password. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
@@ -148,30 +253,122 @@ export default function Auth() {
         <Card className="slide-in">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center text-foreground">
-              Access Your Dashboard
+              {showResetPassword ? "Set New Password" : showForgotPassword ? "Reset Your Password" : "Access Your Dashboard"}
             </CardTitle>
             <CardDescription className="text-center text-muted-foreground">
-              Sign in to your account or create a new one
+              {showResetPassword 
+                ? "Create a new password for your account" 
+                : showForgotPassword 
+                ? "Enter your email to receive password reset instructions" 
+                : "Sign in to your account or create a new one"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 bg-muted">
-                <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Sign In
-                </TabsTrigger>
-                <TabsTrigger value="signup" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
-                  Sign Up
-                </TabsTrigger>
-              </TabsList>
+            {showResetPassword ? (
+              <div className="space-y-4">
+                {error && (
+                  <Alert className="border-destructive bg-destructive/10">
+                    <AlertDescription className="text-destructive">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-              {error && (
-                <Alert className="border-destructive bg-destructive/10">
-                  <AlertDescription className="text-destructive">
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
+                {success && (
+                  <Alert className="border-green-500 bg-green-50">
+                    <AlertDescription className="text-green-700">
+                      {success}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-password">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="reset-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter new password"
+                        value={resetPasswordForm.password}
+                        onChange={(e) =>
+                          setResetPasswordForm({ ...resetPasswordForm, password: e.target.value })
+                        }
+                        required
+                        className="bg-input border-border focus:border-primary pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-confirm">Confirm New Password</Label>
+                    <Input
+                      id="reset-confirm"
+                      type="password"
+                      placeholder="Confirm new password"
+                      value={resetPasswordForm.confirmPassword}
+                      onChange={(e) =>
+                        setResetPasswordForm({ ...resetPasswordForm, confirmPassword: e.target.value })
+                      }
+                      required
+                      className="bg-input border-border focus:border-primary"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full interactive-button bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={isLoading}
+                  >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Reset Password
+                  </Button>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate("/auth");
+                        setShowResetPassword(false);
+                        setShowForgotPassword(false);
+                      }}
+                      className="text-sm text-muted-foreground hover:text-foreground underline"
+                    >
+                      Back to Sign In
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : !showForgotPassword ? (
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+                <TabsList className="grid w-full grid-cols-2 bg-muted">
+                  <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    Sign In
+                  </TabsTrigger>
+                  <TabsTrigger value="signup" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
+                    Sign Up
+                  </TabsTrigger>
+                </TabsList>
+
+                {error && (
+                  <Alert className="border-destructive bg-destructive/10">
+                    <AlertDescription className="text-destructive">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {success && (
+                  <Alert className="border-green-500 bg-green-50">
+                    <AlertDescription className="text-green-700">
+                      {success}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
               <TabsContent value="signin" className="space-y-4">
                 <form onSubmit={handleSignIn} className="space-y-4">
@@ -220,6 +417,19 @@ export default function Auth() {
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(true);
+                        setError("");
+                        setSuccess("");
+                      }}
+                      className="text-sm text-primary hover:text-primary/80 underline"
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
                 </form>
               </TabsContent>
 
@@ -317,6 +527,63 @@ export default function Auth() {
                 </form>
               </TabsContent>
             </Tabs>
+            ) : (
+              <div className="space-y-4">
+                {error && (
+                  <Alert className="border-destructive bg-destructive/10">
+                    <AlertDescription className="text-destructive">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {success && (
+                  <Alert className="border-green-500 bg-green-50">
+                    <AlertDescription className="text-green-700">
+                      {success}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="forgot-email">Email</Label>
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={forgotPasswordForm.email}
+                      onChange={(e) =>
+                        setForgotPasswordForm({ email: e.target.value })
+                      }
+                      required
+                      className="bg-input border-border focus:border-primary"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full interactive-button bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={isLoading}
+                  >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Send Reset Link
+                  </Button>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setError("");
+                        setSuccess("");
+                      }}
+                      className="text-sm text-muted-foreground hover:text-foreground underline"
+                    >
+                      Back to Sign In
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </CardContent>
         </Card>
 
