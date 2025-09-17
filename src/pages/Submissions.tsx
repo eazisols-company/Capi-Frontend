@@ -58,7 +58,15 @@ export default function Submissions() {
     try {
       setLoading(true);
       const response = await apiClient.getSubmissions();
-      setSubmissions(response.data.submissions || []);
+      const submissionsData = response.data.submissions || [];
+      
+      // Normalize submission IDs (handle both id and _id fields)
+      const normalizedSubmissions = submissionsData.map(submission => ({
+        ...submission,
+        id: submission.id || submission._id // Normalize ID field
+      })).filter(submission => submission.id); // Filter out submissions without valid IDs
+      
+      setSubmissions(normalizedSubmissions);
     } catch (error) {
       console.error('Error fetching submissions:', error);
       toast({
@@ -129,6 +137,15 @@ export default function Submissions() {
   };
 
   const handleManualSubmission = async (submissionId: string) => {
+    if (!submissionId || submissionId === 'undefined') {
+      toast({
+        title: "Error",
+        description: "Invalid submission ID. Please refresh the page and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setProcessingIds(prev => new Set(prev).add(submissionId));
       
