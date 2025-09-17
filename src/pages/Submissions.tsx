@@ -29,9 +29,12 @@ import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { SubmissionDetailsModal } from "@/components/SubmissionDetailsModal";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatDateForTable, formatDateForExport, getTimezoneDisplayName } from "@/lib/timezone-utils";
 
 export default function Submissions() {
   const { user } = useAuth();
+  const { userTimezone } = useTimezone();
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState<any[]>([]);
@@ -307,14 +310,7 @@ export default function Submissions() {
     // Helper function to format dates nicely
     const formatDate = (dateStr: string) => {
       if (!dateStr) return '';
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return formatDateForExport(dateStr, userTimezone);
     };
 
     // Convert submissions to CSV format with better formatting
@@ -638,8 +634,11 @@ export default function Submissions() {
             <Users className="h-5 w-5 text-primary" />
             Submissions ({filteredSubmissions.length})
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="flex items-center gap-2">
             Review and manage lead submission details
+            <span className="text-xs bg-muted px-2 py-1 rounded-md">
+              Times shown in: {getTimezoneDisplayName(userTimezone)}
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -732,15 +731,7 @@ export default function Submissions() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(submission.created_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit'
-                        })} at {new Date(submission.created_at).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: false
-                        })}
+                        {formatDateForTable(submission.created_at, userTimezone)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

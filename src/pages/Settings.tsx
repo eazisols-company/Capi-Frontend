@@ -9,9 +9,10 @@ import { Settings as SettingsIcon, User, CreditCard, Save, Lock } from "lucide-r
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { TIMEZONES, getDetectedTimezone } from "@/lib/timezone-utils";
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -21,6 +22,7 @@ export default function Settings() {
     last_name: "",
     phone: "",
     system_currency: "EUR" as "EUR" | "USD",
+    timezone: getDetectedTimezone(),
     billing_address: {}
   });
 
@@ -30,6 +32,7 @@ export default function Settings() {
     last_name: "",
     phone: "",
     system_currency: "EUR" as "EUR" | "USD",
+    timezone: getDetectedTimezone(),
     billing_address: {}
   });
 
@@ -48,6 +51,7 @@ export default function Settings() {
       formData.last_name !== originalFormData.last_name ||
       formData.phone !== originalFormData.phone ||
       formData.system_currency !== originalFormData.system_currency ||
+      formData.timezone !== originalFormData.timezone ||
       JSON.stringify(formData.billing_address) !== JSON.stringify(originalFormData.billing_address)
     );
   };
@@ -68,6 +72,7 @@ export default function Settings() {
         last_name: data.last_name || "",
         phone: data.phone || "",
         system_currency: (data.system_currency || "EUR") as "EUR" | "USD",
+        timezone: data.timezone || getDetectedTimezone(),
         billing_address: data.billing_address || {}
       };
       
@@ -93,7 +98,12 @@ export default function Settings() {
 
       // Update original form data to reflect the new saved state
       setOriginalFormData({ ...formData });
-      fetchProfile();
+      
+      // Refresh both local profile and auth user context
+      await Promise.all([
+        fetchProfile(),
+        refreshUser()
+      ]);
     } catch (error: any) {
       console.error('Error updating profile:', error);
       const errorMessage = error?.response?.data?.error || 
@@ -244,6 +254,27 @@ export default function Settings() {
                   <SelectItem value="USD">USD ($)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Timezone</Label>
+              <Select
+                value={formData.timezone}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, timezone: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 overflow-y-auto">
+                  {TIMEZONES.map((timezone) => (
+                    <SelectItem key={timezone.value} value={timezone.value}>
+                      {timezone.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                All dates and times in the app will be displayed in this timezone
+              </p>
             </div>
           </CardContent>
         </Card>

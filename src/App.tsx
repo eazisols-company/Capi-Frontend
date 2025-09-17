@@ -14,13 +14,15 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import PublicOptIn from "./pages/PublicOptIn";
 import { AuthProvider } from "./hooks/useAuth";
+import { TimezoneProvider } from "./hooks/useTimezone";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
+      <TimezoneProvider>
+        <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -56,7 +58,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </TimezoneProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

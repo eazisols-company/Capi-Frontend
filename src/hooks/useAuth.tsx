@@ -9,6 +9,7 @@ interface User {
   account_id: string;
   phone?: string;
   system_currency?: string;
+  timezone?: string;
   billing_address?: any;
   created_at: string;
   verified?: boolean;
@@ -24,6 +25,7 @@ interface AuthContextType {
   resetPassword: (token: string, newPassword: string, confirmPassword: string) => Promise<{ error: any }>;
   verifyEmail: (token: string) => Promise<{ error: any }>;
   resendVerificationEmail: (email: string) => Promise<{ error: any }>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -148,6 +150,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await apiClient.getCurrentUser();
+      setUser(response.data.user);
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -158,6 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     resetPassword,
     verifyEmail,
     resendVerificationEmail,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

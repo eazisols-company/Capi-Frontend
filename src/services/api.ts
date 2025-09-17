@@ -103,6 +103,7 @@ class ApiClient {
     last_name?: string;
     phone?: string;
     system_currency?: string;
+    timezone?: string;
     auto_submission?: boolean;
     billing_address?: {
       street?: string;

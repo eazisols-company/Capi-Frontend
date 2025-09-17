@@ -26,6 +26,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatDateDetailed } from "@/lib/timezone-utils";
 
 interface SubmissionDetailsModalProps {
   submission: any;
@@ -40,6 +42,7 @@ export function SubmissionDetailsModal({
   isOpen,
   onClose,
 }: SubmissionDetailsModalProps) {
+  const { userTimezone } = useTimezone();
   const [expandedSections, setExpandedSections] = useState({
     pushAttempts: false,
     eventInfo: false,
@@ -90,14 +93,7 @@ export function SubmissionDetailsModal({
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    return formatDateDetailed(dateString, userTimezone);
   };
 
   // Helper functions for dynamic values
