@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Users, 
   Search, 
@@ -20,7 +21,9 @@ import {
   Clock,
   XCircle,
   RefreshCw,
-  Download
+  Download,
+  Eye,
+  Copy
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -228,6 +231,29 @@ export default function Submissions() {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedSubmission(null);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "ID copied to clipboard",
+      });
+    } catch (error) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      toast({
+        title: "Copied!",
+        description: "ID copied to clipboard",
+      });
+    }
   };
 
   const exportToCSV = () => {
@@ -616,93 +642,144 @@ export default function Submissions() {
             Review and manage lead submission details
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <RefreshCw className="h-8 w-8 animate-spin text-primary" />
               <span className="ml-2 text-muted-foreground">Loading submissions...</span>
             </div>
           ) : filteredSubmissions.length > 0 ? (
-            <div className="space-y-4">
-              {filteredSubmissions.map((submission) => (
-                <div 
-                  key={submission.id} 
-                  className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all bg-card cursor-pointer"
-                  onClick={() => handleSubmissionClick(submission)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="h-6 w-6 text-primary" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-semibold text-foreground">
-                            {submission.first_name} {submission.last_name}
-                          </h3>
-                          <Badge className={getStatusColor(submission.status)}>
-                            {getStatusIcon(submission.status)}
-                            <span className="ml-1">{submission.status}</span>
-                          </Badge>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="w-[120px] font-medium">ID</TableHead>
+                    <TableHead className="font-medium">NAME</TableHead>
+                    <TableHead className="font-medium">EMAIL</TableHead>
+                    <TableHead className="font-medium">PHONE</TableHead>
+                    <TableHead className="w-[100px] font-medium">AMOUNT</TableHead>
+                    <TableHead className="w-[100px] font-medium">CURRENCY</TableHead>
+                    <TableHead className="w-[120px] font-medium">PLATFORM</TableHead>
+                    <TableHead className="w-[80px] font-medium">TIERS</TableHead>
+                    <TableHead className="w-[100px] font-medium">STATUS</TableHead>
+                    <TableHead className="w-[120px] font-medium">DATE</TableHead>
+                    <TableHead className="w-[100px] font-medium">ACTIONS</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSubmissions.map((submission) => (
+                    <TableRow 
+                      key={submission.id}
+                      className="hover:bg-muted/30 cursor-pointer border-border"
+                      onClick={() => handleSubmissionClick(submission)}
+                    >
+                      <TableCell className="font-mono text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">#</span>
+                          <span>{submission.id?.substring(0, 8)}...</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 hover:bg-muted"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(submission.id);
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {submission.email}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {submission.phone}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Globe className="h-3 w-3" />
-                            {submission.country}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="h-3 w-3" />
-                            {submission.deposit_amount}
-                          </div>
-                          {/* {submission.custom_event_name && (
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-xs">
-                                {submission.custom_event_name}
-                              </Badge>
-                            </div>
-                          )} */}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {submission.first_name} {submission.last_name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {submission.email}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <span className="text-primary font-medium">+{submission.phone?.toString().replace(/^\+/, '')}</span>
                         </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                                              <div className="text-right text-sm text-muted-foreground">
-                        <p>Connection: {submission.connection_name || getConnectionForSubmission(submission)?.name || 'Unknown'}</p>
-                        <p>{new Date(submission.created_at).toLocaleDateString()}</p>
-                      </div>
-                      
-                      {submission.status === 'pending' && !autoSubmission && (
-                        <Button
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleManualSubmission(submission.id);
-                          }}
-                          disabled={processingIds.has(submission.id)}
-                          className="interactive-button bg-secondary hover:bg-secondary/90"
+                      </TableCell>
+                      <TableCell>
+                        <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-sm font-medium">
+                          {submission.deposit_amount}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                          {submission.currency || 'USD'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                          {submission.country || 'Unknown'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground">--</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          className={`${getStatusColor(submission.status)} flex items-center gap-1 w-fit`}
                         >
-                          {processingIds.has(submission.id) ? (
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Submit to Meta
-                            </>
+                          {getStatusIcon(submission.status)}
+                          <span className="capitalize">{submission.status}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(submission.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        })} at {new Date(submission.created_at).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {submission.status === 'pending' && !autoSubmission && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleManualSubmission(submission.id);
+                              }}
+                              disabled={processingIds.has(submission.id)}
+                              className="h-8 w-8 p-0 hover:bg-primary/10"
+                            >
+                              {processingIds.has(submission.id) ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4" />
+                              )}
+                            </Button>
                           )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSubmissionClick(submission);
+                            }}
+                            className="h-8 w-8 p-0 hover:bg-muted"
+                            title="View submission details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <div className="text-center py-12">
