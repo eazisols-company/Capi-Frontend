@@ -77,6 +77,14 @@ class ApiClient {
     return this.client.post('/api/auth/reset-password', resetData);
   }
 
+  async verifyEmail(token: string) {
+    return this.client.post('/api/auth/verify-email', { token });
+  }
+
+  async resendVerificationEmail(email: string) {
+    return this.client.post('/api/auth/resend-verification', { email });
+  }
+
   async changePassword(passwordData: {
     current_password: string;
     new_password: string;

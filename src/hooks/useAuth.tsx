@@ -11,6 +11,7 @@ interface User {
   system_currency?: string;
   billing_address?: any;
   created_at: string;
+  verified?: boolean;
 }
 
 interface AuthContextType {
@@ -21,6 +22,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   forgotPassword: (email: string) => Promise<{ error: any }>;
   resetPassword: (token: string, newPassword: string, confirmPassword: string) => Promise<{ error: any }>;
+  verifyEmail: (token: string) => Promise<{ error: any }>;
+  resendVerificationEmail: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -125,6 +128,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const verifyEmail = async (token: string) => {
+    try {
+      await apiClient.verifyEmail(token);
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Failed to verify email';
+      return { error: { message: errorMessage } };
+    }
+  };
+
+  const resendVerificationEmail = async (email: string) => {
+    try {
+      await apiClient.resendVerificationEmail(email);
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Failed to resend verification email';
+      return { error: { message: errorMessage } };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -133,6 +156,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut,
     forgotPassword,
     resetPassword,
+    verifyEmail,
+    resendVerificationEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

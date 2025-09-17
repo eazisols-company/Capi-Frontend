@@ -19,9 +19,11 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState("signin");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const resetToken = searchParams.get('token');
+  const verificationToken = searchParams.get('token');
   
   // Clear errors when switching tabs
   const handleTabChange = (value: string) => {
@@ -29,7 +31,7 @@ export default function Auth() {
     setError("");
     setSuccess("");
   };
-  const { signIn, signUp, user, forgotPassword, resetPassword } = useAuth();
+  const { signIn, signUp, user, forgotPassword, resetPassword, verifyEmail } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
@@ -61,16 +63,24 @@ export default function Auth() {
     confirmPassword: "",
   });
 
-  // Check if we're on reset password page with token
+  // Check if we're on reset password page with token or email verification
   useEffect(() => {
-    if (location.pathname === '/reset-password' && resetToken) {
+    if (location.pathname === '/verify-email' && verificationToken) {
+      setShowEmailVerification(true);
+      setShowResetPassword(false);
+      setShowForgotPassword(false);
+      // Auto-verify email when page loads
+      handleEmailVerification();
+    } else if (location.pathname === '/reset-password' && resetToken) {
       setShowResetPassword(true);
       setShowForgotPassword(false);
+      setShowEmailVerification(false);
     } else if (location.pathname === '/reset-password') {
       setShowForgotPassword(true);
       setShowResetPassword(false);
+      setShowEmailVerification(false);
     }
-  }, [location.pathname, resetToken]);
+  }, [location.pathname, resetToken, verificationToken]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,6 +241,41 @@ export default function Auth() {
     }
   };
 
+  const handleEmailVerification = async () => {
+    if (!verificationToken) {
+      setError("Invalid verification token");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const { error } = await verifyEmail(verificationToken);
+      
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess("Email verified successfully! You can now sign in to your account.");
+        
+        toast({
+          title: "Email Verified",
+          description: "Your email has been verified successfully!",
+        });
+        
+        setTimeout(() => {
+          navigate("/auth");
+          setShowEmailVerification(false);
+        }, 3000);
+      }
+    } catch (err: any) {
+      setError("Failed to verify email. Please try again or contact support.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
@@ -252,10 +297,18 @@ export default function Auth() {
         <Card className="slide-in">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center text-foreground">
-              {showResetPassword ? "Set New Password" : showForgotPassword ? "Reset Your Password" : "Access Your Dashboard"}
+              {showEmailVerification 
+                ? "Verify Your Email" 
+                : showResetPassword 
+                ? "Set New Password" 
+                : showForgotPassword 
+                ? "Reset Your Password" 
+                : "Access Your Dashboard"}
             </CardTitle>
             <CardDescription className="text-center text-muted-foreground">
-              {showResetPassword 
+              {showEmailVerification 
+                ? "We're verifying your email address..." 
+                : showResetPassword 
                 ? "Create a new password for your account" 
                 : showForgotPassword 
                 ? "Enter your email to receive password reset instructions" 
@@ -263,7 +316,59 @@ export default function Auth() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {showResetPassword ? (
+            {showEmailVerification ? (
+              <div className="space-y-4">
+                {error && (
+                  <Alert className="border-destructive bg-destructive/10">
+                    <AlertDescription className="text-destructive">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {success && (
+                  <Alert className="border-green-500 bg-green-50">
+                    <AlertDescription className="text-green-700">
+                      {success}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {isLoading && !success && !error && (
+                  <div className="text-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                    <p className="text-muted-foreground">Verifying your email...</p>
+                  </div>
+                )}
+
+                {!isLoading && !success && !error && (
+                  <div className="text-center space-y-4">
+                    <p className="text-muted-foreground">
+                      Click the button below to verify your email address.
+                    </p>
+                    <Button
+                      onClick={handleEmailVerification}
+                      className="w-full interactive-button bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      Verify Email
+                    </Button>
+                  </div>
+                )}
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate("/auth");
+                      setShowEmailVerification(false);
+                    }}
+                    className="text-sm text-muted-foreground hover:text-foreground underline"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              </div>
+            ) : showResetPassword ? (
               <div className="space-y-4">
                 {error && (
                   <Alert className="border-destructive bg-destructive/10">
