@@ -39,6 +39,7 @@ export default function Submissions() {
   const [connectionFilter, setConnectionFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState("all");
   const [autoSubmission, setAutoSubmission] = useState(true);
+  const [autoSubmissionLoading, setAutoSubmissionLoading] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,6 +48,7 @@ export default function Submissions() {
     if (user) {
       fetchSubmissions();
       fetchConnections();
+      fetchUserProfile();
     }
   }, [user]);
 
@@ -95,6 +97,47 @@ export default function Submissions() {
       setConnections(validConnections);
     } catch (error) {
       console.error('Error fetching connections:', error);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await apiClient.getProfile();
+      const profile = response.data.profile;
+      
+      // Set auto-submission setting from profile, default to true if not set
+      setAutoSubmission(profile?.auto_submission ?? true);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const updateAutoSubmission = async (enabled: boolean) => {
+    try {
+      setAutoSubmissionLoading(true);
+      
+      await apiClient.updateProfile({
+        auto_submission: enabled
+      });
+
+      setAutoSubmission(enabled);
+      
+      toast({
+        title: "Settings Updated",
+        description: `Auto-submission ${enabled ? 'enabled' : 'disabled'} successfully`,
+      });
+    } catch (error) {
+      console.error('Error updating auto-submission setting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update auto-submission setting",
+        variant: "destructive"
+      });
+      
+      // Revert the toggle if the API call failed
+      setAutoSubmission(!enabled);
+    } finally {
+      setAutoSubmissionLoading(false);
     }
   };
 
@@ -153,7 +196,7 @@ export default function Submissions() {
 
       toast({
         title: "Success",
-        description: "Submission sent to Meta CAPI successfully",
+        description: "Submission sent to Meta successfully",
       });
 
       fetchSubmissions(); // Refresh data
@@ -345,10 +388,16 @@ export default function Submissions() {
               <Switch
                 id="auto-submission"
                 checked={autoSubmission}
-                onCheckedChange={setAutoSubmission}
+                onCheckedChange={updateAutoSubmission}
+                disabled={autoSubmissionLoading}
               />
               <Label htmlFor="auto-submission" className="text-sm">
-                Auto-submit to Meta CAPI
+                Auto-submit to Meta
+                {autoSubmissionLoading && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (updating...)
+                  </span>
+                )}
               </Label>
             </div>
             <Button 
