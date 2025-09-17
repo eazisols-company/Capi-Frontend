@@ -410,6 +410,115 @@ export default function Submissions() {
           </div>
         </div>
 
+        {/* Statistics Cards */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {/* Total Submissions */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Submissions</p>
+                  <p className="text-3xl font-bold text-foreground">{submissions.length}</p>
+                  <div className="flex items-center mt-2">
+                    <div className="flex items-center text-green-500 text-sm">
+                      <span className="mr-1">↗</span>
+                      <span>100% of total</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">All form submissions</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-green-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pending Submissions */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Pending</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {submissions.filter(s => s.status === 'pending').length}
+                  </p>
+                  <div className="flex items-center mt-2">
+                    <div className="flex items-center text-yellow-500 text-sm">
+                      <span className="mr-1">↗</span>
+                      <span>
+                        {submissions.length > 0 
+                          ? Math.round((submissions.filter(s => s.status === 'pending').length / submissions.length) * 100)
+                          : 0}% of total
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">pending submissions</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-yellow-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Handled Submissions */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Handled</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {submissions.filter(s => s.status === 'submitted').length}
+                  </p>
+                  <div className="flex items-center mt-2">
+                    <div className="flex items-center text-green-500 text-sm">
+                      <span className="mr-1">↗</span>
+                      <span>
+                        {submissions.length > 0 
+                          ? Math.round((submissions.filter(s => s.status === 'submitted').length / submissions.length) * 100)
+                          : 0}% of total
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">handled submissions</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-green-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Canceled Submissions */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Canceled</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {submissions.filter(s => s.status === 'failed').length}
+                  </p>
+                  <div className="flex items-center mt-2">
+                    <div className="flex items-center text-red-500 text-sm">
+                      <span className="mr-1">↗</span>
+                      <span>
+                        {submissions.length > 0 
+                          ? Math.round((submissions.filter(s => s.status === 'failed').length / submissions.length) * 100)
+                          : 0}% of total
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">canceled submissions</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <XCircle className="h-6 w-6 text-red-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
