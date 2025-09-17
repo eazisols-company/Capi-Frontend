@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   Link as LinkIcon, 
@@ -21,7 +22,13 @@ import {
   ExternalLink,
   Shield,
   AlertCircle,
-  FileText
+  FileText,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  Settings,
+  Code,
+  Tag
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,6 +51,8 @@ export default function Connections() {
   const [loading, setLoading] = useState(true);
   const [deletingConnection, setDeletingConnection] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -54,7 +63,9 @@ export default function Connections() {
     countries: [{ country: "", value: "" }],
     submission_link: "",
     use_custom_domain: false,
-    custom_domain: ""
+    custom_domain: "",
+    test_event_code: "",
+    custom_event_name: "Purchase"
   });
 
   useEffect(() => {
@@ -107,7 +118,9 @@ export default function Connections() {
       countries: [{ country: "", value: "" }],
       submission_link: "",
       use_custom_domain: false,
-      custom_domain: ""
+      custom_domain: "",
+      test_event_code: "",
+      custom_event_name: "Purchase"
     });
     setEditingConnection(null);
   };
@@ -123,7 +136,9 @@ export default function Connections() {
       countries: connection.countries || [{ country: "", value: "" }],
       submission_link: connection.submission_link || "",
       use_custom_domain: connection.use_custom_domain,
-      custom_domain: connection.custom_domain || ""
+      custom_domain: connection.custom_domain || "",
+      test_event_code: connection.test_event_code || "",
+      custom_event_name: connection.custom_event_name || "Purchase"
     });
     setIsDialogOpen(true);
   };
@@ -206,7 +221,9 @@ export default function Connections() {
         })),
         submission_link: formData.submission_link,
         use_custom_domain: formData.use_custom_domain,
-        custom_domain: formData.custom_domain
+        custom_domain: formData.custom_domain,
+        test_event_code: formData.test_event_code,
+        custom_event_name: formData.custom_event_name
       };
 
       if (editingConnection) {
@@ -433,6 +450,153 @@ export default function Connections() {
                 )}
               </div>
 
+              {/* Advanced Settings Section */}
+              <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+                <div className="border rounded-lg">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
+                        <Settings className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-foreground">Advanced Settings</h3>
+                        <p className="text-sm text-muted-foreground">Optional test and event configuration</p>
+                      </div>
+                    </div>
+                    {isAdvancedOpen ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <div className="p-4 pt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Test Event Code */}
+                        <div className="space-y-2">
+                          <Label htmlFor="test_event_code" className="flex items-center gap-2">
+                            <Code className="h-4 w-4 text-muted-foreground" />
+                            Test Event Code
+                          </Label>
+                          <Input
+                            id="test_event_code"
+                            value={formData.test_event_code}
+                            onChange={(e) => setFormData(prev => ({ ...prev, test_event_code: e.target.value }))}
+                            placeholder="TEST12345"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Optional test event code for debugging
+                          </p>
+                        </div>
+
+                        {/* Custom Event Name */}
+                        <div className="space-y-2">
+                          <Label htmlFor="custom_event_name" className="flex items-center gap-2">
+                            <Tag className="h-4 w-4 text-muted-foreground" />
+                            Custom Event Name
+                          </Label>
+                          <Select
+                            value={formData.custom_event_name}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, custom_event_name: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select event type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Purchase">Purchase</SelectItem>
+                              <SelectItem value="Lead">Lead</SelectItem>
+                              <SelectItem value="Deposit">Deposit</SelectItem>
+                              {/* <SelectItem value="CompleteRegistration">Complete Registration</SelectItem>
+                              <SelectItem value="AddToCart">Add to Cart</SelectItem>
+                              <SelectItem value="InitiateCheckout">Initiate Checkout</SelectItem>
+                              <SelectItem value="ViewContent">View Content</SelectItem>
+                              <SelectItem value="AddPaymentInfo">Add Payment Info</SelectItem>
+                              <SelectItem value="Subscribe">Subscribe</SelectItem>
+                              <SelectItem value="StartTrial">Start Trial</SelectItem>
+                              <SelectItem value="Contact">Contact</SelectItem> */}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            {/* Default: tracksters_opt_in */}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+
+              {/* Help & Documentation Section */}
+              <Collapsible open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+                <div className="border rounded-lg">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+                        <HelpCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-foreground">Help & Documentation</h3>
+                        <p className="text-sm text-muted-foreground">How to get your Pixel ID & System Access Token</p>
+                      </div>
+                    </div>
+                    {isHelpOpen ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <div className="p-4 pt-0 space-y-4">
+                      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3">How to get your System Access Token:</h4>
+                        <ol className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                          <li className="flex items-start gap-2">
+                            <span className="font-medium min-w-[20px]">1.</span>
+                            <span>Go to <strong>Meta Business Manager</strong> → <strong>Events Manager</strong></span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="font-medium min-w-[20px]">2.</span>
+                            <span>Select your pixel → <strong>Settings</strong> → <strong>Conversions API</strong></span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="font-medium min-w-[20px]">3.</span>
+                            <span>Click <strong>Generate Access Token</strong> or copy your existing token</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="font-medium min-w-[20px]">4.</span>
+                            <span>Paste the token in the System Access Token field above</span>
+                          </li>
+                        </ol>
+                      </div>
+                      
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <h4 className="font-medium text-amber-900 dark:text-amber-100 mb-3">Important Notes:</h4>
+                        <ul className="space-y-1 text-sm text-amber-800 dark:text-amber-200">
+                          <li className="flex items-start gap-2">
+                            <span className="text-amber-600 dark:text-amber-400">•</span>
+                            <span>System access tokens are different from regular access tokens</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-amber-600 dark:text-amber-400">•</span>
+                            <span>They start with "EAA" and are used for server-side API calls</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-amber-600 dark:text-amber-400">•</span>
+                            <span>Keep your tokens secure and never share them publicly</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-amber-600 dark:text-amber-400">•</span>
+                            <span>Pixel ID should be exactly 16 digits from your Facebook pixel</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+
               <div className="flex justify-end gap-3">
                 <Button
                   type="button"
@@ -547,7 +711,7 @@ export default function Connections() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                   {/* Countries */}
                   <div>
                     <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
@@ -583,6 +747,28 @@ export default function Connections() {
                           <Shield className="h-3 w-3 mr-1" />
                           SSL Enabled
                         </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Advanced Settings */}
+                  <div>
+                    <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-green-600" />
+                      Advanced Settings
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Event:</span>
+                        <span className="text-foreground font-medium">{connection.custom_event_name || 'Purchase'}</span>
+                      </div>
+                      {connection.test_event_code && (
+                        <div className="flex items-center gap-2">
+                          <Code className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">Test:</span>
+                          <span className="text-foreground font-medium">{connection.test_event_code}</span>
+                        </div>
                       )}
                     </div>
                   </div>
