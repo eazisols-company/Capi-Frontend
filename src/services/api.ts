@@ -281,6 +281,7 @@ class ApiClient {
     last_name: string;
     email: string;
     phone: string;
+    country_code: string;
     country: string;
     deposit_amount: number;
     source_url?: string;

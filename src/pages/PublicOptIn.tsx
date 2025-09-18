@@ -197,12 +197,27 @@ export default function PublicOptIn() {
       
       const depositAmount = parseFloat(formData.deposit_amount) || 0;
 
+      // Strip country code from phone if it's included
+      let cleanPhone = formData.phone;
+      if (cleanPhone.startsWith(formData.country_code)) {
+        cleanPhone = cleanPhone.substring(formData.country_code.length);
+      }
+      // Also handle cases where phone might start with + but different country code
+      if (cleanPhone.startsWith('+')) {
+        // Find any country code that matches and remove it
+        const matchingCode = COUNTRY_CODES.find(cc => cleanPhone.startsWith(cc.code));
+        if (matchingCode) {
+          cleanPhone = cleanPhone.substring(matchingCode.code.length);
+        }
+      }
+
       const submissionData = {
         connection_id: optInData.connection_id,
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
-        phone: `${formData.country_code}${formData.phone}`,
+        phone: cleanPhone,
+        country_code: formData.country_code,
         country: formData.country,
         deposit_amount: depositAmount,
         source_url: window.location.href,

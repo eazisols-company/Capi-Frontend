@@ -29,6 +29,7 @@ import {
   Copy,
   Edit
 } from "lucide-react";
+import { FlagIcon } from 'react-flag-kit';
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -524,6 +525,152 @@ export default function Submissions() {
     }
   };
 
+  // Map country codes (dial codes) to country codes for flag display
+  const getCountryCodeFromDialCode = (dialCode: string): string => {
+    const dialCodeMap: { [key: string]: string } = {
+      '+1': 'US',
+      '+44': 'GB',
+      '+49': 'DE',
+      '+33': 'FR',
+      '+32': 'BE',
+      '+41': 'CH',
+      '+43': 'AT',
+      '+46': 'SE',
+      '+47': 'NO',
+      '+45': 'DK',
+      '+358': 'FI',
+      '+31': 'NL',
+      '+39': 'IT',
+      '+34': 'ES',
+      '+351': 'PT',
+      '+61': 'AU',
+      '+81': 'JP',
+      '+82': 'KR',
+      '+65': 'SG',
+      '+852': 'HK',
+      '+55': 'BR',
+      '+52': 'MX',
+      '+54': 'AR',
+      '+56': 'CL',
+      '+57': 'CO',
+      '+91': 'IN',
+      '+92': 'PK',
+      '+86': 'CN',
+      '+27': 'ZA',
+      '+234': 'NG',
+      '+20': 'EG',
+      '+971': 'AE',
+      '+966': 'SA',
+      '+90': 'TR',
+      '+48': 'PL',
+      '+7': 'RU',
+      '+380': 'UA',
+      '+30': 'GR',
+      '+420': 'CZ',
+      '+36': 'HU',
+      '+40': 'RO'
+    };
+    
+    return dialCodeMap[dialCode] || 'US'; // Default to US if not found
+  };
+
+  const getCountryInfo = (phone: string, country: string) => {
+    // Common country codes mapping
+    const countryMap: { [key: string]: { countryCode: string; dialCode: string } } = {
+      'AU': { countryCode: 'AU', dialCode: '+61' },
+      'US': { countryCode: 'US', dialCode: '+1' },
+      'UK': { countryCode: 'GB', dialCode: '+44' },
+      'GB': { countryCode: 'GB', dialCode: '+44' },
+      'CA': { countryCode: 'CA', dialCode: '+1' },
+      'NZ': { countryCode: 'NZ', dialCode: '+64' },
+      'DE': { countryCode: 'DE', dialCode: '+49' },
+      'FR': { countryCode: 'FR', dialCode: '+33' },
+      'IT': { countryCode: 'IT', dialCode: '+39' },
+      'ES': { countryCode: 'ES', dialCode: '+34' },
+      'NL': { countryCode: 'NL', dialCode: '+31' },
+      'BE': { countryCode: 'BE', dialCode: '+32' },
+      'CH': { countryCode: 'CH', dialCode: '+41' },
+      'AT': { countryCode: 'AT', dialCode: '+43' },
+      'SE': { countryCode: 'SE', dialCode: '+46' },
+      'NO': { countryCode: 'NO', dialCode: '+47' },
+      'DK': { countryCode: 'DK', dialCode: '+45' },
+      'FI': { countryCode: 'FI', dialCode: '+358' },
+      'JP': { countryCode: 'JP', dialCode: '+81' },
+      'KR': { countryCode: 'KR', dialCode: '+82' },
+      'CN': { countryCode: 'CN', dialCode: '+86' },
+      'IN': { countryCode: 'IN', dialCode: '+91' },
+      'SG': { countryCode: 'SG', dialCode: '+65' },
+      'HK': { countryCode: 'HK', dialCode: '+852' },
+      'TW': { countryCode: 'TW', dialCode: '+886' },
+      'BR': { countryCode: 'BR', dialCode: '+55' },
+      'MX': { countryCode: 'MX', dialCode: '+52' },
+      'AR': { countryCode: 'AR', dialCode: '+54' },
+      'CL': { countryCode: 'CL', dialCode: '+56' },
+      'CO': { countryCode: 'CO', dialCode: '+57' },
+      'PE': { countryCode: 'PE', dialCode: '+51' },
+      'ZA': { countryCode: 'ZA', dialCode: '+27' },
+      'EG': { countryCode: 'EG', dialCode: '+20' },
+      'NG': { countryCode: 'NG', dialCode: '+234' },
+      'KE': { countryCode: 'KE', dialCode: '+254' },
+      'GH': { countryCode: 'GH', dialCode: '+233' },
+      'AE': { countryCode: 'AE', dialCode: '+971' },
+      'SA': { countryCode: 'SA', dialCode: '+966' },
+      'IL': { countryCode: 'IL', dialCode: '+972' },
+      'TR': { countryCode: 'TR', dialCode: '+90' },
+      'RU': { countryCode: 'RU', dialCode: '+7' },
+      'PL': { countryCode: 'PL', dialCode: '+48' },
+      'CZ': { countryCode: 'CZ', dialCode: '+420' },
+      'HU': { countryCode: 'HU', dialCode: '+36' },
+      'RO': { countryCode: 'RO', dialCode: '+40' },
+      'BG': { countryCode: 'BG', dialCode: '+359' },
+      'HR': { countryCode: 'HR', dialCode: '+385' },
+      'SI': { countryCode: 'SI', dialCode: '+386' },
+      'SK': { countryCode: 'SK', dialCode: '+421' },
+      'LT': { countryCode: 'LT', dialCode: '+370' },
+      'LV': { countryCode: 'LV', dialCode: '+371' },
+      'EE': { countryCode: 'EE', dialCode: '+372' },
+      'GR': { countryCode: 'GR', dialCode: '+30' },
+      'PT': { countryCode: 'PT', dialCode: '+351' },
+      'IE': { countryCode: 'IE', dialCode: '+353' },
+      'LU': { countryCode: 'LU', dialCode: '+352' },
+      'MT': { countryCode: 'MT', dialCode: '+356' },
+      'CY': { countryCode: 'CY', dialCode: '+357' },
+      'IS': { countryCode: 'IS', dialCode: '+354' },
+    };
+
+    // First try to match by country code if available
+    if (country && countryMap[country.toUpperCase()]) {
+      const countryInfo = countryMap[country.toUpperCase()];
+      const phoneWithoutCountryCode = phone?.toString().replace(new RegExp(`^\\+?${countryInfo.dialCode.replace('+', '')}`), '') || '';
+      return {
+        countryCode: countryInfo.countryCode,
+        dialCode: countryInfo.dialCode,
+        number: phoneWithoutCountryCode
+      };
+    }
+
+    // Fallback: try to detect from phone number
+    const phoneStr = phone?.toString() || '';
+    
+    // Check common patterns in phone numbers
+    if (phoneStr.startsWith('+61') || phoneStr.startsWith('61')) {
+      return { countryCode: 'AU', dialCode: '+61', number: phoneStr.replace(/^\+?61/, '') };
+    } else if (phoneStr.startsWith('+1') || phoneStr.startsWith('1')) {
+      return { countryCode: 'US', dialCode: '+1', number: phoneStr.replace(/^\+?1/, '') };
+    } else if (phoneStr.startsWith('+44') || phoneStr.startsWith('44')) {
+      return { countryCode: 'GB', dialCode: '+44', number: phoneStr.replace(/^\+?44/, '') };
+    } else if (phoneStr.startsWith('+49') || phoneStr.startsWith('49')) {
+      return { countryCode: 'DE', dialCode: '+49', number: phoneStr.replace(/^\+?49/, '') };
+    }
+
+    // Default fallback
+    return {
+      countryCode: 'US', // Default to US for unknown countries
+      dialCode: '+',
+      number: phoneStr.replace(/^\+/, '')
+    };
+  };
+
   const uniqueCountries = [...new Set(submissions.map(s => s.country))];
   const uniqueEventNames = [...new Set(submissions.map(s => s.custom_event_name).filter(Boolean))];
 
@@ -860,9 +1007,37 @@ export default function Submissions() {
                         {submission.email}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <span className="text-primary font-medium">+{submission.phone?.toString().replace(/^\+/, '')}</span>
-                        </div>
+                        {(() => {
+                          // Use the new country_code field if available, otherwise fallback to old logic
+                          if (submission.country_code && submission.phone) {
+                            const flagCountryCode = getCountryCodeFromDialCode(submission.country_code);
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <FlagIcon code={flagCountryCode as any} size={20} />
+                                  <span className="text-sm font-medium text-muted-foreground">{submission.country_code}</span>
+                                </div>
+                                <span className="text-sm font-medium text-foreground">
+                                  {submission.phone}
+                                </span>
+                              </div>
+                            );
+                          } else {
+                            // Fallback to old logic for backward compatibility
+                            const countryInfo = getCountryInfo(submission.phone, submission.country);
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <FlagIcon code={countryInfo.countryCode as any} size={20} />
+                                  <span className="text-sm font-medium text-muted-foreground">{countryInfo.dialCode}</span>
+                                </div>
+                                <span className="text-sm font-medium text-foreground">
+                                  {countryInfo.number || 'N/A'}
+                                </span>
+                              </div>
+                            );
+                          }
+                        })()}
                       </TableCell>
                       <TableCell>
                         <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-sm font-medium">
