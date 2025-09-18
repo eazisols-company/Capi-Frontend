@@ -37,6 +37,7 @@ import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { extractApiErrorMessage, getCurrencySymbol } from "@/lib/utils";
+import { FlagIcon } from 'react-flag-kit';
 
 const COUNTRIES = [
   "United States", "United Kingdom", "Germany", "France", "Italy", "Spain", "Netherlands",
@@ -45,6 +46,47 @@ const COUNTRIES = [
   "Brazil", "Mexico", "Argentina", "Chile", "Colombia", "India", "China",
   "South Africa", "Nigeria", "Egypt", "UAE", "Saudi Arabia", "Turkey", "Poland"
 ];
+
+// Helper function to get country flag code from country name
+const getCountryFlagCode = (countryName: string): string => {
+  const countryMap: { [key: string]: string } = {
+    "United States": "US",
+    "United Kingdom": "GB",
+    "Germany": "DE",
+    "France": "FR",
+    "Italy": "IT",
+    "Spain": "ES",
+    "Netherlands": "NL",
+    "Belgium": "BE",
+    "Switzerland": "CH",
+    "Austria": "AT",
+    "Sweden": "SE",
+    "Norway": "NO",
+    "Denmark": "DK",
+    "Finland": "FI",
+    "Canada": "CA",
+    "Australia": "AU",
+    "Japan": "JP",
+    "South Korea": "KR",
+    "Singapore": "SG",
+    "Hong Kong": "HK",
+    "Brazil": "BR",
+    "Mexico": "MX",
+    "Argentina": "AR",
+    "Chile": "CL",
+    "Colombia": "CO",
+    "India": "IN",
+    "China": "CN",
+    "South Africa": "ZA",
+    "Nigeria": "NG",
+    "Egypt": "EG",
+    "UAE": "AE",
+    "Saudi Arabia": "SA",
+    "Turkey": "TR",
+    "Poland": "PL"
+  };
+  return countryMap[countryName] || "US"; // Default to US flag if not found
+};
 
 export default function Connections() {
   const { user } = useAuth();
@@ -456,12 +498,25 @@ export default function Connections() {
                         onValueChange={(value) => updateCountryField(index, 'country', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select country" />
+                          <SelectValue placeholder="Select country">
+                            {country.country && (
+                              <div className="flex items-center gap-2">
+                                <FlagIcon 
+                                  code={getCountryFlagCode(country.country) as any} 
+                                  size={16} 
+                                />
+                                <span>{country.country}</span>
+                              </div>
+                            )}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {COUNTRIES.map((countryName) => (
                             <SelectItem key={countryName} value={countryName}>
-                              {countryName}
+                              <div className="flex items-center gap-2">
+                                <FlagIcon code={getCountryFlagCode(countryName) as any} size={16} />
+                                <span>{countryName}</span>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -849,7 +904,10 @@ export default function Connections() {
                     <div className="space-y-1">
                       {connection.countries?.map((country: any, index: number) => (
                         <div key={index} className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">{country.country}:</span>
+                          <div className="flex items-center gap-1">
+                            <FlagIcon code={getCountryFlagCode(country.country) as any} size={14} />
+                            <span className="text-muted-foreground">{country.country}:</span>
+                          </div>
                           <span className="text-foreground font-medium">{getCurrencySymbol(profile?.system_currency)}{country.value}</span>
                         </div>
                       ))}

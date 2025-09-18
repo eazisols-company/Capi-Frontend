@@ -6,10 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings as SettingsIcon, User, CreditCard, Save, Lock } from "lucide-react";
+import { FlagIcon } from 'react-flag-kit';
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { TIMEZONES, getDetectedTimezone } from "@/lib/timezone-utils";
+
+// System currencies with flag codes
+const SYSTEM_CURRENCIES = [
+  { code: "USD", name: "US Dollar", symbol: "$", flagCode: "US" },
+  { code: "EUR", name: "Euro", symbol: "€", flagCode: "EU" }
+];
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
@@ -247,11 +254,29 @@ export default function Settings() {
                 onValueChange={(value) => setFormData(prev => ({ ...prev, system_currency: value as "EUR" | "USD" }))}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {formData.system_currency && (
+                      <div className="flex items-center gap-2">
+                        <FlagIcon 
+                          code={SYSTEM_CURRENCIES.find(c => c.code === formData.system_currency)?.flagCode as any} 
+                          size={16} 
+                        />
+                        <span>{SYSTEM_CURRENCIES.find(c => c.code === formData.system_currency)?.name}</span>
+                        <span>({SYSTEM_CURRENCIES.find(c => c.code === formData.system_currency)?.symbol})</span>
+                      </div>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="USD">USD ($)</SelectItem>
+                  {SYSTEM_CURRENCIES.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      <div className="flex items-center gap-2">
+                        <FlagIcon code={currency.flagCode as any} size={16} />
+                        <span className="font-medium">{currency.name}</span>
+                        <span className="text-xs text-gray-500">({currency.symbol})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
