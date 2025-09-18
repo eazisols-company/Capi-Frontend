@@ -317,7 +317,7 @@ export default function PublicOptIn() {
         )}
         
         {/* Cache busting for social media */}
-        <meta property="og:updated_time" content={Date.now()} />
+        <meta property="og:updated_time" content={Date.now().toString()} />
         <meta name="robots" content="index, follow" />
         
         {/* Open Graph / Facebook */}
