@@ -374,15 +374,40 @@ export default function OptInPages() {
                     </p>
                   </div>
                   {connections.find(c => c._id === selectedConnectionId)?.optin_page_url && (
-                    console.log(connections.find(c => c._id === selectedConnectionId)?.optin_page_url),
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(connections.find(c => c._id === selectedConnectionId)?.optin_page_url, '_blank')}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Live Page
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(connections.find(c => c._id === selectedConnectionId)?.optin_page_url, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Live Page
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = connections.find(c => c._id === selectedConnectionId)?.optin_page_url;
+                          const cacheRefreshUrls = [
+                            `https://developers.facebook.com/tools/debug/?q=${encodeURIComponent(url)}`,
+                            `https://cards-dev.twitter.com/validator?url=${encodeURIComponent(url)}`,
+                            `https://www.linkedin.com/post-inspector/?url=${encodeURIComponent(url)}`
+                          ];
+                          
+                          cacheRefreshUrls.forEach(refreshUrl => {
+                            window.open(refreshUrl, '_blank');
+                          });
+                          
+                          toast({
+                            title: "Cache Refresh Tools Opened",
+                            description: "Use these tools to refresh social media sharing previews",
+                          });
+                        }}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh Cache
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>

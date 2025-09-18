@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { Helmet } from 'react-helmet-async';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +110,43 @@ export default function PublicOptIn() {
     fetchOptInSettings();
   }, [connectionId]);
 
+  // Dynamic favicon update
+  useEffect(() => {
+    if (optInData?.settings?.logo_url) {
+      const updateFavicon = () => {
+        const logoUrl = optInData.settings.logo_url;
+        const absoluteLogoUrl = logoUrl.startsWith('http') 
+          ? logoUrl 
+          : `${window.location.origin}${logoUrl}`;
+        
+        // Remove existing favicon links
+        const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
+        existingFavicons.forEach(favicon => favicon.remove());
+        
+        // Add new favicon links with cache busting
+        const timestamp = Date.now();
+        
+        const favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        favicon.type = 'image/x-icon';
+        favicon.href = `${absoluteLogoUrl}?v=${timestamp}`;
+        document.head.appendChild(favicon);
+        
+        const shortcutIcon = document.createElement('link');
+        shortcutIcon.rel = 'shortcut icon';
+        shortcutIcon.href = `${absoluteLogoUrl}?v=${timestamp}`;
+        document.head.appendChild(shortcutIcon);
+        
+        const appleTouchIcon = document.createElement('link');
+        appleTouchIcon.rel = 'apple-touch-icon';
+        appleTouchIcon.href = `${absoluteLogoUrl}?v=${timestamp}`;
+        document.head.appendChild(appleTouchIcon);
+      };
+      
+      updateFavicon();
+    }
+  }, [optInData?.settings?.logo_url]);
+
   const fetchOptInSettings = async () => {
     try {
       setLoading(true);
@@ -191,40 +229,58 @@ export default function PublicOptIn() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="flex items-center gap-3">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-          <span className="text-white text-lg">Loading...</span>
+      <>
+        <Helmet>
+          <title>Loading...</title>
+          <meta name="description" content="Loading opt-in page..." />
+        </Helmet>
+        <div className="min-h-screen flex items-center justify-center bg-gray-900">
+          <div className="flex items-center gap-3">
+            <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+            <span className="text-white text-lg">Loading...</span>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Page Not Available</h3>
-            <p className="text-muted-foreground">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <Helmet>
+          <title>Page Not Available</title>
+          <meta name="description" content="This opt-in page is not available" />
+        </Helmet>
+        <div className="min-h-screen flex items-center justify-center bg-gray-900">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-6 text-center">
+              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Page Not Available</h3>
+              <p className="text-muted-foreground">{error}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="pt-6 text-center">
-            <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Thank You!</h3>
-            <p className="text-muted-foreground">Your submission has been received successfully.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <Helmet>
+          <title>Thank You!</title>
+          <meta name="description" content="Your submission has been received successfully" />
+        </Helmet>
+        <div className="min-h-screen flex items-center justify-center bg-gray-900">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-6 text-center">
+              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Thank You!</h3>
+              <p className="text-muted-foreground">Your submission has been received successfully.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
@@ -234,13 +290,83 @@ export default function PublicOptIn() {
   const selectedFont = FONT_OPTIONS.find(f => f.value === settings.font_family);
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{ 
-        fontFamily: selectedFont?.cssName || "'Inter', sans-serif",
-        background: 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 100%)'
-      }}
-    >
+    <>
+      <Helmet>
+        <title>{settings.page_title}</title>
+        <meta name="description" content={settings.page_subtitle} />
+        
+        {/* Dynamic Favicon */}
+        {settings.logo_url && (
+          <>
+            <link rel="icon" type="image/x-icon" href={
+              settings.logo_url.startsWith('http') 
+                ? settings.logo_url 
+                : `${window.location.origin}${settings.logo_url}`
+            } />
+            <link rel="shortcut icon" href={
+              settings.logo_url.startsWith('http') 
+                ? settings.logo_url 
+                : `${window.location.origin}${settings.logo_url}`
+            } />
+            <link rel="apple-touch-icon" href={
+              settings.logo_url.startsWith('http') 
+                ? settings.logo_url 
+                : `${window.location.origin}${settings.logo_url}`
+            } />
+          </>
+        )}
+        
+        {/* Cache busting for social media */}
+        <meta property="og:updated_time" content={Date.now()} />
+        <meta name="robots" content="index, follow" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={settings.page_title} />
+        <meta property="og:description" content={settings.page_subtitle} />
+        <meta property="og:site_name" content={connection.name} />
+        {settings.logo_url && (
+          <meta property="og:image" content={
+            settings.logo_url.startsWith('http') 
+              ? settings.logo_url 
+              : `${window.location.origin}${settings.logo_url}`
+          } />
+        )}
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url" content={window.location.href} />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={settings.page_title} />
+        <meta name="twitter:description" content={settings.page_subtitle} />
+        <meta name="twitter:site" content={`@${connection.name.replace(/\s+/g, '')}`} />
+        {settings.logo_url && (
+          <meta name="twitter:image" content={
+            settings.logo_url.startsWith('http') 
+              ? settings.logo_url 
+              : `${window.location.origin}${settings.logo_url}`
+          } />
+        )}
+        
+        {/* Additional meta tags */}
+        <meta name="author" content={connection.name} />
+        <meta name="theme-color" content={settings.primary_color} />
+        <link rel="canonical" href={window.location.href} />
+        
+        {/* Additional cache control */}
+        <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="pragma" content="no-cache" />
+        <meta http-equiv="expires" content="0" />
+      </Helmet>
+      
+      <div 
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ 
+          fontFamily: selectedFont?.cssName || "'Inter', sans-serif",
+          background: 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 100%)'
+        }}
+      >
       <div className="max-w-md w-full">
         <div className="text-center space-y-6 mb-8">
           {/* Logo */}
@@ -469,6 +595,7 @@ export default function PublicOptIn() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
