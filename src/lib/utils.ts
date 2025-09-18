@@ -59,7 +59,7 @@ export function extractApiErrorMessage(error: any, fallbackMessage: string = "An
 
 /**
  * Converts currency code to symbol
- * @param currency - The currency code (EUR, USD)
+ * @param currency - The currency code (EUR, USD, etc.)
  * @returns The corresponding currency symbol
  */
 export function getCurrencySymbol(currency?: string): string {
@@ -68,7 +68,23 @@ export function getCurrencySymbol(currency?: string): string {
       return '$';
     case 'EUR':
       return '€';
+    case 'GBP':
+      return '£';
+    case 'CAD':
+      return 'C$';
+    case 'AUD':
+      return 'A$';
+    case 'JPY':
+      return '¥';
+    case 'CHF':
+      return 'CHF';
+    case 'CNY':
+      return '¥';
+    case 'INR':
+      return '₹';
+    case 'BRL':
+      return 'R$';
     default:
-      return '€'; // Default to EUR
+      return '$'; // Default to USD
   }
 }

@@ -21,6 +21,7 @@ import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { extractApiErrorMessage, getCurrencySymbol } from "@/lib/utils";
+import { FlagIcon } from 'react-flag-kit';
 
 const FONT_OPTIONS = [
   { value: "Inter", label: "Inter", cssName: "'Inter', sans-serif" },
@@ -76,8 +77,90 @@ const COUNTRY_CODES = [
   { code: "+30", country: "GR", flag: "🇬🇷" },
   { code: "+420", country: "CZ", flag: "🇨🇿" },
   { code: "+36", country: "HU", flag: "🇭🇺" },
-  { code: "+40", country: "RO", flag: "🇷🇴" }
+  { code: "+40", country: "RO", flag: "🇷🇴" },
+  { code: "+353", country: "IE", flag: "🇮🇪" },
+  { code: "+372", country: "EE", flag: "🇪🇪" },
+  { code: "+371", country: "LV", flag: "🇱🇻" },
+  { code: "+370", country: "LT", flag: "🇱🇹" },
+  { code: "+421", country: "SK", flag: "🇸🇰" },
+  { code: "+386", country: "SI", flag: "🇸🇮" },
+  { code: "+385", country: "HR", flag: "🇭🇷" },
+  { code: "+381", country: "RS", flag: "🇷🇸" },
+  { code: "+359", country: "BG", flag: "🇧🇬" },
+  { code: "+60", country: "MY", flag: "🇲🇾" },
+  { code: "+66", country: "TH", flag: "🇹🇭" },
+  { code: "+84", country: "VN", flag: "🇻🇳" },
+  { code: "+63", country: "PH", flag: "🇵🇭" },
+  { code: "+62", country: "ID", flag: "🇮🇩" }
 ];
+
+const CURRENCIES = [
+  { code: "USD", name: "US Dollar", symbol: "$" },
+  { code: "EUR", name: "Euro", symbol: "€" },
+  { code: "GBP", name: "British Pound", symbol: "£" },
+  { code: "CAD", name: "Canadian Dollar", symbol: "C$" },
+  { code: "AUD", name: "Australian Dollar", symbol: "A$" },
+  { code: "JPY", name: "Japanese Yen", symbol: "¥" },
+  { code: "CHF", name: "Swiss Franc", symbol: "CHF" },
+  { code: "CNY", name: "Chinese Yuan", symbol: "¥" },
+  { code: "INR", name: "Indian Rupee", symbol: "₹" },
+  { code: "BRL", name: "Brazilian Real", symbol: "R$" },
+];
+
+// Helper function to get country code for flag display
+const getCountryCode = (countryName: string): string => {
+  const countryMap: { [key: string]: string } = {
+    "United States": "US",
+    "United Kingdom": "GB",
+    "Germany": "DE",
+    "France": "FR",
+    "Italy": "IT",
+    "Spain": "ES",
+    "Netherlands": "NL",
+    "Belgium": "BE",
+    "Switzerland": "CH",
+    "Austria": "AT",
+    "Sweden": "SE",
+    "Norway": "NO",
+    "Denmark": "DK",
+    "Finland": "FI",
+    "Canada": "CA",
+    "Australia": "AU",
+    "Japan": "JP",
+    "South Korea": "KR",
+    "Singapore": "SG",
+    "Hong Kong": "HK",
+    "Brazil": "BR",
+    "Mexico": "MX",
+    "Argentina": "AR",
+    "Chile": "CL",
+    "Colombia": "CO",
+    "India": "IN",
+    "China": "CN",
+    "South Africa": "ZA",
+    "Nigeria": "NG",
+    "Egypt": "EG",
+    "UAE": "AE",
+    "Saudi Arabia": "SA",
+    "Turkey": "TR",
+    "Poland": "PL",
+    "Ireland": "IE",
+    "Estonia": "EE",
+    "Latvia": "LV",
+    "Lithuania": "LT",
+    "Slovakia": "SK",
+    "Slovenia": "SI",
+    "Croatia": "HR",
+    "Serbia": "RS",
+    "Bulgaria": "BG",
+    "Malaysia": "MY",
+    "Thailand": "TH",
+    "Vietnam": "VN",
+    "Philippines": "PH",
+    "Indonesia": "ID"
+  };
+  return countryMap[countryName] || "US"; // Default to US flag if not found
+};
 
 export default function OptInPages() {
   const { user } = useAuth();
@@ -959,16 +1042,34 @@ export default function OptInPages() {
                           } />
                         </SelectTrigger>
                       </Select>
-                      <Input 
-                        placeholder="Deposit Amount" 
-                        className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200"
-                        style={{ 
-                          backgroundColor: 'rgba(255,255,255,0.1)',
-                          borderColor: `${formData.secondary_color}40`,
-                          '--tw-ring-color': formData.secondary_color
-                        } as React.CSSProperties}
-                        disabled
-                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <Input 
+                          placeholder="Deposit Amount" 
+                          className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200"
+                          style={{ 
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderColor: `${formData.secondary_color}40`,
+                            '--tw-ring-color': formData.secondary_color
+                          } as React.CSSProperties}
+                          disabled
+                        />
+                        <Select disabled>
+                          <SelectTrigger 
+                            className="border-2 text-white transition-all duration-200"
+                            style={{ 
+                              backgroundColor: 'rgba(255,255,255,0.1)',
+                              borderColor: `${formData.secondary_color}40`
+                            }}
+                          >
+                            <SelectValue>
+                              <div className="flex items-center gap-2">
+                                <span>$</span>
+                                <span>USD</span>
+                              </div>
+                            </SelectValue>
+                          </SelectTrigger>
+                        </Select>
+                      </div>
                       
                       <Button 
                         className="w-full text-white font-semibold py-3 transition-all duration-300 hover:shadow-lg transform hover:scale-105"
