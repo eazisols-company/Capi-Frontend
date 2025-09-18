@@ -281,8 +281,8 @@ export default function Auth() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo and Branding */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20">
-            <img src="/trackaff_logo.png" alt="TrackAff" className="h-8 w-auto" />
+          <div className="inline-flex items-center gap-2 p-3 rounded-xl">
+            <img src="/trackaff_logo_background_removed.png" alt="TrackAff" className="w-auto" />
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -512,6 +512,15 @@ export default function Auth() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-muted-foreground hover:text-primary underline"
+                      >
+                        Forgot your password?
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
@@ -521,19 +530,6 @@ export default function Auth() {
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowForgotPassword(true);
-                        setError("");
-                        setSuccess("");
-                      }}
-                      className="text-sm text-primary hover:text-primary/80 underline"
-                    >
-                      Forgot your password?
-                    </button>
-                  </div>
                 </form>
               </TabsContent>
 

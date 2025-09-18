@@ -59,15 +59,15 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <img src="/trackaff_logo.png" alt="TrackAff" className="h-8 w-auto" />
+            <img src="/trackaff_logo_background_removed.png" alt="TrackAff" className="h-8 w-auto" />
             <div className="flex flex-col">
-              <span className="text-xs text-muted-foreground">Meta CAPI Platform</span>
+              {/* <span className="text-xs text-muted-foreground">Meta CAPI Platform</span> */}
             </div>
           </div>
         )}
         {collapsed && (
           <div className="flex justify-center">
-            <img src="/trackaff_logo.png" alt="TrackAff" className="h-6 w-auto" />
+            <img src="/favicon.svg" alt="TrackAff" className="h-6 w-auto" />
           </div>
         )}
       </SidebarHeader>

@@ -46,7 +46,7 @@ export default function DashboardLayout() {
             <header className="h-12 flex items-center border-b border-border bg-card px-4">
               <SidebarTrigger className="interactive-button" />
               <div className="ml-4">
-                <h1 className="text-lg font-semibold text-foreground">Meta CAPI Dashboard</h1>
+                {/* <h1 className="text-lg font-semibold text-foreground">Meta CAPI Dashboard</h1> */}
               </div>
             </header>
             <main className="flex-1 p-6 overflow-auto">

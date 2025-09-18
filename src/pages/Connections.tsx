@@ -285,7 +285,7 @@ export default function Connections() {
             Meta CAPI Connections
           </h1>
           <p className="text-muted-foreground">
-            Manage your Meta Conversion API pixel connections
+            Manage your pixel connections
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

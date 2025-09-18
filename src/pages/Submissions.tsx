@@ -402,7 +402,7 @@ export default function Submissions() {
               Lead Submissions
             </h1>
             <p className="text-muted-foreground">
-              Manage and track your Meta CAPI submissions
+              Manage and track all your opt-in submissions and their status
             </p>
           </div>
           <div className="flex items-center gap-3">

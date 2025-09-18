@@ -137,7 +137,7 @@ export default function Dashboard() {
               Welcome back{profile ? `, ${profile.first_name}` : ''}!
             </h1>
             <p className="text-muted-foreground">
-              Here's your Meta CAPI tracking overview
+              Here's a summary of your account performance.
             </p>
           </div>
           <div className="flex items-center gap-4">

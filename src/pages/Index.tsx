@@ -8,7 +8,7 @@ const Index = () => {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-8">
         <div className="inline-flex items-center gap-2 p-4 rounded-xl bg-primary/10 border border-primary/20 animate-glow">
-          <img src="/trackaff_logo.png" alt="TrackAff" className="h-12 w-auto" />
+          <img src="/trackaff_logo_background_removed.png" alt="TrackAff" className="h-12 w-auto" />
         </div>
         <div className="space-y-4">
           <h1 className="text-5xl font-bold tracking-tight text-foreground">
