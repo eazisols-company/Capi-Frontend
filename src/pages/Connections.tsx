@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Link as LinkIcon, 
   Plus, 
@@ -28,7 +29,9 @@ import {
   ChevronUp,
   Settings,
   Code,
-  Tag
+  Tag,
+  Zap,
+  Loader2
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,6 +56,8 @@ export default function Connections() {
   const [profile, setProfile] = useState<any>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [testingConnections, setTestingConnections] = useState<Set<string>>(new Set());
+  const [connectionTestResults, setConnectionTestResults] = useState<Map<string, { isLive: boolean; lastTested: Date }>>(new Map());
 
   const [formData, setFormData] = useState({
     name: "",
@@ -85,7 +90,35 @@ export default function Connections() {
     try {
       setLoading(true);
       const response = await apiClient.getConnections();
-      setConnections(response.data.connections || []);
+      const connectionsData = response.data.connections || [];
+      setConnections(connectionsData);
+
+      // If backend provides live status, update our local state
+      connectionsData.forEach((connection: any) => {
+        if (connection.live_status !== undefined || 
+            connection.last_test_result !== undefined ||
+            connection.test_result !== undefined ||
+            connection.connection_status !== undefined) {
+          setConnectionTestResults(prev => {
+            const newMap = new Map(prev);
+            const isLive = connection.live_status === true || 
+                          connection.last_test_result === true ||
+                          connection.connection_status === true ||
+                          connection.test_result?.connection_status === true ||
+                          connection.test_result?.success === true;
+            
+            const lastTested = connection.last_tested || 
+                             connection.test_result?.tested_at ||
+                             connection.tested_at;
+            
+            newMap.set(connection._id, {
+              isLive,
+              lastTested: lastTested ? new Date(lastTested) : new Date()
+            });
+            return newMap;
+          });
+        }
+      });
     } catch (error: any) {
       console.error('Error fetching connections:', error);
       
@@ -273,6 +306,71 @@ export default function Connections() {
         variant: "destructive"
       });
       setDeletingConnection(null);
+    }
+  };
+
+  const handleTestConnection = async (connection: any) => {
+    if (!connection._id) return;
+
+    // Add connection to testing set
+    setTestingConnections(prev => new Set([...prev, connection._id]));
+
+    try {
+      const response = await apiClient.testConnection(connection._id);
+      
+      // Parse the response - check both direct and nested test_result structure
+      const isSuccess = response.data?.success === true || 
+                       response.data?.status === true || 
+                       response.data?.test_result?.success === true || 
+                       response.data?.test_result?.connection_status === true;
+      
+      const testMessage = response.data?.message || 
+                         response.data?.test_result?.message || 
+                         "Connection test completed";
+
+      // Update test results
+      setConnectionTestResults(prev => {
+        const newMap = new Map(prev);
+        newMap.set(connection._id, {
+          isLive: isSuccess,
+          lastTested: response.data?.test_result?.tested_at ? new Date(response.data.test_result.tested_at) : new Date()
+        });
+        return newMap;
+      });
+
+      toast({
+        title: isSuccess ? "✅ Test Successful" : "❌ Test Failed",
+        description: isSuccess 
+          ? "Connection is working! Meta is receiving events properly." 
+          : "Connection failed. Please verify your pixel id , access token or test event code.",
+        variant: isSuccess ? "default" : "destructive"
+      });
+
+    } catch (error: any) {
+      console.error('Error testing connection:', error);
+      
+      // Mark as not live on error
+      setConnectionTestResults(prev => {
+        const newMap = new Map(prev);
+        newMap.set(connection._id, {
+          isLive: false,
+          lastTested: new Date()
+        });
+        return newMap;
+      });
+
+      toast({
+        title: "❌ Connection Test Error",
+        description: "Unable to reach Meta CAPI. Check your internet connection and try again.",
+        variant: "destructive"
+      });
+    } finally {
+      // Remove connection from testing set
+      setTestingConnections(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(connection._id);
+        return newSet;
+      });
     }
   };
 
@@ -635,7 +733,9 @@ export default function Connections() {
                       <LinkIcon className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl">{connection.name}</CardTitle>
+                      <CardTitle className="text-xl flex items-center gap-2">
+                        {connection.name}
+                      </CardTitle>
                       <CardDescription>
                         Pixel ID: {connection.pixel_id}
                       </CardDescription>
@@ -655,22 +755,50 @@ export default function Connections() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* <Badge 
-                      variant={connection.domain_verified ? "default" : "secondary"}
-                      className={connection.domain_verified ? "bg-secondary" : ""}
-                    >
-                      {connection.domain_verified ? (
-                        <>
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Verified
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Pending
-                        </>
-                      )}
-                    </Badge> */}
+                    {/* Connection Status Badge */}
+                    {connectionTestResults.has(connection._id) && (
+                      <Badge 
+                        variant={connectionTestResults.get(connection._id)?.isLive ? "default" : "destructive"}
+                        className={connectionTestResults.get(connection._id)?.isLive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300"}
+                      >
+                        {connectionTestResults.get(connection._id)?.isLive ? (
+                          <>
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Connected
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Failed
+                          </>
+                        )}
+                      </Badge>
+                    )}
+                    
+                    {/* Test Button */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleTestConnection(connection)}
+                            disabled={testingConnections.has(connection._id)}
+                            className="interactive-button"
+                          >
+                            {testingConnections.has(connection._id) ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Zap className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Test if Meta CAPI can receive events</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
                     <Button
                       variant="outline"
                       size="sm"
@@ -711,7 +839,7 @@ export default function Connections() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                   {/* Countries */}
                   <div>
                     <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
@@ -720,8 +848,8 @@ export default function Connections() {
                     </h4>
                     <div className="space-y-1">
                       {connection.countries?.map((country: any, index: number) => (
-                        <div key={index} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{country.country}</span>
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">{country.country}:</span>
                           <span className="text-foreground font-medium">{getCurrencySymbol(profile?.system_currency)}{country.value}</span>
                         </div>
                       ))}

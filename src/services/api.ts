@@ -146,6 +146,10 @@ class ApiClient {
     return this.client.delete(`/api/connections/${connectionId}`);
   }
 
+  async testConnection(connectionId: string) {
+    return this.client.post(`/api/connections/${connectionId}/test`);
+  }
+
   // Submissions methods
   async getSubmissions(params?: {
     limit?: number;
