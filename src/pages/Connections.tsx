@@ -794,7 +794,7 @@ export default function Connections() {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Test if Meta CAPI can receive events</p>
+                          <p>Test if connection is live</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
