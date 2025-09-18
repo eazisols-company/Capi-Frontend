@@ -30,6 +30,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Edit3, Save, X, User, Phone, Mail, Globe, DollarSign } from "lucide-react";
+import { FlagIcon } from 'react-flag-kit';
 import { toast } from "@/hooks/use-toast";
 import { apiClient } from "@/services/api";
 
@@ -39,6 +40,7 @@ const submissionEditSchema = z.object({
   last_name: z.string().min(1, "Last name is required").max(50, "Last name too long"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(1, "Phone number is required").regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone format"),
+  country_code: z.string().min(1, "Country code is required"),
   country: z.string().min(1, "Country is required"),
   deposit_amount: z.number().min(0, "Amount must be positive").max(999999, "Amount too large"),
   currency: z.string().min(1, "Currency is required"),
@@ -87,19 +89,119 @@ const COUNTRIES = [
   "Puerto Rico", "Trinidad and Tobago", "Barbados", "Bahamas", "Bermuda"
 ].sort();
 
+// Country codes for phone numbers
+const COUNTRY_CODES = [
+  { code: "+1", country: "US/CA", flagCode: "US" },
+  { code: "+44", country: "UK", flagCode: "GB" },
+  { code: "+49", country: "DE", flagCode: "DE" },
+  { code: "+33", country: "FR", flagCode: "FR" },
+  { code: "+32", country: "BE", flagCode: "BE" },
+  { code: "+41", country: "CH", flagCode: "CH" },
+  { code: "+43", country: "AT", flagCode: "AT" },
+  { code: "+46", country: "SE", flagCode: "SE" },
+  { code: "+47", country: "NO", flagCode: "NO" },
+  { code: "+45", country: "DK", flagCode: "DK" },
+  { code: "+358", country: "FI", flagCode: "FI" },
+  { code: "+31", country: "NL", flagCode: "NL" },
+  { code: "+39", country: "IT", flagCode: "IT" },
+  { code: "+34", country: "ES", flagCode: "ES" },
+  { code: "+351", country: "PT", flagCode: "PT" },
+  { code: "+61", country: "AU", flagCode: "AU" },
+  { code: "+81", country: "JP", flagCode: "JP" },
+  { code: "+82", country: "KR", flagCode: "KR" },
+  { code: "+65", country: "SG", flagCode: "SG" },
+  { code: "+852", country: "HK", flagCode: "HK" },
+  { code: "+55", country: "BR", flagCode: "BR" },
+  { code: "+52", country: "MX", flagCode: "MX" },
+  { code: "+54", country: "AR", flagCode: "AR" },
+  { code: "+56", country: "CL", flagCode: "CL" },
+  { code: "+57", country: "CO", flagCode: "CO" },
+  { code: "+91", country: "IN", flagCode: "IN" },
+  { code: "+92", country: "PK", flagCode: "PK" },
+  { code: "+86", country: "CN", flagCode: "CN" },
+  { code: "+27", country: "ZA", flagCode: "ZA" },
+  { code: "+234", country: "NG", flagCode: "NG" },
+  { code: "+20", country: "EG", flagCode: "EG" },
+  { code: "+971", country: "AE", flagCode: "AE" },
+  { code: "+966", country: "SA", flagCode: "SA" },
+  { code: "+90", country: "TR", flagCode: "TR" },
+  { code: "+48", country: "PL", flagCode: "PL" }
+];
+
 // Common currencies
 const CURRENCIES = [
-  { code: "USD", name: "US Dollar" },
-  { code: "EUR", name: "Euro" },
-  { code: "GBP", name: "British Pound" },
-  { code: "CAD", name: "Canadian Dollar" },
-  { code: "AUD", name: "Australian Dollar" },
-  { code: "JPY", name: "Japanese Yen" },
-  { code: "CHF", name: "Swiss Franc" },
-  { code: "CNY", name: "Chinese Yuan" },
-  { code: "INR", name: "Indian Rupee" },
-  { code: "BRL", name: "Brazilian Real" },
+  { code: "USD", name: "US Dollar", symbol: "$", flagCode: "US" },
+  { code: "EUR", name: "Euro", symbol: "€", flagCode: "EU" },
+  { code: "GBP", name: "British Pound", symbol: "£", flagCode: "GB" },
+  { code: "CAD", name: "Canadian Dollar", symbol: "C$", flagCode: "CA" },
+  { code: "AUD", name: "Australian Dollar", symbol: "A$", flagCode: "AU" },
+  { code: "JPY", name: "Japanese Yen", symbol: "¥", flagCode: "JP" },
+  { code: "CHF", name: "Swiss Franc", symbol: "CHF", flagCode: "CH" },
+  { code: "CNY", name: "Chinese Yuan", symbol: "¥", flagCode: "CN" },
+  { code: "INR", name: "Indian Rupee", symbol: "₹", flagCode: "IN" },
+  { code: "BRL", name: "Brazilian Real", symbol: "R$", flagCode: "BR" },
 ];
+
+// Helper function to get country flag code from country name
+const getCountryFlagCode = (countryName: string): string => {
+  const countryMap: { [key: string]: string } = {
+    "United States": "US",
+    "United Kingdom": "GB",
+    "Germany": "DE",
+    "France": "FR",
+    "Italy": "IT",
+    "Spain": "ES",
+    "Netherlands": "NL",
+    "Belgium": "BE",
+    "Switzerland": "CH",
+    "Austria": "AT",
+    "Sweden": "SE",
+    "Norway": "NO",
+    "Denmark": "DK",
+    "Finland": "FI",
+    "Canada": "CA",
+    "Australia": "AU",
+    "Japan": "JP",
+    "South Korea": "KR",
+    "Singapore": "SG",
+    "Hong Kong": "HK",
+    "Brazil": "BR",
+    "Mexico": "MX",
+    "Argentina": "AR",
+    "Chile": "CL",
+    "Colombia": "CO",
+    "India": "IN",
+    "China": "CN",
+    "South Africa": "ZA",
+    "Nigeria": "NG",
+    "Egypt": "EG",
+    "United Arab Emirates": "AE",
+    "Saudi Arabia": "SA",
+    "Turkey": "TR",
+    "Poland": "PL",
+    "Russia": "RU",
+    "Ukraine": "UA",
+    "Greece": "GR",
+    "Czech Republic": "CZ",
+    "Hungary": "HU",
+    "Romania": "RO",
+    "Ireland": "IE",
+    "Estonia": "EE",
+    "Latvia": "LV",
+    "Lithuania": "LT",
+    "Slovakia": "SK",
+    "Slovenia": "SI",
+    "Croatia": "HR",
+    "Serbia": "RS",
+    "Bulgaria": "BG",
+    "Malaysia": "MY",
+    "Thailand": "TH",
+    "Vietnam": "VN",
+    "Philippines": "PH",
+    "Indonesia": "ID"
+  };
+  return countryMap[countryName] || "US"; // Default to US flag if not found
+};
 
 // Available custom event names (matching those used in Connections)
 const CUSTOM_EVENT_NAMES = [
@@ -162,6 +264,7 @@ export function SubmissionEditModal({
       last_name: "",
       email: "",
       phone: "",
+      country_code: "+1",
       country: "",
       deposit_amount: 0,
       currency: "USD",
@@ -182,6 +285,7 @@ export function SubmissionEditModal({
         last_name: submission.last_name || "",
         email: submission.email || "",
         phone: submission.phone?.toString() || "",
+        country_code: submission.country_code || "+1",
         country: submission.country || "",
         deposit_amount: Number(submission.deposit_amount) || 0,
         currency: submission.currency || submission.deposit_currency || "USD",
@@ -213,6 +317,7 @@ export function SubmissionEditModal({
         last_name: data.last_name,
         email: data.email,
         phone: data.phone,
+        // country_code: data.country_code, // TODO: Add to API interface
         country: data.country,
         deposit_amount: data.deposit_amount,
         currency: data.currency,
@@ -222,7 +327,7 @@ export function SubmissionEditModal({
         commission_tier: data.commission_tier,
         platform_name: data.platform_name,
         event_sent_to: data.event_sent_to,
-      });
+      } as any);
 
       toast({
         title: "Success",
@@ -337,40 +442,94 @@ export function SubmissionEditModal({
                           <Phone className="h-4 w-4" />
                           Phone Number
                         </FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter phone number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Globe className="h-4 w-4" />
-                          Country
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <div className="flex gap-2">
+                          <FormField
+                            control={form.control}
+                            name="country_code"
+                            render={({ field: countryCodeField }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Select
+                                    value={countryCodeField.value}
+                                    onValueChange={countryCodeField.onChange}
+                                  >
+                                    <SelectTrigger className="w-32">
+                                      <SelectValue>
+                                        {countryCodeField.value && (
+                                          <div className="flex items-center gap-2">
+                                            <FlagIcon 
+                                              code={COUNTRY_CODES.find(cc => cc.code === countryCodeField.value)?.flagCode as any} 
+                                              size={16} 
+                                            />
+                                            <span>{countryCodeField.value}</span>
+                                          </div>
+                                        )}
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {COUNTRY_CODES.map((countryCode) => (
+                                        <SelectItem key={countryCode.code} value={countryCode.code}>
+                                          <div className="flex items-center gap-2">
+                                            <FlagIcon code={countryCode.flagCode as any} size={16} />
+                                            <span className="font-medium">{countryCode.code}</span>
+                                            <span className="text-xs text-gray-500">{countryCode.country}</span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select country" />
-                            </SelectTrigger>
+                            <Input placeholder="Enter phone number" {...field} className="flex-1" />
                           </FormControl>
-                          <SelectContent>
-                            {COUNTRIES.map((country) => (
-                              <SelectItem key={country} value={country}>
-                                {country}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                   <FormField
+                     control={form.control}
+                     name="country"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel className="flex items-center gap-2">
+                           <Globe className="h-4 w-4" />
+                           Country
+                         </FormLabel>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                           <FormControl>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select country">
+                                 {field.value && (
+                                   <div className="flex items-center gap-2">
+                                     <FlagIcon 
+                                       code={getCountryFlagCode(field.value) as any} 
+                                       size={16} 
+                                     />
+                                     <span>{field.value}</span>
+                                   </div>
+                                 )}
+                               </SelectValue>
+                             </SelectTrigger>
+                           </FormControl>
+                           <SelectContent>
+                             {COUNTRIES.map((country) => (
+                               <SelectItem key={country} value={country}>
+                                 <div className="flex items-center gap-2">
+                                   <FlagIcon code={getCountryFlagCode(country) as any} size={16} />
+                                   <span>{country}</span>
+                                 </div>
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
                 </div>
               </CardContent>
             </Card>
@@ -414,13 +573,28 @@ export function SubmissionEditModal({
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select currency" />
+                              <SelectValue placeholder="Select currency">
+                                {field.value && (
+                                  <div className="flex items-center gap-2">
+                                    <FlagIcon 
+                                      code={CURRENCIES.find(c => c.code === field.value)?.flagCode as any} 
+                                      size={16} 
+                                    />
+                                    <span>{CURRENCIES.find(c => c.code === field.value)?.name}</span>
+                                    <span>({CURRENCIES.find(c => c.code === field.value)?.symbol})</span>
+                                  </div>
+                                )}
+                              </SelectValue>
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {CURRENCIES.map((currency) => (
                               <SelectItem key={currency.code} value={currency.code}>
-                                {currency.code} - {currency.name}
+                                <div className="flex items-center gap-2">
+                                  <FlagIcon code={currency.flagCode as any} size={16} />
+                                  <span className="font-medium">{currency.name}</span>
+                                  <span className="text-xs text-gray-500">({currency.symbol})</span>
+                                </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -497,13 +671,28 @@ export function SubmissionEditModal({
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select currency" />
+                              <SelectValue placeholder="Select currency">
+                                {field.value && (
+                                  <div className="flex items-center gap-2">
+                                    <FlagIcon 
+                                      code={CURRENCIES.find(c => c.code === field.value)?.flagCode as any} 
+                                      size={16} 
+                                    />
+                                    <span>{CURRENCIES.find(c => c.code === field.value)?.name}</span>
+                                    <span>({CURRENCIES.find(c => c.code === field.value)?.symbol})</span>
+                                  </div>
+                                )}
+                              </SelectValue>
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {CURRENCIES.map((currency) => (
                               <SelectItem key={currency.code} value={currency.code}>
-                                {currency.code} - {currency.name}
+                                <div className="flex items-center gap-2">
+                                  <FlagIcon code={currency.flagCode as any} size={16} />
+                                  <span className="font-medium">{currency.name}</span>
+                                  <span className="text-xs text-gray-500">({currency.symbol})</span>
+                                </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -550,30 +739,43 @@ export function SubmissionEditModal({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="platform_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Platform Name (Country)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select country" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {availableCountries.map((country) => (
-                              <SelectItem key={country} value={country}>
-                                {country}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                   <FormField
+                     control={form.control}
+                     name="platform_name"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Platform Name (Country)</FormLabel>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                           <FormControl>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select country">
+                                 {field.value && (
+                                   <div className="flex items-center gap-2">
+                                     <FlagIcon 
+                                       code={getCountryFlagCode(field.value) as any} 
+                                       size={16} 
+                                     />
+                                     <span>{field.value}</span>
+                                   </div>
+                                 )}
+                               </SelectValue>
+                             </SelectTrigger>
+                           </FormControl>
+                           <SelectContent>
+                             {availableCountries.map((country) => (
+                               <SelectItem key={country} value={country}>
+                                 <div className="flex items-center gap-2">
+                                   <FlagIcon code={getCountryFlagCode(country) as any} size={16} />
+                                   <span>{country}</span>
+                                 </div>
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
                   <FormField
                     control={form.control}
                     name="event_sent_to"
