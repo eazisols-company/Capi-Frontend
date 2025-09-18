@@ -30,16 +30,18 @@ export default function Auth() {
     setActiveTab(value);
     setError("");
     setSuccess("");
+    // Reset loading state when switching tabs
+    setIsLoading(false);
   };
   const { signIn, signUp, user, forgotPassword, resetPassword, verifyEmail } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but not during login process)
   useEffect(() => {
-    if (user) {
+    if (user && !isLoading) {
       navigate("/dashboard");
     }
-  }, [user, navigate]);
+  }, [user, navigate, isLoading]);
 
   const [signInForm, setSignInForm] = useState({
     email: "",
@@ -91,16 +93,18 @@ export default function Auth() {
       const { error } = await signIn(signInForm.email, signInForm.password);
       if (error) {
         setError(error.message);
+        setIsLoading(false);
       } else {
         toast({
           title: "Success",
           description: "Welcome back! Redirecting to dashboard...",
         });
-        navigate("/dashboard");
+        // Don't manually navigate here - let the useEffect handle it when user state updates
+        setIsLoading(false);
       }
     } catch (err: any) {
-      setError("An unexpected error occurred");
-    } finally {
+      console.error('Login error:', err);
+      setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
   };
@@ -175,7 +179,7 @@ export default function Auth() {
       if (error) {
         setError(error.message);
       } else {
-        setSuccess("Password reset instructions have been sent to your email.");
+        // setSuccess("Password reset instructions have been sent to your email.");
         setForgotPasswordForm({ email: "" });
         
         toast({
@@ -220,7 +224,7 @@ export default function Auth() {
       if (error) {
         setError(error.message);
       } else {
-        setSuccess("Password has been reset successfully! You can now sign in with your new password.");
+        // setSuccess("Password has been reset successfully! You can now sign in with your new password.");
         setResetPasswordForm({ password: "", confirmPassword: "" });
         
         toast({
@@ -257,7 +261,7 @@ export default function Auth() {
       if (error) {
         setError(error.message);
       } else {
-        setSuccess("Email verified successfully! You can now sign in to your account.");
+        // setSuccess("Email verified successfully! You can now sign in to your account.");
         
         toast({
           title: "Email Verified",

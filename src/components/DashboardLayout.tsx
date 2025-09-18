@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 import EmailVerificationModal from "@/components/EmailVerificationModal";
 
 export default function DashboardLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
@@ -16,8 +16,22 @@ export default function DashboardLayout() {
       navigate("/auth");
     } else if (user && !user.verified) {
       setShowVerificationModal(true);
+    } else if (user && user.verified) {
+      setShowVerificationModal(false);
     }
   }, [user, loading, navigate]);
+
+  // Check for verification status when window gains focus
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (user && !user.verified) {
+        await refreshUser();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, refreshUser]);
 
   // Check email verification status
   const isEmailVerified = user?.verified ?? false;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,45 @@ export default function EmailVerificationModal({ isOpen }: EmailVerificationModa
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { user, signOut, resendVerificationEmail } = useAuth();
+  const { user, signOut, resendVerificationEmail, refreshUser } = useAuth();
+
+  // Periodically check verification status
+  useEffect(() => {
+    if (!isOpen || !user) return;
+
+    const checkVerificationStatus = async () => {
+      const wasUnverified = !user.verified;
+      await refreshUser();
+      
+      // Show success message if user just got verified
+      if (wasUnverified && user.verified) {
+        toast({
+          title: "Email Verified!",
+          description: "Your email has been verified successfully!",
+        });
+      }
+    };
+
+    // Check immediately when modal opens
+    checkVerificationStatus();
+
+    // Set up periodic checking every 10 seconds
+    const interval = setInterval(checkVerificationStatus, 10000);
+
+    // Also check when page becomes visible (user returns from email)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkVerificationStatus();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isOpen, user, refreshUser]);
 
   if (!isOpen) return null;
 
@@ -34,7 +72,7 @@ export default function EmailVerificationModal({ isOpen }: EmailVerificationModa
       if (error) {
         setError(error.message);
       } else {
-        setSuccess("Verification email has been sent! Please check your inbox.");
+        // setSuccess("Verification email has been sent! Please check your inbox.");
         
         toast({
           title: "Email Sent",
@@ -120,7 +158,7 @@ export default function EmailVerificationModal({ isOpen }: EmailVerificationModa
               <Button
                 onClick={handleSignOut}
                 variant="outline"
-                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="w-full border-gray-300 text-white hover:bg-gray-50"
               >
                 Sign Out
               </Button>

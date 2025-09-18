@@ -4,17 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  TrendingUp, 
+import {
   Users, 
   DollarSign, 
-  Globe, 
-  Calendar,
-  BarChart3,
+  Globe,
   Activity,
   Target,
   Zap,
-  Copy
+  Copy,
+  Banknote
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,16 +27,24 @@ export default function Dashboard() {
     totalDeposits: 0,
     conversionRate: 0,
     topCountries: [],
-    recentSubmissions: []
+    recentSubmissions: [],
+    totalCommissions: 0
   });
   const [profile, setProfile] = useState<any>(null);
+  const [connections, setConnections] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+      fetchConnections();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       fetchDashboardData();
-      fetchProfile();
     }
-  }, [user, timeFilter]);
+  }, [user, timeFilter, connections]);
 
   const fetchProfile = async () => {
     try {
@@ -46,6 +52,15 @@ export default function Dashboard() {
       setProfile(response.data.profile);
     } catch (error) {
       console.error('Error fetching profile:', error);
+    }
+  };
+
+  const fetchConnections = async () => {
+    try {
+      const response = await apiClient.getConnections();
+      setConnections(response.data.connections || []);
+    } catch (error) {
+      console.error('Error fetching connections:', error);
     }
   };
 
@@ -80,16 +95,67 @@ export default function Dashboard() {
       const response = await apiClient.getDashboardAnalytics(timeFilter);
       const analytics = response.data.analytics;
 
+      // Get all submissions for commission calculation (not just recent ones)
+      const submissionsResponse = await apiClient.getSubmissions({
+        start_date: getStartDateForFilter(timeFilter),
+        end_date: new Date().toISOString()
+      });
+      const allSubmissions = submissionsResponse.data.submissions || [];
+
+      // Calculate total commissions
+      const totalCommissions = calculateTotalCommissions(allSubmissions);
+
       setStats({
         totalSubmissions: analytics.total_submissions,
         totalDeposits: analytics.total_deposits,
         conversionRate: analytics.conversion_rate,
         topCountries: analytics.top_countries,
-        recentSubmissions: analytics.recent_submissions || []
+        recentSubmissions: analytics.recent_submissions || [],
+        totalCommissions: totalCommissions
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     }
+  };
+
+  const getStartDateForFilter = (filter: string) => {
+    const now = new Date();
+    switch (filter) {
+      case '1d':
+        return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+      case '7d':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      case '30d':
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      case '90d':
+        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      default:
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
+  };
+
+  const calculateTotalCommissions = (submissions: any[]) => {
+    let total = 0;
+    
+    submissions.forEach((submission: any) => {
+      // Find the connection for this submission
+      const connection = connections.find(conn => 
+        conn.id === submission.connection_id || conn._id === submission.connection_id
+      );
+      
+      if (connection && connection.countries) {
+        // Find the fee for this submission's country
+        const countryConfig = connection.countries.find((c: any) => 
+          c.country === submission.country
+        );
+        
+        if (countryConfig && countryConfig.value) {
+          total += parseFloat(countryConfig.value) || 0;
+        }
+      }
+    });
+    
+    return total;
   };
 
   const statCards = [
@@ -116,6 +182,14 @@ export default function Dashboard() {
       color: "text-accent",
       bgColor: "bg-accent/10",
       description: "Successful submission rate"
+    },
+    {
+      title: "Total Commissions",
+      value: `${getCurrencySymbol(profile?.system_currency)} ${stats.totalCommissions.toLocaleString()}`,
+      icon: Banknote,
+      color: "text-green-600",
+      bgColor: "bg-primary/10",
+      description: "Total commission earnings"
     },
     {
       title: "Active Countries",
@@ -168,7 +242,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {statCards.map((stat, index) => (
           <Card key={stat.title} className="stat-card" style={{ animationDelay: `${index * 0.1}s` }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
