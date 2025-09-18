@@ -8,6 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Users, 
   Search, 
@@ -47,6 +50,12 @@ export default function Submissions() {
   const [connectionFilter, setConnectionFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState("all");
+  const [customDateRange, setCustomDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({ from: undefined, to: undefined });
+  const [showCustomDateDialog, setShowCustomDateDialog] = useState(false);
+  const [isTimeFilterOpen, setIsTimeFilterOpen] = useState(false);
   const [autoSubmission, setAutoSubmission] = useState(true);
   const [autoSubmissionLoading, setAutoSubmissionLoading] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -65,7 +74,7 @@ export default function Submissions() {
 
   useEffect(() => {
     filterSubmissions();
-  }, [submissions, searchTerm, statusFilter, countryFilter, connectionFilter, eventFilter, timeFilter]);
+  }, [submissions, searchTerm, statusFilter, countryFilter, connectionFilter, eventFilter, timeFilter, customDateRange]);
 
   const fetchSubmissions = async () => {
     try {
@@ -155,17 +164,36 @@ export default function Submissions() {
   const getStartDateForTimeFilter = (filter: string) => {
     const now = new Date();
     switch (filter) {
+      case 'today':
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return today;
       case '1d':
         return new Date(now.getTime() - 24 * 60 * 60 * 1000);
       case '7d':
         return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case '14d':
+        return new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      case '28d':
+        return new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
       case '30d':
         return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       case '90d':
         return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      case 'custom':
+        return customDateRange.from || null;
       default:
         return null; // "all" case - no time filter
     }
+  };
+
+  const getEndDateForTimeFilter = (filter: string) => {
+    if (filter === 'custom' && customDateRange.to) {
+      const endDate = new Date(customDateRange.to);
+      endDate.setHours(23, 59, 59, 999);
+      return endDate;
+    }
+    return null; // Use current time as end date
   };
 
   const filterSubmissions = () => {
@@ -206,15 +234,74 @@ export default function Submissions() {
     // Time filter
     if (timeFilter !== "all") {
       const startDate = getStartDateForTimeFilter(timeFilter);
+      const endDate = getEndDateForTimeFilter(timeFilter);
+      
       if (startDate) {
         filtered = filtered.filter(submission => {
           const submissionDate = new Date(submission.created_at);
-          return submissionDate >= startDate;
+          const isAfterStart = submissionDate >= startDate;
+          const isBeforeEnd = !endDate || submissionDate <= endDate;
+          return isAfterStart && isBeforeEnd;
         });
       }
     }
 
     setFilteredSubmissions(filtered);
+  };
+
+  const handleTimeFilterChange = (value: string) => {
+    if (value === 'custom' || value === 'custom-display') {
+      setShowCustomDateDialog(true);
+      // Don't change the timeFilter value here, let the dialog handle it
+    } else {
+      // When switching to a non-custom filter, clear custom date range
+      if (timeFilter === 'custom') {
+        setCustomDateRange({ from: undefined, to: undefined });
+      }
+      setTimeFilter(value);
+    }
+  };
+
+  const handleCustomRangeClick = () => {
+    setIsTimeFilterOpen(false); // Close the dropdown
+    setShowCustomDateDialog(true);
+  };
+
+  const handleCustomDateApply = () => {
+    if (customDateRange.from && customDateRange.to) {
+      setTimeFilter('custom');
+      setShowCustomDateDialog(false);
+    }
+  };
+
+  const handleCustomDateCancel = () => {
+    // If no previous custom range was set, reset to 'all'
+    if (timeFilter !== 'custom') {
+      setCustomDateRange({ from: undefined, to: undefined });
+    }
+    setShowCustomDateDialog(false);
+  };
+
+  const getTimeFilterDisplayText = () => {
+    switch (timeFilter) {
+      case 'all':
+        return 'All Time';
+      case 'today':
+        return 'Today';
+      case '7d':
+        return 'Last 7 days';
+      case '14d':
+        return 'Last 14 days';
+      case '28d':
+        return 'Last 28 days';
+      case 'custom':
+        if (customDateRange.from && customDateRange.to) {
+          return `${customDateRange.from.toLocaleDateString()} - ${customDateRange.to.toLocaleDateString()}`;
+        }
+        return 'Custom Range';
+      default:
+        return 'Filter by time';
+    }
   };
 
   const handleManualSubmission = async (submissionId: string) => {
@@ -603,16 +690,32 @@ export default function Submissions() {
                 />
               </div>
 
-              <Select value={timeFilter} onValueChange={setTimeFilter}>
+              <Select 
+                value={timeFilter === 'custom' ? 'custom-display' : timeFilter} 
+                onValueChange={handleTimeFilterChange}
+                open={isTimeFilterOpen}
+                onOpenChange={setIsTimeFilterOpen}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by time" />
+                  <div className="flex items-center justify-between w-full">
+                    <span className="truncate">{getTimeFilterDisplayText()}</span>
+                  </div>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="1d">Last 24h</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  {/* <SelectItem value="1d">Last 24h</SelectItem> */}
                   <SelectItem value="7d">Last 7 days</SelectItem>
-                  <SelectItem value="30d">Last 30 days</SelectItem>
-                  <SelectItem value="90d">Last 90 days</SelectItem>
+                  <SelectItem value="14d">Last 14 days</SelectItem>
+                  <SelectItem value="28d">Last 28 days</SelectItem>
+                  {/* <SelectItem value="30d">Last 30 days</SelectItem> */}
+                  {/* <SelectItem value="90d">Last 90 days</SelectItem> */}
+                  <div 
+                    className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-accent hover:text-accent-foreground"
+                    onClick={handleCustomRangeClick}
+                  >
+                    Custom Range
+                  </div>
                 </SelectContent>
               </Select>
               
@@ -721,7 +824,7 @@ export default function Submissions() {
                     <TableHead className="w-[100px] font-medium">AMOUNT</TableHead>
                     <TableHead className="w-[100px] font-medium">CURRENCY</TableHead>
                     <TableHead className="w-[120px] font-medium">PLATFORM</TableHead>
-                    <TableHead className="w-[80px] font-medium">TIERS</TableHead>
+                    {/* <TableHead className="w-[80px] font-medium">TIERS</TableHead> */}
                     <TableHead className="w-[100px] font-medium">STATUS</TableHead>
                     <TableHead className="w-[120px] font-medium">DATE</TableHead>
                     <TableHead className="w-[100px] font-medium">ACTIONS</TableHead>
@@ -777,11 +880,11 @@ export default function Submissions() {
                           {submission.country || 'Unknown'}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
                           {submission.commission_tier || '1'}
                         </Badge>
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         <Badge 
                           className={`${getStatusColor(submission.status)} flex items-center gap-1 w-fit`}
@@ -803,7 +906,7 @@ export default function Submissions() {
                                 e.stopPropagation();
                                 handleEditSubmission(submission);
                               }}
-                              className="h-8 w-8 p-0 hover:bg-blue-100 text-blue-600"
+                              className="h-8 w-8 p-0 hover:bg-muted text-white"
                               title="Edit submission"
                             >
                               <Edit className="h-4 w-4" />
@@ -877,6 +980,99 @@ export default function Submissions() {
         onClose={handleEditModalClose}
         onSubmissionUpdated={handleSubmissionUpdated}
       />
+
+      {/* Custom Date Range Dialog */}
+      <Dialog open={showCustomDateDialog} onOpenChange={setShowCustomDateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Custom Date Range</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">From Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {customDateRange.from ? (
+                      customDateRange.from.toLocaleDateString()
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={customDateRange.from}
+                    onSelect={(date) =>
+                      setCustomDateRange(prev => ({ ...prev, from: date }))
+                    }
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">To Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {customDateRange.to ? (
+                      customDateRange.to.toLocaleDateString()
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={customDateRange.to}
+                    onSelect={(date) =>
+                      setCustomDateRange(prev => ({ ...prev, to: date }))
+                    }
+                    disabled={(date) =>
+                      date > new Date() || 
+                      date < new Date("1900-01-01") ||
+                      (customDateRange.from && date < customDateRange.from)
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCustomDateCancel}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCustomDateApply}
+                disabled={!customDateRange.from || !customDateRange.to}
+                className="flex-1"
+              >
+                Apply Range
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

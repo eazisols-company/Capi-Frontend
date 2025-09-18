@@ -512,7 +512,7 @@ export function SubmissionEditModal({
                       </FormItem>
                     )}
                   />
-                  <FormField
+                  {/* <FormField
                     control={form.control}
                     name="commission_tier"
                     render={({ field }) => (
@@ -535,7 +535,7 @@ export function SubmissionEditModal({
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
+                  /> */}
                 </div>
               </CardContent>
             </Card>

@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Users, 
   DollarSign, 
@@ -12,7 +15,9 @@ import {
   Target,
   Zap,
   Copy,
-  Banknote
+  Banknote,
+  Calendar as CalendarIcon,
+  X
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +27,12 @@ import { getCurrencySymbol } from "@/lib/utils";
 export default function Dashboard() {
   const { user } = useAuth();
   const [timeFilter, setTimeFilter] = useState("7d");
+  const [customDateRange, setCustomDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({ from: undefined, to: undefined });
+  const [showCustomDateDialog, setShowCustomDateDialog] = useState(false);
+  const [isTimeFilterOpen, setIsTimeFilterOpen] = useState(false);
   const [stats, setStats] = useState({
     totalSubmissions: 0,
     totalDeposits: 0,
@@ -44,7 +55,7 @@ export default function Dashboard() {
     if (user) {
       fetchDashboardData();
     }
-  }, [user, timeFilter, connections]);
+  }, [user, timeFilter, connections, customDateRange]);
 
   const fetchProfile = async () => {
     try {
@@ -91,28 +102,81 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Use analytics endpoint for dashboard data
-      const response = await apiClient.getDashboardAnalytics(timeFilter);
-      const analytics = response.data.analytics;
+      // For custom date ranges and unsupported periods, we'll calculate analytics from submissions data
+      // For standard periods, use the analytics endpoint
+      if (timeFilter === 'custom' || timeFilter === '14d') {
+        // Get submissions for custom date range or unsupported periods and calculate stats manually
+        const submissionsResponse = await apiClient.getSubmissions({
+          start_date: getStartDateForFilter(timeFilter),
+          end_date: getEndDateForFilter(timeFilter)
+        });
+        const allSubmissions = submissionsResponse.data.submissions || [];
+        
+        // Calculate stats from submissions
+        const totalSubmissions = allSubmissions.length;
+        const totalDeposits = allSubmissions.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
+        const depositsCount = allSubmissions.filter(sub => sub.status === 'submitted').length;
+        const conversionRate = totalSubmissions > 0 ? (depositsCount / totalSubmissions) * 100 : 0;
+        
+        // Debug logging for conversion rate
+        console.log('14d Filter Debug:', {
+          totalSubmissions,
+          depositsCount,
+          conversionRate,
+          statuses: allSubmissions.map(sub => sub.status),
+          timeFilter
+        });
+        
+        // Get top countries
+        const countryStats = allSubmissions.reduce((acc: Record<string, number>, sub: any) => {
+          acc[sub.country] = (acc[sub.country] || 0) + 1;
+          return acc;
+        }, {});
+        const topCountries = Object.entries(countryStats)
+          .map(([country, count]) => ({ country, count: count as number }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
 
-      // Get all submissions for commission calculation (not just recent ones)
-      const submissionsResponse = await apiClient.getSubmissions({
-        start_date: getStartDateForFilter(timeFilter),
-        end_date: new Date().toISOString()
-      });
-      const allSubmissions = submissionsResponse.data.submissions || [];
+        // Get recent submissions (last 10)
+        const recentSubmissions = allSubmissions
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 10);
 
-      // Calculate total commissions
-      const totalCommissions = calculateTotalCommissions(allSubmissions);
+        const totalCommissions = calculateTotalCommissions(allSubmissions);
 
-      setStats({
-        totalSubmissions: analytics.total_submissions,
-        totalDeposits: analytics.total_deposits,
-        conversionRate: analytics.conversion_rate,
-        topCountries: analytics.top_countries,
-        recentSubmissions: analytics.recent_submissions || [],
-        totalCommissions: totalCommissions
-      });
+        setStats({
+          totalSubmissions,
+          totalDeposits,
+          conversionRate,
+          topCountries,
+          recentSubmissions,
+          totalCommissions
+        });
+      } else {
+        // Use analytics endpoint for standard periods
+        const analyticsFilter = mapTimeFilterToAnalytics(timeFilter);
+        const response = await apiClient.getDashboardAnalytics(analyticsFilter);
+        const analytics = response.data.analytics;
+
+        // Get all submissions for commission calculation
+        const submissionsResponse = await apiClient.getSubmissions({
+          start_date: getStartDateForFilter(timeFilter),
+          end_date: getEndDateForFilter(timeFilter)
+        });
+        const allSubmissions = submissionsResponse.data.submissions || [];
+
+        // Calculate total commissions
+        const totalCommissions = calculateTotalCommissions(allSubmissions);
+
+        setStats({
+          totalSubmissions: analytics.total_submissions,
+          totalDeposits: analytics.total_deposits,
+          conversionRate: analytics.conversion_rate,
+          topCountries: analytics.top_countries,
+          recentSubmissions: analytics.recent_submissions || [],
+          totalCommissions: totalCommissions
+        });
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     }
@@ -121,16 +185,48 @@ export default function Dashboard() {
   const getStartDateForFilter = (filter: string) => {
     const now = new Date();
     switch (filter) {
-      case '1d':
-        return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+      case 'today':
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return today.toISOString();
       case '7d':
         return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      case '30d':
-        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      case '90d':
-        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      case '14d':
+        return new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      case '28d':
+        return new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000).toISOString();
+      case 'all':
+        return new Date('2020-01-01').toISOString();
+      case 'custom':
+        return customDateRange.from ? customDateRange.from.toISOString() : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
       default:
         return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
+  };
+
+  const getEndDateForFilter = (filter: string) => {
+    if (filter === 'custom' && customDateRange.to) {
+      const endDate = new Date(customDateRange.to);
+      endDate.setHours(23, 59, 59, 999);
+      return endDate.toISOString();
+    }
+    return new Date().toISOString();
+  };
+
+  const mapTimeFilterToAnalytics = (filter: string) => {
+    // Map our filter values to what the analytics API expects
+    // Note: 14d is not supported by analytics API, so it's handled via custom calculation
+    switch (filter) {
+      case 'today':
+        return '1d';
+      case '7d':
+        return '7d';
+      case '28d':
+        return '30d'; // Map to closest supported value
+      case 'all':
+        return '90d'; // Use 90d as "all time" fallback
+      default:
+        return '7d';
     }
   };
 
@@ -162,6 +258,82 @@ export default function Dashboard() {
     });
     
     return total;
+  };
+
+  const handleTimeFilterChange = (value: string) => {
+    if (value === 'custom' || value === 'custom-display') {
+      setShowCustomDateDialog(true);
+    } else {
+      // When switching to a non-custom filter, clear custom date range
+      if (timeFilter === 'custom') {
+        setCustomDateRange({ from: undefined, to: undefined });
+      }
+      setTimeFilter(value);
+    }
+  };
+
+  const handleCustomRangeClick = () => {
+    setIsTimeFilterOpen(false); // Close the dropdown
+    setShowCustomDateDialog(true);
+  };
+
+  const handleCustomDateApply = () => {
+    if (customDateRange.from && customDateRange.to) {
+      setTimeFilter('custom');
+      setShowCustomDateDialog(false);
+    }
+  };
+
+  const handleCustomDateCancel = () => {
+    // If no previous custom range was set, reset to previous filter
+    if (timeFilter !== 'custom') {
+      setCustomDateRange({ from: undefined, to: undefined });
+    }
+    setShowCustomDateDialog(false);
+  };
+
+  const getTimeFilterDisplayText = () => {
+    switch (timeFilter) {
+      case 'today':
+        return 'Today';
+      case '7d':
+        return '7 Days';
+      case '14d':
+        return '14 Days';
+      case '28d':
+        return '28 Days';
+      case 'all':
+        return 'All Time';
+      case 'custom':
+        if (customDateRange.from && customDateRange.to) {
+          return `${customDateRange.from.toLocaleDateString()} - ${customDateRange.to.toLocaleDateString()}`;
+        }
+        return 'Custom Range';
+      default:
+        return '7 Days';
+    }
+  };
+
+  const getTimeFilterLabel = () => {
+    switch (timeFilter) {
+      case 'today':
+        return 'Today';
+      case '7d':
+        return '7 Days';
+      case '14d':
+        return '14 Days';
+      case '28d':
+        return '28 Days';
+      case 'all':
+        return 'All Time';
+      case 'custom':
+        if (customDateRange.from && customDateRange.to) {
+          return `${customDateRange.from.toLocaleDateString()} - ${customDateRange.to.toLocaleDateString()}`;
+        }
+        return 'Custom';
+      default:
+        return '7 Days';
+    }
   };
 
   const statCards = [
@@ -232,15 +404,29 @@ export default function Dashboard() {
                 <Copy className="h-3 w-3" />
               </Badge>
             )}
-            <Select value={timeFilter} onValueChange={setTimeFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
+            <Select 
+              value={timeFilter === 'custom' ? 'custom-display' : timeFilter} 
+              onValueChange={handleTimeFilterChange}
+              open={isTimeFilterOpen}
+              onOpenChange={setIsTimeFilterOpen}
+            >
+              <SelectTrigger className="w-40">
+                <div className="flex items-center justify-between w-full">
+                  <span className="truncate">{getTimeFilterDisplayText()}</span>
+                </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1d">Last 24h</SelectItem>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="7d">7 Days</SelectItem>
+                <SelectItem value="14d">14 Days</SelectItem>
+                <SelectItem value="28d">28 Days</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+                <div 
+                  className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-accent hover:text-accent-foreground"
+                  onClick={handleCustomRangeClick}
+                >
+                  Custom Range
+                </div>
               </SelectContent>
             </Select>
           </div>
@@ -398,6 +584,99 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Custom Date Range Dialog */}
+      <Dialog open={showCustomDateDialog} onOpenChange={setShowCustomDateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Custom Date Range</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">From Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customDateRange.from ? (
+                      customDateRange.from.toLocaleDateString()
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customDateRange.from}
+                    onSelect={(date) =>
+                      setCustomDateRange(prev => ({ ...prev, from: date }))
+                    }
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">To Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customDateRange.to ? (
+                      customDateRange.to.toLocaleDateString()
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customDateRange.to}
+                    onSelect={(date) =>
+                      setCustomDateRange(prev => ({ ...prev, to: date }))
+                    }
+                    disabled={(date) =>
+                      date > new Date() || 
+                      date < new Date("1900-01-01") ||
+                      (customDateRange.from && date < customDateRange.from)
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCustomDateCancel}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCustomDateApply}
+                disabled={!customDateRange.from || !customDateRange.to}
+                className="flex-1"
+              >
+                Apply Range
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
