@@ -13,7 +13,8 @@ import {
   Image as ImageIcon,
   Save,
   RefreshCw,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/services/api";
@@ -92,12 +93,18 @@ export default function OptInPages() {
     primary_color: "#FACC15",
     secondary_color: "#10B981",
     logo_url: "",
+    uploaded_logo_url: "",
     page_title: "Join Our Premium Trading Platform",
     page_subtitle: "Start your trading journey today",
     form_title: "Get Started",
     submit_button_text: "Join Now",
     font_family: "Inter"
   });
+  
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [previewLogoUrl, setPreviewLogoUrl] = useState<string>("");
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -116,6 +123,7 @@ export default function OptInPages() {
           primary_color: connectionSettings.primary_color || "#FACC15",
           secondary_color: connectionSettings.secondary_color || "#10B981",
           logo_url: connectionSettings.logo_url || "",
+          uploaded_logo_url: connectionSettings.uploaded_logo_url || "",
           page_title: connectionSettings.page_title || "Join Our Premium Trading Platform",
           page_subtitle: connectionSettings.page_subtitle || "Start your trading journey today",
           form_title: connectionSettings.form_title || "Get Started",
@@ -129,6 +137,7 @@ export default function OptInPages() {
           primary_color: "#FACC15",
           secondary_color: "#10B981",
           logo_url: "",
+          uploaded_logo_url: "",
           page_title: "Join Our Premium Trading Platform",
           page_subtitle: "Start your trading journey today",
           form_title: "Get Started",
@@ -136,6 +145,11 @@ export default function OptInPages() {
           font_family: "Inter"
         });
       }
+      
+      // Reset upload state when switching connections
+      setUploadedFile(null);
+      setPreviewLogoUrl("");
+      setPendingUploadFile(null);
     }
   }, [selectedConnectionId, settings]);
 
@@ -212,8 +226,45 @@ export default function OptInPages() {
     try {
       setSaving(true);
       
+      let finalLogoUrl = formData.logo_url;
+      
+      // If user has selected a file to upload
+      if (pendingUploadFile) {
+        // Delete previous uploaded logo if exists
+        if (isUploadedLogo()) {
+          try {
+            await apiClient.deleteLogo(selectedConnectionId);
+          } catch (deleteError) {
+            console.warn('Failed to delete previous uploaded logo:', deleteError);
+          }
+        }
+        
+        // Upload the new file
+        const response = await apiClient.uploadLogo(pendingUploadFile, selectedConnectionId);
+        finalLogoUrl = response.data.data.logo_url;
+        
+        // Clear pending file
+        setPendingUploadFile(null);
+        setPreviewLogoUrl("");
+        
+        // Clean up the preview URL
+        if (previewLogoUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(previewLogoUrl);
+        }
+      } 
+      // If user has changed to a manual URL and there's an existing uploaded logo
+      else if (formData.logo_url && !formData.logo_url.includes('capi-trackit.s3') && isUploadedLogo()) {
+        // Delete the previous uploaded logo
+        try {
+          await apiClient.deleteLogo(selectedConnectionId);
+        } catch (deleteError) {
+          console.warn('Failed to delete previous uploaded logo:', deleteError);
+        }
+      }
+      
       await apiClient.updateOptInSettings({
         ...formData,
+        logo_url: finalLogoUrl,
         connection_id: selectedConnectionId
       });
 
@@ -244,16 +295,129 @@ export default function OptInPages() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // In a real implementation, you would upload to Supabase Storage
-    // For now, we'll just show a placeholder
+    if (!selectedConnectionId) {
+      toast({
+        title: "Error",
+        description: "Please select a connection first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please select a valid image file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (2MB limit)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size must be less than 2MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create preview URL for the file
+    const fileUrl = URL.createObjectURL(file);
+    setPreviewLogoUrl(fileUrl);
+    setPendingUploadFile(file);
+    
     toast({
-      title: "File Upload",
-      description: "Logo upload feature coming soon. Please use a direct URL for now.",
+      title: "Preview Ready",
+      description: "File selected for preview. Click 'Save Changes' to upload and save."
     });
+  };
+
+  const handleRemoveUploadedLogo = async () => {
+    if (!selectedConnectionId) return;
+
+    try {
+      setUploading(true);
+      
+      await apiClient.deleteLogo(selectedConnectionId);
+      
+      // Clear the uploaded logo
+      setFormData(prev => ({ 
+        ...prev, 
+        logo_url: "", 
+        uploaded_logo_url: "" 
+      }));
+      setUploadedFile(null);
+      
+      // Refresh settings to get updated data from backend
+      await fetchSettings();
+      
+      toast({
+        title: "Success",
+        description: "Uploaded logo removed successfully"
+      });
+      
+    } catch (error: any) {
+      console.error('Error removing logo:', error);
+      toast({
+        title: "Error",
+        description: extractApiErrorMessage(error, "Failed to remove logo"),
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Helper function to get the effective logo URL for preview
+  const getEffectiveLogoUrl = () => {
+    // Show preview file first, then preview URL, then saved URL
+    return previewLogoUrl || formData.logo_url;
+  };
+
+  // Helper function to check if current saved logo is uploaded (S3 URL)
+  const isUploadedLogo = () => {
+    return formData.uploaded_logo_url && formData.uploaded_logo_url.includes('capi-trackit.s3');
+  };
+
+  // Helper function to check if user has pending changes
+  const hasPendingChanges = () => {
+    return pendingUploadFile || previewLogoUrl;
+  };
+
+  // Helper function to delete previous uploaded logo if exists
+  const deletePreviousUploadedLogo = async () => {
+    if (isUploadedLogo() && selectedConnectionId) {
+      try {
+        await apiClient.deleteLogo(selectedConnectionId);
+      } catch (deleteError) {
+        console.warn('Failed to delete previous logo:', deleteError);
+        // Continue even if delete fails
+      }
+    }
+  };
+
+  // Handle URL input change (just for preview, no deletion until save)
+  const handleLogoUrlChange = (newUrl: string) => {
+    // Clear any pending file upload when user enters URL
+    if (newUrl && pendingUploadFile) {
+      setPendingUploadFile(null);
+      if (previewLogoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewLogoUrl);
+      }
+      setPreviewLogoUrl("");
+    }
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      logo_url: newUrl
+    }));
   };
 
   if (loading) {
@@ -287,12 +451,19 @@ export default function OptInPages() {
                 primary_color: "#FACC15",
                 secondary_color: "#10B981",
                 logo_url: "",
+                uploaded_logo_url: "",
                 page_title: "Join Our Premium Trading Platform",
                 page_subtitle: "Start your trading journey today",
                 form_title: "Get Started",
                 submit_button_text: "Join Now",
                 font_family: "Inter"
               });
+              setUploadedFile(null);
+              setPendingUploadFile(null);
+              if (previewLogoUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(previewLogoUrl);
+              }
+              setPreviewLogoUrl("");
               toast({
                 title: "Reset",
                 description: "Settings reset to default values"
@@ -460,32 +631,98 @@ export default function OptInPages() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                              <div className="space-y-2">
-                <Label htmlFor="logo_url">Logo URL</Label>
-                <Input
-                  id="logo_url"
-                  value={formData.logo_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, logo_url: e.target.value }))}
-                  placeholder="https://your-domain.com/logo.png"
-                  type="url"
-                />
-                {formData.logo_url && (
-                  <p className="text-xs text-muted-foreground">
-                    Preview: {formData.logo_url.length > 50 ? formData.logo_url.substring(0, 50) + '...' : formData.logo_url}
-                  </p>
-                )}
-              </div>
+              {/* Upload Logo Section */}
               <div className="space-y-2">
-                <Label htmlFor="logo_upload">Or Upload Logo</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="logo_upload">Upload Logo</Label>
+                  {(isUploadedLogo() || pendingUploadFile) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (pendingUploadFile) {
+                          // Clear pending upload
+                          setPendingUploadFile(null);
+                          if (previewLogoUrl.startsWith('blob:')) {
+                            URL.revokeObjectURL(previewLogoUrl);
+                          }
+                          setPreviewLogoUrl("");
+                          toast({
+                            title: "Cleared",
+                            description: "File selection cleared"
+                          });
+                        } else {
+                          // Remove uploaded logo
+                          handleRemoveUploadedLogo();
+                        }
+                      }}
+                      disabled={uploading}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      {uploading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          {pendingUploadFile ? 'Clear' : 'Remove'}
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="logo_upload"
                   type="file"
                   accept="image/*"
                   onChange={handleFileUpload}
                   className="cursor-pointer"
+                  disabled={uploading || !selectedConnectionId}
+                />
+                <div className="flex items-start gap-2">
+                  {uploading && (
+                    <RefreshCw className="h-4 w-4 animate-spin text-primary mt-0.5" />
+                  )}
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">
+                      Recommended size: 200x60px or similar aspect ratio. Max file size: 2MB
+                    </p>
+                    {pendingUploadFile && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        📁 File selected: {pendingUploadFile.name} - Click 'Save Changes' to upload
+                      </p>
+                    )}
+                    {isUploadedLogo() && !pendingUploadFile && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Current uploaded logo: {formData.uploaded_logo_url.split('/').pop()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* URL Fallback Section */}
+              <div className="space-y-2">
+                <Label htmlFor="logo_url">Logo URL</Label>
+                <Input
+                  id="logo_url"
+                  value={formData.logo_url}
+                  onChange={(e) => handleLogoUrlChange(e.target.value)}
+                  placeholder="https://your-domain.com/logo.png"
+                  type="url"
+                  disabled={uploading}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Recommended size: 200x60px or similar aspect ratio
+                  Current saved URL: {formData.logo_url || 'None'}
+                  {pendingUploadFile && (
+                    <span className="text-blue-600 block mt-1">
+                      📁 Will be replaced with uploaded file when saved
+                    </span>
+                  )}
+                  {!pendingUploadFile && formData.logo_url && isUploadedLogo() && (
+                    <span className="text-green-600 block mt-1">
+                      ✓ This is your current uploaded logo URL
+                    </span>
+                  )}
                 </p>
               </div>
             </CardContent>
@@ -614,12 +851,13 @@ export default function OptInPages() {
               >
                 <div className="max-w-sm sm:max-w-md mx-auto text-center space-y-4 sm:space-y-6">
                   {/* Logo */}
-                  {formData.logo_url && (
+                  {getEffectiveLogoUrl() && (
                     <div className="mb-8">
                       <img 
-                        src={formData.logo_url} 
+                        src={getEffectiveLogoUrl()} 
                         alt="Logo" 
                         className="h-12 mx-auto"
+                        key={getEffectiveLogoUrl()} // Force re-render when URL changes
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}

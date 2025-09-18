@@ -18,6 +18,7 @@ interface OptInSettings {
     primary_color: string;
     secondary_color: string;
     logo_url: string;
+    uploaded_logo_url?: string;
     page_title: string;
     page_subtitle: string;
     form_title: string;
@@ -106,18 +107,24 @@ export default function PublicOptIn() {
     deposit_amount: ""
   });
 
+  // Helper function to get the effective logo URL
+  const getEffectiveLogoUrl = () => {
+    if (!optInData?.settings) return "";
+    return optInData.settings.logo_url;
+  };
+
   useEffect(() => {
     fetchOptInSettings();
   }, [connectionId]);
 
   // Dynamic favicon update
   useEffect(() => {
-    if (optInData?.settings?.logo_url) {
+    const effectiveLogoUrl = getEffectiveLogoUrl();
+    if (effectiveLogoUrl) {
       const updateFavicon = () => {
-        const logoUrl = optInData.settings.logo_url;
-        const absoluteLogoUrl = logoUrl.startsWith('http') 
-          ? logoUrl 
-          : `${window.location.origin}${logoUrl}`;
+        const absoluteLogoUrl = effectiveLogoUrl.startsWith('http') 
+          ? effectiveLogoUrl 
+          : `${window.location.origin}${effectiveLogoUrl}`;
         
         // Remove existing favicon links
         const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
@@ -296,22 +303,22 @@ export default function PublicOptIn() {
         <meta name="description" content={settings.page_subtitle} />
         
         {/* Dynamic Favicon */}
-        {settings.logo_url && (
+        {getEffectiveLogoUrl() && (
           <>
             <link rel="icon" type="image/x-icon" href={
-              settings.logo_url.startsWith('http') 
-                ? settings.logo_url 
-                : `${window.location.origin}${settings.logo_url}`
+              getEffectiveLogoUrl().startsWith('http') 
+                ? getEffectiveLogoUrl() 
+                : `${window.location.origin}${getEffectiveLogoUrl()}`
             } />
             <link rel="shortcut icon" href={
-              settings.logo_url.startsWith('http') 
-                ? settings.logo_url 
-                : `${window.location.origin}${settings.logo_url}`
+              getEffectiveLogoUrl().startsWith('http') 
+                ? getEffectiveLogoUrl() 
+                : `${window.location.origin}${getEffectiveLogoUrl()}`
             } />
             <link rel="apple-touch-icon" href={
-              settings.logo_url.startsWith('http') 
-                ? settings.logo_url 
-                : `${window.location.origin}${settings.logo_url}`
+              getEffectiveLogoUrl().startsWith('http') 
+                ? getEffectiveLogoUrl() 
+                : `${window.location.origin}${getEffectiveLogoUrl()}`
             } />
           </>
         )}
@@ -325,11 +332,11 @@ export default function PublicOptIn() {
         <meta property="og:title" content={settings.page_title} />
         <meta property="og:description" content={settings.page_subtitle} />
         <meta property="og:site_name" content={connection.name} />
-        {settings.logo_url && (
+        {getEffectiveLogoUrl() && (
           <meta property="og:image" content={
-            settings.logo_url.startsWith('http') 
-              ? settings.logo_url 
-              : `${window.location.origin}${settings.logo_url}`
+            getEffectiveLogoUrl().startsWith('http') 
+              ? getEffectiveLogoUrl() 
+              : `${window.location.origin}${getEffectiveLogoUrl()}`
           } />
         )}
         <meta property="og:image:width" content="1200" />
@@ -341,11 +348,11 @@ export default function PublicOptIn() {
         <meta name="twitter:title" content={settings.page_title} />
         <meta name="twitter:description" content={settings.page_subtitle} />
         <meta name="twitter:site" content={`@${connection.name.replace(/\s+/g, '')}`} />
-        {settings.logo_url && (
+        {getEffectiveLogoUrl() && (
           <meta name="twitter:image" content={
-            settings.logo_url.startsWith('http') 
-              ? settings.logo_url 
-              : `${window.location.origin}${settings.logo_url}`
+            getEffectiveLogoUrl().startsWith('http') 
+              ? getEffectiveLogoUrl() 
+              : `${window.location.origin}${getEffectiveLogoUrl()}`
           } />
         )}
         
@@ -370,10 +377,10 @@ export default function PublicOptIn() {
       <div className="max-w-md w-full">
         <div className="text-center space-y-6 mb-8">
           {/* Logo */}
-          {settings.logo_url && (
+          {getEffectiveLogoUrl() && (
             <div className="mb-8">
               <img 
-                src={settings.logo_url} 
+                src={getEffectiveLogoUrl()} 
                 alt="Logo" 
                 className="h-16 mx-auto"
                 onError={(e) => {

@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -226,6 +226,7 @@ class ApiClient {
     primary_color?: string;
     secondary_color?: string;
     logo_url?: string;
+    uploaded_logo_url?: string;
     page_title?: string;
     page_subtitle?: string;
     form_title?: string;
@@ -233,6 +234,23 @@ class ApiClient {
     font_family?: string;
   }) {
     return this.client.put('/api/opt-in-settings', settingsData);
+  }
+
+  // Logo upload methods
+  async uploadLogo(file: File, connectionId: string) {
+    const formData = new FormData();
+    formData.append('logo', file);
+    formData.append('connection_id', connectionId);
+    
+    return this.client.post('/api/opt-in-settings/upload-logo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
+
+  async deleteLogo(connectionId: string) {
+    return this.client.delete(`/api/opt-in-settings/delete-logo/${connectionId}`);
   }
 
   // Public opt-in methods (no authentication required)
@@ -248,7 +266,7 @@ class ApiClient {
     // Create a new client instance without auth headers for public endpoints
     // Use the same base URL as the main client for consistency
     const publicClient = axios.create({
-      baseURL: this.client.defaults.baseURL || import.meta.env.VITE_API_URL,
+      baseURL: this.client.defaults.baseURL || API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -271,7 +289,7 @@ class ApiClient {
   }) {
     // Create a new client instance without auth headers for public endpoints
     const publicClient = axios.create({
-      baseURL: this.client.defaults.baseURL || import.meta.env.VITE_API_URL,
+      baseURL: this.client.defaults.baseURL || API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -283,7 +301,7 @@ class ApiClient {
   async resolveDomain(domain: string) {
     // Create a new client instance without auth headers for public endpoints
     const publicClient = axios.create({
-      baseURL: this.client.defaults.baseURL || import.meta.env.VITE_API_URL,
+      baseURL: this.client.defaults.baseURL || API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
