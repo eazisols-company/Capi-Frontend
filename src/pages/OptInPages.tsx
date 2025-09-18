@@ -746,7 +746,7 @@ export default function OptInPages() {
                   </div>
 
                   {/* Accent Elements */}
-                  <div className="flex justify-center space-x-2">
+                  {/* <div className="flex justify-center space-x-2">
                     <div 
                       className="w-2 h-2 rounded-full"
                       style={{ backgroundColor: formData.secondary_color }}
@@ -759,7 +759,7 @@ export default function OptInPages() {
                       className="w-2 h-2 rounded-full"
                       style={{ backgroundColor: formData.secondary_color }}
                     />
-                  </div>
+                  </div> */}
 
                   {/* Powered by TrackAff */}
                   <div className="mt-8 pt-4 border-t border-white/20">

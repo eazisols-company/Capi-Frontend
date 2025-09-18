@@ -446,7 +446,7 @@ export default function PublicOptIn() {
           </form>
 
           {/* Accent Elements */}
-          <div className="flex justify-center space-x-2 mt-6">
+          {/* <div className="flex justify-center space-x-2 mt-6">
             <div 
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: settings.secondary_color }}
@@ -459,6 +459,13 @@ export default function PublicOptIn() {
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: settings.secondary_color }}
             />
+          </div> */}
+
+          {/* Powered by TrackAff */}
+          <div className="mt-8 pt-4 border-t border-white/20">
+            <p className="text-xs text-gray-400 text-center">
+              Powered by TrackAff
+            </p>
           </div>
         </div>
       </div>
