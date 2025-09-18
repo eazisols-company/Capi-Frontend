@@ -834,8 +834,7 @@ export default function Submissions() {
                   {filteredSubmissions.map((submission) => (
                     <TableRow 
                       key={submission.id}
-                      className="hover:bg-muted/30 cursor-pointer border-border"
-                      onClick={() => handleSubmissionClick(submission)}
+                      className="hover:bg-muted/30 border-border"
                     >
                       <TableCell className="font-mono text-sm">
                         <div className="flex items-center gap-2">
