@@ -138,7 +138,13 @@ export default function Dashboard() {
     let total = 0;
     
     submissions.forEach((submission: any) => {
-      // Find the connection for this submission
+      // Priority 1: Use explicit commission_amount if available
+      if (submission.commission_amount && typeof submission.commission_amount === 'number') {
+        total += submission.commission_amount;
+        return;
+      }
+      
+      // Priority 2: Fallback to connection country configuration
       const connection = connections.find(conn => 
         conn.id === submission.connection_id || conn._id === submission.connection_id
       );

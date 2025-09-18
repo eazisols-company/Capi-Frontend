@@ -23,12 +23,14 @@ import {
   RefreshCw,
   Download,
   Eye,
-  Copy
+  Copy,
+  Edit
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { SubmissionDetailsModal } from "@/components/SubmissionDetailsModal";
+import { SubmissionEditModal } from "@/components/SubmissionEditModal";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatDateForTable, formatDateForExport, getTimezoneDisplayName } from "@/lib/timezone-utils";
 
@@ -44,11 +46,14 @@ export default function Submissions() {
   const [countryFilter, setCountryFilter] = useState("all");
   const [connectionFilter, setConnectionFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState("all");
+  const [timeFilter, setTimeFilter] = useState("all");
   const [autoSubmission, setAutoSubmission] = useState(true);
   const [autoSubmissionLoading, setAutoSubmissionLoading] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSubmission, setEditingSubmission] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -60,7 +65,7 @@ export default function Submissions() {
 
   useEffect(() => {
     filterSubmissions();
-  }, [submissions, searchTerm, statusFilter, countryFilter, connectionFilter, eventFilter]);
+  }, [submissions, searchTerm, statusFilter, countryFilter, connectionFilter, eventFilter, timeFilter]);
 
   const fetchSubmissions = async () => {
     try {
@@ -147,6 +152,22 @@ export default function Submissions() {
     }
   };
 
+  const getStartDateForTimeFilter = (filter: string) => {
+    const now = new Date();
+    switch (filter) {
+      case '1d':
+        return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      case '7d':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case '30d':
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      case '90d':
+        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      default:
+        return null; // "all" case - no time filter
+    }
+  };
+
   const filterSubmissions = () => {
     let filtered = submissions;
 
@@ -180,6 +201,17 @@ export default function Submissions() {
     // Event filter
     if (eventFilter !== "all") {
       filtered = filtered.filter(submission => submission.custom_event_name === eventFilter);
+    }
+
+    // Time filter
+    if (timeFilter !== "all") {
+      const startDate = getStartDateForTimeFilter(timeFilter);
+      if (startDate) {
+        filtered = filtered.filter(submission => {
+          const submissionDate = new Date(submission.created_at);
+          return submissionDate >= startDate;
+        });
+      }
     }
 
     setFilteredSubmissions(filtered);
@@ -236,6 +268,20 @@ export default function Submissions() {
     setSelectedSubmission(null);
   };
 
+  const handleEditSubmission = (submission: any) => {
+    setEditingSubmission(submission);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false);
+    setEditingSubmission(null);
+  };
+
+  const handleSubmissionUpdated = () => {
+    fetchSubmissions(); // Refresh the submissions list
+  };
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -277,6 +323,7 @@ export default function Submissions() {
       'Phone Number',
       'Country',
       'Deposit Amount',
+      'Commission Tier',
       'Custom Event Name',
       'Submission Status',
       'Connection Name',
@@ -321,6 +368,7 @@ export default function Submissions() {
       formatPhoneNumber(submission.phone) || 'N/A',
       submission.country || 'N/A',
       submission.deposit_amount ? `$${submission.deposit_amount}` : 'N/A',
+      submission.commission_tier || '1',
       submission.custom_event_name || 'N/A',
       submission.status ? submission.status.charAt(0).toUpperCase() + submission.status.slice(1) : 'N/A',
       submission.connection_name || getConnectionForSubmission(submission)?.name || 'N/A',
@@ -544,7 +592,7 @@ export default function Submissions() {
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -554,6 +602,19 @@ export default function Submissions() {
                   className="pl-10"
                 />
               </div>
+
+              <Select value={timeFilter} onValueChange={setTimeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="1d">Last 24h</SelectItem>
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                  <SelectItem value="30d">Last 30 days</SelectItem>
+                  <SelectItem value="90d">Last 90 days</SelectItem>
+                </SelectContent>
+              </Select>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -612,6 +673,7 @@ export default function Submissions() {
                 variant="outline" 
                 onClick={() => {
                   setSearchTerm("");
+                  setTimeFilter("all");
                   setStatusFilter("all");
                   setCountryFilter("all");
                   setConnectionFilter("all");
@@ -716,11 +778,9 @@ export default function Submissions() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-center">
-                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                            <span className="text-xs text-muted-foreground">--</span>
-                          </div>
-                        </div>
+                        <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+                          {submission.commission_tier || '1'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge 
@@ -735,6 +795,20 @@ export default function Submissions() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          {submission.status === 'pending' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditSubmission(submission);
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-blue-100 text-blue-600"
+                              title="Edit submission"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
                           {submission.status === 'pending' && !autoSubmission && (
                             <Button
                               size="sm"
@@ -777,7 +851,7 @@ export default function Submissions() {
               <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-semibold text-foreground mb-2">No submissions found</h3>
               <p className="text-muted-foreground">
-                {searchTerm || statusFilter !== "all" || countryFilter !== "all" || connectionFilter !== "all" || eventFilter !== "all"
+                {searchTerm || statusFilter !== "all" || countryFilter !== "all" || connectionFilter !== "all" || eventFilter !== "all" || timeFilter !== "all"
                   ? "Try adjusting your filters to see more results."
                   : "Submissions will appear here once leads are captured."
                 }
@@ -793,6 +867,15 @@ export default function Submissions() {
         connection={selectedSubmission ? getConnectionForSubmission(selectedSubmission) : undefined}
         isOpen={isModalOpen}
         onClose={handleModalClose}
+      />
+
+      {/* Submission Edit Modal */}
+      <SubmissionEditModal
+        submission={editingSubmission}
+        connection={editingSubmission ? getConnectionForSubmission(editingSubmission) : undefined}
+        isOpen={isEditModalOpen}
+        onClose={handleEditModalClose}
+        onSubmissionUpdated={handleSubmissionUpdated}
       />
     </div>
   );

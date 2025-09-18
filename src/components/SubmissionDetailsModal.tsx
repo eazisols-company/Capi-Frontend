@@ -98,8 +98,8 @@ export function SubmissionDetailsModal({
 
   // Helper functions for dynamic values
   const getPlatformName = () => {
-    // Could be from connection data or submission metadata
-    return connection?.platform || 'Facebook'; // Default to Facebook for now
+    // Return the country from submission data (platform_name represents the connection country)
+    return submission.platform_name || submission.country || 'United States';
   };
 
   const getEventType = () => {
@@ -768,7 +768,7 @@ export function SubmissionDetailsModal({
                       <h4 className="font-medium mb-4">Platform Details</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm text-muted-foreground">Platform Name</label>
+                          <label className="text-sm text-muted-foreground">Platform Name (Country)</label>
                           <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
                             <span className="text-sm">{getPlatformName()}</span>
                           </div>
@@ -776,7 +776,7 @@ export function SubmissionDetailsModal({
                         <div>
                           <label className="text-sm text-muted-foreground">Event Sent To</label>
                           <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                            <span className="text-sm">{getPlatformName().toLowerCase()}</span>
+                            <span className="text-sm">{submission.event_sent_to || 'facebook'}</span>
                           </div>
                         </div>
                       </div>

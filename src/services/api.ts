@@ -188,6 +188,24 @@ class ApiClient {
     return this.client.put(`/api/submissions/${submissionId}/submit-to-meta`);
   }
 
+  async updateSubmission(submissionId: string, submissionData: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    country?: string;
+    deposit_amount?: number;
+    currency?: string;
+    custom_event_name?: string;
+    commission_amount?: number;
+    commission_currency?: string;
+    commission_tier?: string;
+    platform_name?: string;
+    event_sent_to?: string;
+  }) {
+    return this.client.put(`/api/submissions/${submissionId}`, submissionData);
+  }
+
   // Analytics methods
   async getDashboardAnalytics(period: string = '7d') {
     return this.client.get(`/api/analytics/dashboard?period=${period}`);
