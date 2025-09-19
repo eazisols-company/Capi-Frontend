@@ -347,7 +347,7 @@ export default function Dashboard() {
     },
     {
       title: "Total Deposits",
-      value: `${getCurrencySymbol(profile?.system_currency)} ${stats.totalDeposits.toLocaleString()}`,
+      value: `${getCurrencySymbol(profile?.system_currency)}${stats.totalDeposits.toLocaleString()}`,
       icon: DollarSign,
       color: "text-secondary",
       bgColor: "bg-secondary/10",
@@ -363,7 +363,7 @@ export default function Dashboard() {
     },
     {
       title: "Total Commissions",
-      value: `${getCurrencySymbol(profile?.system_currency)} ${stats.totalCommissions.toLocaleString()}`,
+      value: `${getCurrencySymbol(profile?.system_currency)}${stats.totalCommissions.toLocaleString()}`,
       icon: Banknote,
       color: "text-green-600",
       bgColor: "bg-primary/10",
@@ -563,7 +563,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-foreground">
-                      {getCurrencySymbol(profile?.system_currency)} {parseFloat(submission.deposit_amount).toLocaleString()}
+                      {getCurrencySymbol(profile?.system_currency)}{parseFloat(submission.deposit_amount).toLocaleString()}
                     </p>
                     <Badge 
                       variant={submission.status === 'submitted' ? 'default' : 
