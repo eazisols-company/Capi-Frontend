@@ -11,12 +11,7 @@ import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { TIMEZONES, getDetectedTimezone } from "@/lib/timezone-utils";
-
-// System currencies with flag codes
-const SYSTEM_CURRENCIES = [
-  { code: "USD", name: "US Dollar", symbol: "$", flagCode: "US" },
-  { code: "EUR", name: "Euro", symbol: "€", flagCode: "EU" }
-];
+import { SYSTEM_CURRENCIES } from "@/utils/constants";
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();

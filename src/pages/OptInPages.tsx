@@ -22,145 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { extractApiErrorMessage, getCurrencySymbol } from "@/lib/utils";
 import { FlagIcon } from 'react-flag-kit';
-
-const FONT_OPTIONS = [
-  { value: "Inter", label: "Inter", cssName: "'Inter', sans-serif" },
-  { value: "Roboto", label: "Roboto", cssName: "'Roboto', sans-serif" },
-  { value: "Open Sans", label: "Open Sans", cssName: "'Open Sans', sans-serif" },
-  { value: "Lato", label: "Lato", cssName: "'Lato', sans-serif" },
-  { value: "Montserrat", label: "Montserrat", cssName: "'Montserrat', sans-serif" },
-  { value: "Poppins", label: "Poppins", cssName: "'Poppins', sans-serif" },
-  { value: "Source Sans Pro", label: "Source Sans Pro", cssName: "'Source Sans Pro', sans-serif" },
-  { value: "Nunito", label: "Nunito", cssName: "'Nunito', sans-serif" },
-  { value: "Raleway", label: "Raleway", cssName: "'Raleway', sans-serif" },
-  { value: "Ubuntu", label: "Ubuntu", cssName: "'Ubuntu', sans-serif" }
-];
-
-const COUNTRY_CODES = [
-  { code: "+1", country: "US/CA", flag: "🇺🇸" },
-  { code: "+44", country: "UK", flag: "🇬🇧" },
-  { code: "+49", country: "DE", flag: "🇩🇪" },
-  { code: "+33", country: "FR", flag: "🇫🇷" },
-  { code: "+32", country: "BE", flag: "🇧🇪" },
-  { code: "+41", country: "CH", flag: "🇨🇭" },
-  { code: "+43", country: "AT", flag: "🇦🇹" },
-  { code: "+46", country: "SE", flag: "🇸🇪" },
-  { code: "+47", country: "NO", flag: "🇳🇴" },
-  { code: "+45", country: "DK", flag: "🇩🇰" },
-  { code: "+358", country: "FI", flag: "🇫🇮" },
-  { code: "+31", country: "NL", flag: "🇳🇱" },
-  { code: "+39", country: "IT", flag: "🇮🇹" },
-  { code: "+34", country: "ES", flag: "🇪🇸" },
-  { code: "+351", country: "PT", flag: "🇵🇹" },
-  { code: "+61", country: "AU", flag: "🇦🇺" },
-  { code: "+81", country: "JP", flag: "🇯🇵" },
-  { code: "+82", country: "KR", flag: "🇰🇷" },
-  { code: "+65", country: "SG", flag: "🇸🇬" },
-  { code: "+852", country: "HK", flag: "🇭🇰" },
-  { code: "+55", country: "BR", flag: "🇧🇷" },
-  { code: "+52", country: "MX", flag: "🇲🇽" },
-  { code: "+54", country: "AR", flag: "🇦🇷" },
-  { code: "+56", country: "CL", flag: "🇨🇱" },
-  { code: "+57", country: "CO", flag: "🇨🇴" },
-  { code: "+91", country: "IN", flag: "🇮🇳" },
-  { code: "+92", country: "PK", flag: "🇵🇰" },
-  { code: "+86", country: "CN", flag: "🇨🇳" },
-  { code: "+27", country: "ZA", flag: "🇿🇦" },
-  { code: "+234", country: "NG", flag: "🇳🇬" },
-  { code: "+20", country: "EG", flag: "🇪🇬" },
-  { code: "+971", country: "AE", flag: "🇦🇪" },
-  { code: "+966", country: "SA", flag: "🇸🇦" },
-  { code: "+90", country: "TR", flag: "🇹🇷" },
-  { code: "+48", country: "PL", flag: "🇵🇱" },
-  { code: "+7", country: "RU", flag: "🇷🇺" },
-  { code: "+380", country: "UA", flag: "🇺🇦" },
-  { code: "+30", country: "GR", flag: "🇬🇷" },
-  { code: "+420", country: "CZ", flag: "🇨🇿" },
-  { code: "+36", country: "HU", flag: "🇭🇺" },
-  { code: "+40", country: "RO", flag: "🇷🇴" },
-  { code: "+353", country: "IE", flag: "🇮🇪" },
-  { code: "+372", country: "EE", flag: "🇪🇪" },
-  { code: "+371", country: "LV", flag: "🇱🇻" },
-  { code: "+370", country: "LT", flag: "🇱🇹" },
-  { code: "+421", country: "SK", flag: "🇸🇰" },
-  { code: "+386", country: "SI", flag: "🇸🇮" },
-  { code: "+385", country: "HR", flag: "🇭🇷" },
-  { code: "+381", country: "RS", flag: "🇷🇸" },
-  { code: "+359", country: "BG", flag: "🇧🇬" },
-  { code: "+60", country: "MY", flag: "🇲🇾" },
-  { code: "+66", country: "TH", flag: "🇹🇭" },
-  { code: "+84", country: "VN", flag: "🇻🇳" },
-  { code: "+63", country: "PH", flag: "🇵🇭" },
-  { code: "+62", country: "ID", flag: "🇮🇩" }
-];
-
-const CURRENCIES = [
-  { code: "USD", name: "US Dollar", symbol: "$" },
-  { code: "EUR", name: "Euro", symbol: "€" },
-  { code: "GBP", name: "British Pound", symbol: "£" },
-  { code: "CAD", name: "Canadian Dollar", symbol: "C$" },
-  { code: "AUD", name: "Australian Dollar", symbol: "A$" },
-  { code: "JPY", name: "Japanese Yen", symbol: "¥" },
-  { code: "CHF", name: "Swiss Franc", symbol: "CHF" },
-  { code: "CNY", name: "Chinese Yuan", symbol: "¥" },
-  { code: "INR", name: "Indian Rupee", symbol: "₹" },
-  { code: "BRL", name: "Brazilian Real", symbol: "R$" },
-];
-
-// Helper function to get country code for flag display
-const getCountryCode = (countryName: string): string => {
-  const countryMap: { [key: string]: string } = {
-    "United States": "US",
-    "United Kingdom": "GB",
-    "Germany": "DE",
-    "France": "FR",
-    "Italy": "IT",
-    "Spain": "ES",
-    "Netherlands": "NL",
-    "Belgium": "BE",
-    "Switzerland": "CH",
-    "Austria": "AT",
-    "Sweden": "SE",
-    "Norway": "NO",
-    "Denmark": "DK",
-    "Finland": "FI",
-    "Canada": "CA",
-    "Australia": "AU",
-    "Japan": "JP",
-    "South Korea": "KR",
-    "Singapore": "SG",
-    "Hong Kong": "HK",
-    "Brazil": "BR",
-    "Mexico": "MX",
-    "Argentina": "AR",
-    "Chile": "CL",
-    "Colombia": "CO",
-    "India": "IN",
-    "China": "CN",
-    "South Africa": "ZA",
-    "Nigeria": "NG",
-    "Egypt": "EG",
-    "UAE": "AE",
-    "Saudi Arabia": "SA",
-    "Turkey": "TR",
-    "Poland": "PL",
-    "Ireland": "IE",
-    "Estonia": "EE",
-    "Latvia": "LV",
-    "Lithuania": "LT",
-    "Slovakia": "SK",
-    "Slovenia": "SI",
-    "Croatia": "HR",
-    "Serbia": "RS",
-    "Bulgaria": "BG",
-    "Malaysia": "MY",
-    "Thailand": "TH",
-    "Vietnam": "VN",
-    "Philippines": "PH",
-    "Indonesia": "ID"
-  };
-  return countryMap[countryName] || "US"; // Default to US flag if not found
-};
+import { FONT_OPTIONS, CURRENCIES, getCountryFlagCode } from "@/utils/constants";
 
 export default function OptInPages() {
   const { user } = useAuth();
@@ -1063,8 +925,7 @@ export default function OptInPages() {
                           >
                             <SelectValue>
                               <div className="flex items-center gap-2">
-                                <span>$</span>
-                                <span>USD</span>
+                               placeholder="Select Currency"
                               </div>
                             </SelectValue>
                           </SelectTrigger>

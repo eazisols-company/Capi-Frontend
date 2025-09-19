@@ -11,6 +11,7 @@ import { FlagIcon } from 'react-flag-kit';
 import { apiClient } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { getCurrencySymbol } from "@/lib/utils";
+import { FONT_OPTIONS, COUNTRY_CODES, CURRENCIES, getCountryFlagCode } from "@/utils/constants";
 
 interface OptInSettings {
   connection_id: string;
@@ -31,145 +32,6 @@ interface OptInSettings {
     countries: Array<{ country: string; value: number }>;
   };
 }
-
-const FONT_OPTIONS = [
-  { value: "Inter", label: "Inter", cssName: "'Inter', sans-serif" },
-  { value: "Roboto", label: "Roboto", cssName: "'Roboto', sans-serif" },
-  { value: "Open Sans", label: "Open Sans", cssName: "'Open Sans', sans-serif" },
-  { value: "Lato", label: "Lato", cssName: "'Lato', sans-serif" },
-  { value: "Montserrat", label: "Montserrat", cssName: "'Montserrat', sans-serif" },
-  { value: "Poppins", label: "Poppins", cssName: "'Poppins', sans-serif" },
-  { value: "Source Sans Pro", label: "Source Sans Pro", cssName: "'Source Sans Pro', sans-serif" },
-  { value: "Nunito", label: "Nunito", cssName: "'Nunito', sans-serif" },
-  { value: "Raleway", label: "Raleway", cssName: "'Raleway', sans-serif" },
-  { value: "Ubuntu", label: "Ubuntu", cssName: "'Ubuntu', sans-serif" }
-];
-
-const COUNTRY_CODES = [
-  { code: "+1", country: "US/CA", flagCode: "US" },
-  { code: "+44", country: "UK", flagCode: "GB" },
-  { code: "+49", country: "DE", flagCode: "DE" },
-  { code: "+33", country: "FR", flagCode: "FR" },
-  { code: "+32", country: "BE", flagCode: "BE" },
-  { code: "+41", country: "CH", flagCode: "CH" },
-  { code: "+43", country: "AT", flagCode: "AT" },
-  { code: "+46", country: "SE", flagCode: "SE" },
-  { code: "+47", country: "NO", flagCode: "NO" },
-  { code: "+45", country: "DK", flagCode: "DK" },
-  { code: "+358", country: "FI", flagCode: "FI" },
-  { code: "+31", country: "NL", flagCode: "NL" },
-  { code: "+39", country: "IT", flagCode: "IT" },
-  { code: "+34", country: "ES", flagCode: "ES" },
-  { code: "+351", country: "PT", flagCode: "PT" },
-  { code: "+61", country: "AU", flagCode: "AU" },
-  { code: "+81", country: "JP", flagCode: "JP" },
-  { code: "+82", country: "KR", flagCode: "KR" },
-  { code: "+65", country: "SG", flagCode: "SG" },
-  { code: "+852", country: "HK", flagCode: "HK" },
-  { code: "+55", country: "BR", flagCode: "BR" },
-  { code: "+52", country: "MX", flagCode: "MX" },
-  { code: "+54", country: "AR", flagCode: "AR" },
-  { code: "+56", country: "CL", flagCode: "CL" },
-  { code: "+57", country: "CO", flagCode: "CO" },
-  { code: "+91", country: "IN", flagCode: "IN" },
-  { code: "+92", country: "PK", flagCode: "PK" },
-  { code: "+86", country: "CN", flagCode: "CN" },
-  { code: "+27", country: "ZA", flagCode: "ZA" },
-  { code: "+234", country: "NG", flagCode: "NG" },
-  { code: "+20", country: "EG", flagCode: "EG" },
-  { code: "+971", country: "AE", flagCode: "AE" },
-  { code: "+966", country: "SA", flagCode: "SA" },
-  { code: "+90", country: "TR", flagCode: "TR" },
-  { code: "+48", country: "PL", flagCode: "PL" },
-  { code: "+7", country: "RU", flagCode: "RU" },
-  { code: "+380", country: "UA", flagCode: "UA" },
-  { code: "+30", country: "GR", flagCode: "GR" },
-  { code: "+420", country: "CZ", flagCode: "CZ" },
-  { code: "+36", country: "HU", flagCode: "HU" },
-  { code: "+40", country: "RO", flagCode: "RO" },
-  { code: "+353", country: "IE", flagCode: "IE" },
-  { code: "+372", country: "EE", flagCode: "EE" },
-  { code: "+371", country: "LV", flagCode: "LV" },
-  { code: "+370", country: "LT", flagCode: "LT" },
-  { code: "+421", country: "SK", flagCode: "SK" },
-  { code: "+386", country: "SI", flagCode: "SI" },
-  { code: "+385", country: "HR", flagCode: "HR" },
-  { code: "+381", country: "RS", flagCode: "RS" },
-  { code: "+359", country: "BG", flagCode: "BG" },
-  { code: "+60", country: "MY", flagCode: "MY" },
-  { code: "+66", country: "TH", flagCode: "TH" },
-  { code: "+84", country: "VN", flagCode: "VN" },
-  { code: "+63", country: "PH", flagCode: "PH" },
-  { code: "+62", country: "ID", flagCode: "ID" }
-];
-
-const CURRENCIES = [
-  { code: "USD", name: "US Dollar", symbol: "$", flagCode: "US" },
-  { code: "EUR", name: "Euro", symbol: "€", flagCode: "EU" },
-  { code: "GBP", name: "British Pound", symbol: "£", flagCode: "GB" },
-  { code: "CAD", name: "Canadian Dollar", symbol: "C$", flagCode: "CA" },
-  { code: "AUD", name: "Australian Dollar", symbol: "A$", flagCode: "AU" },
-  { code: "JPY", name: "Japanese Yen", symbol: "¥", flagCode: "JP" },
-  { code: "CHF", name: "Swiss Franc", symbol: "CHF", flagCode: "CH" },
-  { code: "CNY", name: "Chinese Yuan", symbol: "¥", flagCode: "CN" },
-  { code: "INR", name: "Indian Rupee", symbol: "₹", flagCode: "IN" },
-  { code: "BRL", name: "Brazilian Real", symbol: "R$", flagCode: "BR" },
-];
-
-// Helper function to get country code for flag display
-const getCountryCode = (countryName: string): string => {
-  const countryMap: { [key: string]: string } = {
-    "United States": "US",
-    "United Kingdom": "GB",
-    "Germany": "DE",
-    "France": "FR",
-    "Italy": "IT",
-    "Spain": "ES",
-    "Netherlands": "NL",
-    "Belgium": "BE",
-    "Switzerland": "CH",
-    "Austria": "AT",
-    "Sweden": "SE",
-    "Norway": "NO",
-    "Denmark": "DK",
-    "Finland": "FI",
-    "Canada": "CA",
-    "Australia": "AU",
-    "Japan": "JP",
-    "South Korea": "KR",
-    "Singapore": "SG",
-    "Hong Kong": "HK",
-    "Brazil": "BR",
-    "Mexico": "MX",
-    "Argentina": "AR",
-    "Chile": "CL",
-    "Colombia": "CO",
-    "India": "IN",
-    "China": "CN",
-    "South Africa": "ZA",
-    "Nigeria": "NG",
-    "Egypt": "EG",
-    "UAE": "AE",
-    "Saudi Arabia": "SA",
-    "Turkey": "TR",
-    "Poland": "PL",
-    "Ireland": "IE",
-    "Estonia": "EE",
-    "Latvia": "LV",
-    "Lithuania": "LT",
-    "Slovakia": "SK",
-    "Slovenia": "SI",
-    "Croatia": "HR",
-    "Serbia": "RS",
-    "Bulgaria": "BG",
-    "Malaysia": "MY",
-    "Thailand": "TH",
-    "Vietnam": "VN",
-    "Philippines": "PH",
-    "Indonesia": "ID"
-  };
-  return countryMap[countryName] || "US"; // Default to US flag if not found
-};
 
 export default function PublicOptIn() {
   const { connectionId } = useParams();
@@ -633,7 +495,7 @@ export default function PublicOptIn() {
                   <SelectValue placeholder="Select Country">
                     {formData.country && (
                       <div className="flex items-center gap-2">
-                        <FlagIcon code={getCountryCode(formData.country) as any} size={16} />
+                        <FlagIcon code={getCountryFlagCode(formData.country) as any} size={16} />
                         <span>{formData.country}</span>
                       </div>
                     )}
@@ -643,7 +505,7 @@ export default function PublicOptIn() {
                   {connection.countries.map((countryData) => (
                     <SelectItem key={countryData.country} value={countryData.country}>
                       <div className="flex items-center gap-2">
-                        <FlagIcon code={getCountryCode(countryData.country) as any} size={16} />
+                        <FlagIcon code={getCountryFlagCode(countryData.country) as any} size={16} />
                         <span>{countryData.country}</span>
                       </div>
                     </SelectItem>

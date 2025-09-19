@@ -38,55 +38,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { extractApiErrorMessage, getCurrencySymbol } from "@/lib/utils";
 import { FlagIcon } from 'react-flag-kit';
-
-const COUNTRIES = [
-  "United States", "United Kingdom", "Germany", "France", "Italy", "Spain", "Netherlands",
-  "Belgium", "Switzerland", "Austria", "Sweden", "Norway", "Denmark", "Finland",
-  "Canada", "Australia", "Japan", "South Korea", "Singapore", "Hong Kong",
-  "Brazil", "Mexico", "Argentina", "Chile", "Colombia", "India", "China",
-  "South Africa", "Nigeria", "Egypt", "UAE", "Saudi Arabia", "Turkey", "Poland"
-];
-
-// Helper function to get country flag code from country name
-const getCountryFlagCode = (countryName: string): string => {
-  const countryMap: { [key: string]: string } = {
-    "United States": "US",
-    "United Kingdom": "GB",
-    "Germany": "DE",
-    "France": "FR",
-    "Italy": "IT",
-    "Spain": "ES",
-    "Netherlands": "NL",
-    "Belgium": "BE",
-    "Switzerland": "CH",
-    "Austria": "AT",
-    "Sweden": "SE",
-    "Norway": "NO",
-    "Denmark": "DK",
-    "Finland": "FI",
-    "Canada": "CA",
-    "Australia": "AU",
-    "Japan": "JP",
-    "South Korea": "KR",
-    "Singapore": "SG",
-    "Hong Kong": "HK",
-    "Brazil": "BR",
-    "Mexico": "MX",
-    "Argentina": "AR",
-    "Chile": "CL",
-    "Colombia": "CO",
-    "India": "IN",
-    "China": "CN",
-    "South Africa": "ZA",
-    "Nigeria": "NG",
-    "Egypt": "EG",
-    "UAE": "AE",
-    "Saudi Arabia": "SA",
-    "Turkey": "TR",
-    "Poland": "PL"
-  };
-  return countryMap[countryName] || "US"; // Default to US flag if not found
-};
+import { COUNTRIES, getCountryFlagCode } from "@/utils/constants";
 
 export default function Connections() {
   const { user } = useAuth();
