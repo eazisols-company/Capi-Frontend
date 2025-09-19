@@ -923,9 +923,11 @@ export default function OptInPages() {
                               borderColor: `${formData.secondary_color}40`
                             }}
                           >
-                            <SelectValue>
+                            <SelectValue className="border-2 text-white placeholder:text-gray-300 focus:ring-2 transition-all duration-200" placeholder="Select Currency">
                               <div className="flex items-center gap-2">
-                               placeholder="Select Currency"
+                                <FlagIcon code="US" size={16} />
+                                <span>US Dollar</span>
+                                <span className="text-xs text-gray-400">($)</span>
                               </div>
                             </SelectValue>
                           </SelectTrigger>
