@@ -81,16 +81,16 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      end 
-                      className={({ isActive }) => `${getNavCls({ isActive })} interactive-button`}
-                    >
+                  <NavLink 
+                    to={item.url} 
+                    end 
+                    className={({ isActive }) => `${getNavCls({ isActive })} interactive-button`}
+                  >
+                    <SidebarMenuButton isActive={isActive(item.url)}>
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
+                    </SidebarMenuButton>
+                  </NavLink>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
