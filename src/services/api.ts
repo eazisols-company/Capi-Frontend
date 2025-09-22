@@ -16,7 +16,12 @@ class ApiClient {
     // Request interceptor to add JWT token
     this.client.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('access_token');
+        // Check if this is a customer session
+        const isCustomerSession = sessionStorage.getItem('is_customer_session') === 'true';
+        const token = isCustomerSession 
+          ? localStorage.getItem('customer_access_token')
+          : localStorage.getItem('access_token');
+        
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -331,6 +336,10 @@ class ApiClient {
       : '/api/users/customers';
     
     return this.client.get(url);
+  }
+
+  async loginAsCustomer(customerId: string) {
+    return this.client.post('/api/admin/login-as-customer', { customer_id: customerId });
   }
 }
 

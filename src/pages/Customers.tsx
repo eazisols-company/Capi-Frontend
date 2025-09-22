@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Users, 
   Search, 
@@ -23,6 +24,7 @@ import {
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface Customer {
   _id: string;
@@ -48,7 +50,8 @@ interface CustomersResponse {
 }
 
 export default function Customers() {
-  const { user } = useAuth();
+  const { user, loginAsCustomer, isCustomerLoggedIn, getLoggedInCustomerInfo } = useAuth();
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -166,6 +169,55 @@ export default function Customers() {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  };
+
+  const handleLoginAsCustomer = async (customer: Customer) => {
+    try {
+      // Get customer session data
+      const result = await loginAsCustomer(customer._id);
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Type assertion since we know data exists if no error
+      console.log('API Response data:', (result as { data: any; error: null }).data);
+      const { access_token, customer: customerUser } = (result as { data: any; error: null }).data;
+      console.log('Extracted customerUser:', customerUser);
+      
+      // Store customer session data temporarily for new tab
+      const tempSessionData = {
+        access_token,
+        user: customerUser, // customerUser is already the customer object from API
+        timestamp: Date.now()
+      };
+      
+      // Store in sessionStorage (cleared when tab closes) with unique key
+      const sessionKey = `temp_customer_session_${Date.now()}`;
+      sessionStorage.setItem(sessionKey, JSON.stringify(tempSessionData));
+      
+      console.log('Stored temp session data:', {
+        sessionKey,
+        customerEmail: customerUser.email,
+        hasToken: !!access_token
+      });
+      
+      // Open new tab with session key
+      window.open(`/dashboard?temp_session=${sessionKey}`, "_blank");
+      
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || "Failed to login as customer";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
   };
 
   // Redirect non-admin users
@@ -368,18 +420,48 @@ export default function Customers() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedCustomer(customer);
-                            setShowCustomerDialog(true);
-                          }}
-                          className="interactive-button"
-                        >
-                          <User className="h-3 w-3 mr-1" />
-                          Profile
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          {/* <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCustomer(customer);
+                              setShowCustomerDialog(true);
+                            }}
+                            className="interactive-button"
+                          >
+                            <User className="h-3 w-3 mr-1" />
+                            View Details
+                          </Button> */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-block">
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => handleLoginAsCustomer(customer)}
+                                    disabled={isCustomerLoggedIn}
+                                    className="interactive-button bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <User className="h-3 w-3 mr-1" />
+                                    Login As
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              {isCustomerLoggedIn && (
+                                <TooltipContent>
+                                  <p>1 customer is already logged in. You need to logout that customer first.</p>
+                                  {getLoggedInCustomerInfo() && (
+                                    <p className="text-xs mt-1 text-muted-foreground">
+                                      Currently logged in: {getLoggedInCustomerInfo()?.name}
+                                    </p>
+                                  )}
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

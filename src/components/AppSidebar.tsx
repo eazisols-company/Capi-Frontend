@@ -123,7 +123,9 @@ export function AppSidebar() {
                 <p className="text-sm font-medium text-foreground truncate">
                   {user.email}
                 </p>
-                <p className="text-xs text-muted-foreground">Admin Account</p>
+                <p className="text-xs text-muted-foreground">
+                  {user.admin ? 'Admin Account' : 'Customer Account'}
+                </p>
               </div>
             </div>
             <Button
