@@ -14,7 +14,10 @@ export default function EmailVerificationModal({ isOpen }: EmailVerificationModa
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { user, signOut, resendVerificationEmail, refreshUser } = useAuth();
+  const { user, signOut, resendVerificationEmail, refreshUser, switchBackToAdminFromCustomer } = useAuth();
+  
+  // Check if we're in a customer session
+  const isCustomerSession = sessionStorage.getItem('is_customer_session') === 'true';
 
   // Periodically check verification status
   useEffect(() => {
@@ -87,7 +90,11 @@ export default function EmailVerificationModal({ isOpen }: EmailVerificationModa
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    if (isCustomerSession) {
+      await switchBackToAdminFromCustomer();
+    } else {
+      await signOut();
+    }
     // User will be redirected to auth page automatically by the auth system
   };
 
@@ -160,7 +167,7 @@ export default function EmailVerificationModal({ isOpen }: EmailVerificationModa
                 variant="outline"
                 className="w-full border-gray-300 text-white hover:bg-gray-50"
               >
-                Sign Out
+                {isCustomerSession ? "Go to Admin" : "Sign Out"}
               </Button>
             </div>
 

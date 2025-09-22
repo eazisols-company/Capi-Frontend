@@ -138,6 +138,27 @@ export const getTimezoneDisplayName = (timezone: string): string => {
   return timezoneInfo ? timezoneInfo.label : timezone;
 };
 
+// Get timezone display name with offset
+export const getTimezoneDisplayWithOffset = (timezone: string): string => {
+  const timezoneInfo = TIMEZONES.find(tz => tz.value === timezone);
+  if (!timezoneInfo) return timezone;
+  
+  // Convert offset to GMT format
+  const formatOffset = (offset: string): string => {
+    if (offset.includes('/')) {
+      // Handle DST offsets like '-05:00/-04:00'
+      const [std, dst] = offset.split('/');
+      return `GMT ${std.includes('+') ? std : std.replace('-', '-')} / GMT ${dst.includes('+') ? dst : dst.replace('-', '-')}`;
+    } else {
+      // Handle single offset like '+05:30' or '-03:00'
+      const formatted = offset.includes('+') ? offset : offset.replace('-', '-');
+      return `GMT ${formatted}`;
+    }
+  };
+  
+  return `${timezoneInfo.label} (${formatOffset(timezoneInfo.offset)})`;
+};
+
 // Convert UTC date to user timezone for display
 export const convertToUserTimezone = (
   utcDate: string | Date,

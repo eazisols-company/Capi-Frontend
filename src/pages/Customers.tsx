@@ -246,10 +246,10 @@ export default function Customers() {
             Manage and view all customer accounts
           </p>
         </div>
-        <Button className="interactive-button">
+        {/* <Button className="interactive-button">
           <Plus className="h-4 w-4 mr-2" />
           Add Customer
-        </Button>
+        </Button> */}
       </div>
 
       {/* Stats Cards */}
@@ -445,7 +445,7 @@ export default function Customers() {
                                     className="interactive-button bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <User className="h-3 w-3 mr-1" />
-                                    Login As
+                                    View As
                                   </Button>
                                 </span>
                               </TooltipTrigger>

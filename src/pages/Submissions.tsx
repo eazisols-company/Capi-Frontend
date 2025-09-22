@@ -705,7 +705,7 @@ export default function Submissions() {
               </Label>
             </div>
             <Button 
-              className="interactive-button"
+              className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
               onClick={exportToCSV}
             >
               <Download className="h-4 w-4 mr-2" />
@@ -929,7 +929,7 @@ export default function Submissions() {
                   setConnectionFilter("all");
                   setEventFilter("all");
                 }}
-                className="interactive-button"
+                className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Clear
@@ -990,7 +990,7 @@ export default function Submissions() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-6 w-6 p-0 hover:bg-muted"
+                            className="h-6 w-6 p-0 hover:bg-[#F97415] hover:text-white"
                             onClick={(e) => {
                               e.stopPropagation();
                               copyToClipboard(submission.id);
@@ -1080,7 +1080,7 @@ export default function Submissions() {
                                 e.stopPropagation();
                                 handleEditSubmission(submission);
                               }}
-                              className="h-8 w-8 p-0 hover:bg-muted text-white"
+                              className="h-8 w-8 p-0 hover:bg-[#F97415] hover:text-white"
                               title="Edit submission"
                             >
                               <Edit className="h-4 w-4" />
@@ -1095,7 +1095,7 @@ export default function Submissions() {
                                 handleManualSubmission(submission.id);
                               }}
                               disabled={processingIds.has(submission.id)}
-                              className="h-8 w-8 p-0 hover:bg-primary/10"
+                              className="h-8 w-8 p-0 hover:bg-[#F97415] hover:text-white"
                             >
                               {processingIds.has(submission.id) ? (
                                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1111,7 +1111,7 @@ export default function Submissions() {
                               e.stopPropagation();
                               handleSubmissionClick(submission);
                             }}
-                            className="h-8 w-8 p-0 hover:bg-muted"
+                            className="h-8 w-8 p-0 hover:bg-[#F97415] hover:text-white"
                             title="View submission details"
                           >
                             <Eye className="h-4 w-4" />

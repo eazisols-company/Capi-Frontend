@@ -53,6 +53,13 @@ export default function PublicOptIn() {
     currency: "USD"
   });
 
+  // Function to filter phone number input to only allow numbers
+  const handlePhoneChange = (value: string) => {
+    // Remove all non-numeric characters except + at the beginning
+    const numericValue = value.replace(/[^\d]/g, '');
+    setFormData(prev => ({ ...prev, phone: numericValue }));
+  };
+
   // Helper function to get the effective logo URL
   const getEffectiveLogoUrl = () => {
     if (!optInData?.settings) return "";
@@ -137,6 +144,16 @@ export default function PublicOptIn() {
     e.preventDefault();
     
     if (!optInData) return;
+
+    // Validate phone number
+    if (!formData.phone || formData.phone.length < 7) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number with at least 7 digits",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -465,8 +482,8 @@ export default function PublicOptIn() {
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="234 567 8900"
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  placeholder="2345678900"
                   required
                   className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 flex-1"
                   style={{ 

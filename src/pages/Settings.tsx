@@ -10,8 +10,8 @@ import { FlagIcon } from 'react-flag-kit';
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { TIMEZONES, getDetectedTimezone } from "@/lib/timezone-utils";
-import { SYSTEM_CURRENCIES } from "@/utils/constants";
+import { TIMEZONES, getDetectedTimezone, getTimezoneDisplayWithOffset } from "@/lib/timezone-utils";
+import { SYSTEM_CURRENCIES, COUNTRY_CODES } from "@/utils/constants";
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
@@ -23,6 +23,7 @@ export default function Settings() {
     first_name: "",
     last_name: "",
     phone: "",
+    country_code: "+1",
     system_currency: "EUR" as "EUR" | "USD",
     timezone: getDetectedTimezone(),
     billing_address: {}
@@ -33,6 +34,7 @@ export default function Settings() {
     first_name: "",
     last_name: "",
     phone: "",
+    country_code: "+1",
     system_currency: "EUR" as "EUR" | "USD",
     timezone: getDetectedTimezone(),
     billing_address: {}
@@ -52,6 +54,7 @@ export default function Settings() {
       formData.first_name !== originalFormData.first_name ||
       formData.last_name !== originalFormData.last_name ||
       formData.phone !== originalFormData.phone ||
+      formData.country_code !== originalFormData.country_code ||
       formData.system_currency !== originalFormData.system_currency ||
       formData.timezone !== originalFormData.timezone ||
       JSON.stringify(formData.billing_address) !== JSON.stringify(originalFormData.billing_address)
@@ -73,6 +76,7 @@ export default function Settings() {
         first_name: data.first_name || "",
         last_name: data.last_name || "",
         phone: data.phone || "",
+        country_code: data.country_code || "+1",
         system_currency: (data.system_currency || "EUR") as "EUR" | "USD",
         timezone: data.timezone || getDetectedTimezone(),
         billing_address: data.billing_address || {}
@@ -236,11 +240,44 @@ export default function Settings() {
               <Input value={user?.email || ""} disabled className="bg-muted" />
             </div>
             <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              />
+              <Label>Phone Number</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.country_code}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, country_code: value }))}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue>
+                      {formData.country_code && (
+                        <div className="flex items-center gap-2">
+                          <FlagIcon 
+                            code={COUNTRY_CODES.find(cc => cc.code === formData.country_code)?.flagCode as any} 
+                            size={16} 
+                          />
+                          <span>{formData.country_code}</span>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_CODES.map((country) => (
+                      <SelectItem key={country.code} value={country.code}>
+                        <div className="flex items-center gap-2">
+                          <FlagIcon code={country.flagCode as any} size={16} />
+                          <span className="font-medium">{country.code}</span>
+                          <span className="text-xs text-muted-foreground">{country.country}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Enter phone number"
+                  className="flex-1"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>System Currency</Label>
@@ -282,12 +319,26 @@ export default function Settings() {
                 onValueChange={(value) => setFormData(prev => ({ ...prev, timezone: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select timezone" />
+                  <SelectValue placeholder="Select timezone">
+                    {formData.timezone && (
+                      <span className="truncate">
+                        {getTimezoneDisplayWithOffset(formData.timezone)}
+                      </span>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-60 overflow-y-auto">
                   {TIMEZONES.map((timezone) => (
                     <SelectItem key={timezone.value} value={timezone.value}>
-                      {timezone.label}
+                      <div className="flex flex-col">
+                        <span className="font-medium">{timezone.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {timezone.offset.includes('/') 
+                            ? `GMT ${timezone.offset.split('/')[0]} / GMT ${timezone.offset.split('/')[1]}`
+                            : `GMT ${timezone.offset}`
+                          }
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -9,6 +9,7 @@ import {
   LogOut,
   User,
   Users,
+  ArrowLeft,
 } from "lucide-react";
 import {
   Sidebar,
@@ -48,9 +49,12 @@ const getMenuItems = (isAdmin: boolean) => {
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const { signOut, user } = useAuth();
+  const { signOut, user, switchBackToAdminFromCustomer } = useAuth();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
+  
+  // Check if we're in a customer session
+  const isCustomerSession = sessionStorage.getItem('is_customer_session') === 'true';
   
   // Get menu items based on admin status
   const menuItems = getMenuItems(user?.admin || false);
@@ -63,6 +67,10 @@ export function AppSidebar() {
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleGoToAdmin = async () => {
+    await switchBackToAdminFromCustomer();
   };
 
   return (
@@ -128,27 +136,52 @@ export function AppSidebar() {
                 </p>
               </div>
             </div>
-            <Button
-              onClick={handleSignOut}
-              variant="outline"
-              size="sm"
-              className="w-full interactive-button border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            {isCustomerSession ? (
+              <Button
+                onClick={handleGoToAdmin}
+                variant="outline"
+                size="sm"
+                className="w-full interactive-button border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Go to Admin
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                size="sm"
+                className="w-full interactive-button border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            )}
           </div>
         )}
         {collapsed && (
           <div className="flex flex-col items-center gap-2">
-            <Button
-              onClick={handleSignOut}
-              variant="outline"
-              size="sm"
-              className="w-8 h-8 p-0 border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            {isCustomerSession ? (
+              <Button
+                onClick={handleGoToAdmin}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground"
+                title="Go to Admin"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0 border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                title="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </SidebarFooter>

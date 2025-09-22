@@ -29,6 +29,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   loginAsCustomer: (customerId: string) => Promise<{ error: any }>;
   switchBackToAdmin: () => Promise<void>;
+  switchBackToAdminFromCustomer: () => Promise<void>;
   isImpersonating: boolean;
   originalAdminUser: User | null;
   isCustomerLoggedIn: boolean;
@@ -366,6 +367,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const switchBackToAdminFromCustomer = async () => {
+    try {
+      // Check if we're in a customer session
+      const isCustomerSession = sessionStorage.getItem('is_customer_session') === 'true';
+      
+      if (!isCustomerSession) {
+        console.error('Not in a customer session');
+        return;
+      }
+
+      // Clear customer session data
+      localStorage.removeItem('customer_access_token');
+      localStorage.removeItem('customer_user');
+      sessionStorage.removeItem('is_customer_session');
+      localStorage.removeItem('admin_has_customer_session');
+      setHasActiveCustomerSession(false);
+      
+      // Clear current user state
+      setUser(null);
+      setOriginalAdminUser(null);
+      setIsImpersonating(false);
+      
+      // Try to close the current tab (customer tab) and return to admin dashboard
+      // If window.close() doesn't work (some browsers prevent it), redirect to auth page
+      try {
+        window.close();
+        // If we reach this line, the window didn't close, so redirect as fallback
+        setTimeout(() => {
+          window.location.href = '/auth';
+        }, 100);
+      } catch (closeError) {
+        // Fallback: redirect to auth page if closing fails
+        window.location.href = '/auth';
+      }
+      
+    } catch (error) {
+      console.error('Error switching back to admin from customer session:', error);
+    }
+  };
+
   // Check if admin has logged in as any customer (from admin's perspective)
   const isCustomerLoggedIn = () => {
     return hasActiveCustomerSession;
@@ -404,6 +445,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     refreshUser,
     loginAsCustomer,
     switchBackToAdmin,
+    switchBackToAdminFromCustomer,
     isImpersonating,
     originalAdminUser,
     isCustomerLoggedIn: hasActiveCustomerSession,
