@@ -61,6 +61,7 @@ export const COUNTRY_CODES = [
   { code: "+46", country: "SE", flagCode: "SE" },
   { code: "+47", country: "NO", flagCode: "NO" },
   { code: "+48", country: "PL", flagCode: "PL" },
+  { code: "+49", country: "DE", flagCode: "DE" },
   { code: "+52", country: "MX", flagCode: "MX" },
   { code: "+54", country: "AR", flagCode: "AR" },
   { code: "+55", country: "BR", flagCode: "BR" },
