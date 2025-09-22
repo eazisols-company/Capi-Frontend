@@ -310,6 +310,28 @@ class ApiClient {
     
     return publicClient.get(`/api/public/resolve-domain/${domain}`);
   }
+
+  // Customer management methods (admin only)
+  async getCustomers(params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = queryParams.toString() 
+      ? `/api/users/customers?${queryParams.toString()}` 
+      : '/api/users/customers';
+    
+    return this.client.get(url);
+  }
 }
 
 export const apiClient = new ApiClient();

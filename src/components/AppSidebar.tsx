@@ -8,6 +8,7 @@ import {
   FileText,
   LogOut,
   User,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,13 +27,23 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
-const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
-  { title: "Submissions", url: "/submissions", icon: Database },
-  { title: "Connections", url: "/connections", icon: Link },
-  { title: "Opt-in Pages", url: "/opt-in", icon: FileText },
-  { title: "Settings", url: "/settings", icon: Settings },
-];
+const getMenuItems = (isAdmin: boolean) => {
+  const baseItems = [
+    { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
+    { title: "Submissions", url: "/submissions", icon: Database },
+    { title: "Connections", url: "/connections", icon: Link },
+    { title: "Opt-in Pages", url: "/opt-in", icon: FileText },
+  ];
+
+  // Add Customers menu item only for admin users
+  if (isAdmin) {
+    baseItems.push({ title: "Customers", url: "/customers", icon: Users });
+  }
+
+  baseItems.push({ title: "Settings", url: "/settings", icon: Settings });
+  
+  return baseItems;
+};
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -40,6 +51,9 @@ export function AppSidebar() {
   const { signOut, user } = useAuth();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
+  
+  // Get menu items based on admin status
+  const menuItems = getMenuItems(user?.admin || false);
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>

@@ -13,6 +13,7 @@ interface User {
   billing_address?: any;
   created_at: string;
   verified?: boolean;
+  admin?: boolean;
 }
 
 interface AuthContextType {

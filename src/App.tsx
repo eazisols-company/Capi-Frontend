@@ -12,6 +12,7 @@ import Submissions from "./pages/Submissions";
 import Connections from "./pages/Connections";
 import OptInPages from "./pages/OptInPages";
 import Settings from "./pages/Settings";
+import Customers from "./pages/Customers";
 import NotFound from "./pages/NotFound";
 import PublicOptIn from "./pages/PublicOptIn";
 import { AuthProvider } from "./hooks/useAuth";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="submissions" element={<Submissions />} />
               <Route path="connections" element={<Connections />} />
               <Route path="opt-in" element={<OptInPages />} />
+              <Route path="customers" element={<Customers />} />
               <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="/submissions" element={<DashboardLayout />}>
@@ -53,6 +55,9 @@ const App = () => (
             </Route>
             <Route path="/opt-in" element={<DashboardLayout />}>
               <Route index element={<OptInPages />} />
+            </Route>
+            <Route path="/customers" element={<DashboardLayout />}>
+              <Route index element={<Customers />} />
             </Route>
             <Route path="/settings" element={<DashboardLayout />}>
               <Route index element={<Settings />} />
