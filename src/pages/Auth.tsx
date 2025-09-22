@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Clock } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
+import { LoginRateLimit } from "@/lib/rate-limit";
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,11 +21,38 @@ export default function Auth() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [remainingTime, setRemainingTime] = useState("");
+  const [remainingAttempts, setRemainingAttempts] = useState(3);
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const resetToken = searchParams.get('token');
   const verificationToken = searchParams.get('token');
   
+  // Check rate limit status on component mount and set up countdown timer
+  useEffect(() => {
+    const checkRateLimit = () => {
+      const blocked = LoginRateLimit.isBlocked();
+      setIsBlocked(blocked);
+      
+      if (blocked) {
+        const time = LoginRateLimit.getFormattedRemainingTime();
+        setRemainingTime(time);
+      } else {
+        setRemainingTime("");
+        setRemainingAttempts(LoginRateLimit.getRemainingAttempts());
+      }
+    };
+
+    // Check immediately
+    checkRateLimit();
+
+    // Set up interval to update countdown
+    const interval = setInterval(checkRateLimit, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Clear errors when switching tabs
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -86,15 +114,43 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if user is blocked
+    if (LoginRateLimit.isBlocked()) {
+      const time = LoginRateLimit.getFormattedRemainingTime();
+      setError(`Too many failed attempts. Please try again in ${time}.`);
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     try {
       const { error } = await signIn(signInForm.email, signInForm.password);
       if (error) {
-        setError(error.message);
+        // Record failed attempt
+        LoginRateLimit.recordFailedAttempt();
+        
+        // Update UI state
+        const blocked = LoginRateLimit.isBlocked();
+        setIsBlocked(blocked);
+        setRemainingAttempts(LoginRateLimit.getRemainingAttempts());
+        
+        if (blocked) {
+          const time = LoginRateLimit.getFormattedRemainingTime();
+          setError(`Too many failed attempts. Please try again in ${time}.`);
+        } else {
+          const attemptsLeft = LoginRateLimit.getRemainingAttempts();
+          setError(`${error.message} (${attemptsLeft} attempts remaining)`);
+        }
+        
         setIsLoading(false);
       } else {
+        // Record successful attempt (clears rate limit data)
+        LoginRateLimit.recordSuccessfulAttempt();
+        setIsBlocked(false);
+        setRemainingAttempts(3);
+        
         toast({
           title: "Success",
           description: "Welcome back! Redirecting to dashboard...",
@@ -104,7 +160,23 @@ export default function Auth() {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      setError("An unexpected error occurred. Please try again.");
+      
+      // Record failed attempt for unexpected errors too
+      LoginRateLimit.recordFailedAttempt();
+      
+      // Update UI state
+      const blocked = LoginRateLimit.isBlocked();
+      setIsBlocked(blocked);
+      setRemainingAttempts(LoginRateLimit.getRemainingAttempts());
+      
+      if (blocked) {
+        const time = LoginRateLimit.getFormattedRemainingTime();
+        setError(`Too many failed attempts. Please try again in ${time}.`);
+      } else {
+        const attemptsLeft = LoginRateLimit.getRemainingAttempts();
+        setError(`An unexpected error occurred. Please try again. (${attemptsLeft} attempts remaining)`);
+      }
+      
       setIsLoading(false);
     }
   };
@@ -491,7 +563,8 @@ export default function Auth() {
                         setSignInForm({ ...signInForm, email: e.target.value })
                       }
                       required
-                      className="bg-input border-border focus:border-primary"
+                      disabled={isBlocked}
+                      className="bg-input border-border focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-2">
@@ -506,12 +579,14 @@ export default function Auth() {
                           setSignInForm({ ...signInForm, password: e.target.value })
                         }
                         required
-                        className="bg-input border-border focus:border-primary pr-10"
+                        disabled={isBlocked}
+                        className="bg-input border-border focus:border-primary pr-10 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        disabled={isBlocked}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -520,7 +595,8 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setShowForgotPassword(true)}
-                        className="text-xs text-muted-foreground hover:text-primary underline"
+                        disabled={isBlocked}
+                        className="text-xs text-muted-foreground hover:text-primary underline disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Forgot your password?
                       </button>
@@ -529,10 +605,10 @@ export default function Auth() {
                   <Button
                     type="submit"
                     className="w-full interactive-button bg-primary hover:bg-primary/90 text-primary-foreground"
-                    disabled={isLoading}
+                    disabled={isLoading || isBlocked}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign In
+                    {isBlocked ? `Try again in ${remainingTime}` : 'Sign In'}
                   </Button>
                 </form>
               </TabsContent>

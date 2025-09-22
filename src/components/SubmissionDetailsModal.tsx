@@ -315,7 +315,11 @@ export function SubmissionDetailsModal({
                         <div>
                           <span className="text-xs text-muted-foreground">Platform</span>
                           <Badge variant="outline" className="block mt-1 justify-center text-blue-600 border-blue-200">
-                            {getPlatformName()}
+
+                            {/* commented out hardcoded paltform name because platform grab country and here we need to show facebook */}
+
+                            {/* {getPlatformName()} */}
+                            Facebook
                           </Badge>
                         </div>
                         <div>
