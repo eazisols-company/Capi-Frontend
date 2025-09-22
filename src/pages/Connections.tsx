@@ -31,7 +31,8 @@ import {
   Code,
   Tag,
   Zap,
-  Loader2
+  Loader2,
+  Copy
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -197,21 +198,21 @@ export default function Connections() {
     e.preventDefault();
     
     try {
-      // Validate Pixel ID length (must be exactly 16 digits)
-      if (formData.pixel_id.length !== 16 || !/^\d{16}$/.test(formData.pixel_id)) {
+      // Validate Pixel ID length (must be more than 15 and less than 18 characters)
+      if (formData.pixel_id.length < 15 || formData.pixel_id.length > 17 || !/^\d{15,17}$/.test(formData.pixel_id)) {
         toast({
           title: "Error",
-          description: "Invalid Pixel ID. Pixel ID must be exactly 16 digits.",
+          description: "Invalid Pixel ID. Pixel ID must be 15–17 digits.",
           variant: "destructive"
         });
         return;
       }
 
-      // Validate System Access Token length (must be exactly 236 characters)
-      if (formData.pixel_access_token.length !== 236) {
+      // Validate System Access Token length (must be more than 200 characters)
+      if (formData.pixel_access_token.length <= 200) {
         toast({
           title: "Error",
-          description: "Invalid System Access Token. System Access Token must be exactly 236 characters long.",
+          description: "Invalid System Access Token. System Access Token must be more than 200 characters long.",
           variant: "destructive"
         });
         return;
@@ -364,6 +365,24 @@ export default function Connections() {
         const newSet = new Set(prev);
         newSet.delete(connection._id);
         return newSet;
+      });
+    }
+  };
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: `${label} copied to clipboard`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy to clipboard",
+        variant: "destructive"
       });
     }
   };
@@ -693,7 +712,7 @@ export default function Connections() {
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-amber-600 dark:text-amber-400">•</span>
-                            <span>Pixel ID should be exactly 16 digits from your Facebook pixel</span>
+                            <span>Pixel ID should be around 16 digits from your Facebook pixel</span>
                           </li>
                         </ul>
                       </div>
@@ -748,63 +767,91 @@ export default function Connections() {
                       </CardDescription>
                       {connection.optin_page_url && (
                         <div className="mt-1">
-                          <a 
-                            href={connection.optin_page_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:underline flex items-center gap-1"
-                          >
-                            Opt-in Page: {connection.optin_page_url}
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
+                          <div className="flex items-center gap-2">
+                            <a 
+                              href={connection.optin_page_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline flex items-center gap-1"
+                            >
+                              Opt-in Page: {connection.optin_page_url}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(connection.optin_page_url, "Opt-in page URL")}
+                                    className="h-6 w-6 p-0 hover:bg-muted"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Copy opt-in page URL</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Connection Status Badge */}
-                    {connectionTestResults.has(connection._id) && (
-                      <Badge 
-                        variant={connectionTestResults.get(connection._id)?.isLive ? "default" : "destructive"}
-                        className={connectionTestResults.get(connection._id)?.isLive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300"}
-                      >
-                        {connectionTestResults.get(connection._id)?.isLive ? (
-                          <>
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Connected
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Failed
-                          </>
-                        )}
+                    {connection.test_event_code ? (
+                      connectionTestResults.has(connection._id) && (
+                        <Badge 
+                          variant={connectionTestResults.get(connection._id)?.isLive ? "default" : "destructive"}
+                          className={connectionTestResults.get(connection._id)?.isLive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300"}
+                        >
+                          {connectionTestResults.get(connection._id)?.isLive ? (
+                            <>
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Connected
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Failed
+                            </>
+                          )}
+                        </Badge>
+                      )
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-300">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        No Event Code
                       </Badge>
                     )}
                     
-                    {/* Test Button */}
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleTestConnection(connection)}
-                            disabled={testingConnections.has(connection._id)}
-                            className="interactive-button"
-                          >
-                            {testingConnections.has(connection._id) ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Zap className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Test if connection is live</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    {/* Test Button - Only show if test_event_code exists */}
+                    {connection.test_event_code && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleTestConnection(connection)}
+                              disabled={testingConnections.has(connection._id)}
+                              className="interactive-button"
+                            >
+                              {testingConnections.has(connection._id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Zap className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Test if connection is live</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     
                     <Button
                       variant="outline"
@@ -952,18 +999,37 @@ export default function Connections() {
                       Redirect Link
                     </h4>
                     {connection.submission_link ? (
-                      <a 
-                        href={connection.submission_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline flex items-center gap-1"
-                      >
-                        {connection.submission_link.length > 25 
-                          ? connection.submission_link.substring(0, 25) + '...'
-                          : connection.submission_link
-                        }
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <a 
+                          href={connection.submission_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline flex items-center gap-1"
+                        >
+                          {connection.submission_link.length > 25 
+                            ? connection.submission_link.substring(0, 25) + '...'
+                            : connection.submission_link
+                          }
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(connection.submission_link, "Redirect link")}
+                                className="h-6 w-6 p-0 hover:bg-muted"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Copy redirect link</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">Not configured</p>
                     )}
