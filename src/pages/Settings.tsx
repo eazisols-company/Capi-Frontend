@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { OptimizedCountryCodeSelect } from "@/components/ui/optimized-country-code-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings as SettingsIcon, User, CreditCard, Save, Lock } from "lucide-react";
 import { FlagIcon } from 'react-flag-kit';
@@ -242,35 +243,12 @@ export default function Settings() {
             <div className="space-y-2">
               <Label>Phone Number</Label>
               <div className="flex gap-2">
-                <Select
+                <OptimizedCountryCodeSelect
                   value={formData.country_code}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, country_code: value }))}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue>
-                      {formData.country_code && (
-                        <div className="flex items-center gap-2">
-                          <FlagIcon 
-                            code={COUNTRY_CODES.find(cc => cc.code === formData.country_code)?.flagCode as any} 
-                            size={16} 
-                          />
-                          <span>{formData.country_code}</span>
-                        </div>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COUNTRY_CODES.map((country) => (
-                      <SelectItem key={country.code} value={country.code}>
-                        <div className="flex items-center gap-2">
-                          <FlagIcon code={country.flagCode as any} size={16} />
-                          <span className="font-medium">{country.code}</span>
-                          <span className="text-xs text-muted-foreground">{country.country}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  className="w-36"
+                  placeholder="Select country code"
+                />
                 <Input
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}

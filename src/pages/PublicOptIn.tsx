@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { OptimizedCountryCodeSelect } from "@/components/ui/optimized-country-code-select";
+import { SearchableSubmissionCountrySelect } from "@/components/ui/searchable-submission-country-select";
 import { CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { FlagIcon } from 'react-flag-kit';
 import { apiClient } from "@/services/api";
@@ -443,41 +445,16 @@ export default function PublicOptIn() {
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-white">Phone Number</Label>
               <div className="flex gap-2">
-                <Select
+                <OptimizedCountryCodeSelect
                   value={formData.country_code}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, country_code: value }))}
-                >
-                  <SelectTrigger 
-                    className="border-2 text-white transition-all duration-200 w-36"
-                    style={{ 
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderColor: `${settings.secondary_color}60`
-                    }}
-                  >
-                    <SelectValue>
-                      {formData.country_code && (
-                        <div className="flex items-center gap-2">
-                          <FlagIcon 
-                            code={COUNTRY_CODES.find(cc => cc.code === formData.country_code)?.flagCode as any} 
-                            size={16} 
-                          />
-                          <span>{formData.country_code}</span>
-                        </div>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COUNTRY_CODES.map((countryCode) => (
-                      <SelectItem key={countryCode.code} value={countryCode.code}>
-                        <div className="flex items-center gap-2">
-                          <FlagIcon code={countryCode.flagCode as any} size={16} />
-                          <span className="font-medium">{countryCode.code}</span>
-                          <span className="text-xs text-gray-500">{countryCode.country}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  className="w-36 border-2 text-white transition-all duration-200"
+                  placeholder="Select country code"
+                  style={{ 
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    borderColor: `${settings.secondary_color}60`
+                  }}
+                />
                 <Input
                   id="phone"
                   type="tel"
@@ -497,38 +474,18 @@ export default function PublicOptIn() {
 
             <div className="space-y-2">
               <Label htmlFor="country" className="text-white">Country</Label>
-              <Select
+              <SearchableSubmissionCountrySelect
+                countries={connection.countries.map(c => c.country)}
                 value={formData.country}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, country: value }))}
-                required
-              >
-                <SelectTrigger 
-                  className="border-2 text-white transition-all duration-200"
-                  style={{ 
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderColor: `${settings.secondary_color}60`
-                  }}
-                >
-                  <SelectValue placeholder="Select Country">
-                    {formData.country && (
-                      <div className="flex items-center gap-2">
-                        <FlagIcon code={getCountryFlagCode(formData.country) as any} size={16} />
-                        <span>{formData.country}</span>
-                      </div>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {connection.countries.map((countryData) => (
-                    <SelectItem key={countryData.country} value={countryData.country}>
-                      <div className="flex items-center gap-2">
-                        <FlagIcon code={getCountryFlagCode(countryData.country) as any} size={16} />
-                        <span>{countryData.country}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className="border-2 text-white transition-all duration-200"
+                placeholder="Select country"
+                emptyText="No country found."
+                style={{ 
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  borderColor: `${settings.secondary_color}60`
+                }}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

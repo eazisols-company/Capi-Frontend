@@ -19,6 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { OptimizedCountryCodeSelect } from "@/components/ui/optimized-country-code-select";
+import { SearchableCountrySelect } from "@/components/ui/searchable-country-select";
+import { SearchableSubmissionCountrySelect } from "./ui/searchable-submission-country-select";
 import {
   Form,
   FormControl,
@@ -160,7 +163,7 @@ export function SubmissionEditModal({
         last_name: data.last_name,
         email: data.email,
         phone: data.phone,
-        // country_code: data.country_code, // TODO: Add to API interface
+        country_code: data.country_code,
         country: data.country,
         deposit_amount: data.deposit_amount,
         currency: data.currency,
@@ -292,35 +295,12 @@ export function SubmissionEditModal({
                             render={({ field: countryCodeField }) => (
                               <FormItem>
                                 <FormControl>
-                                  <Select
+                                  <OptimizedCountryCodeSelect
                                     value={countryCodeField.value}
                                     onValueChange={countryCodeField.onChange}
-                                  >
-                                    <SelectTrigger className="w-32">
-                                      <SelectValue>
-                                        {countryCodeField.value && (
-                                          <div className="flex items-center gap-2">
-                                            <FlagIcon 
-                                              code={COUNTRY_CODES.find(cc => cc.code === countryCodeField.value)?.flagCode as any} 
-                                              size={16} 
-                                            />
-                                            <span>{countryCodeField.value}</span>
-                                          </div>
-                                        )}
-                                      </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {COUNTRY_CODES.map((countryCode) => (
-                                        <SelectItem key={countryCode.code} value={countryCode.code}>
-                                          <div className="flex items-center gap-2">
-                                            <FlagIcon code={countryCode.flagCode as any} size={16} />
-                                            <span className="font-medium">{countryCode.code}</span>
-                                            <span className="text-xs text-gray-500">{countryCode.country}</span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                    className="w-32"
+                                    placeholder="Select country code"
+                                  />
                                 </FormControl>
                               </FormItem>
                             )}
@@ -342,33 +322,13 @@ export function SubmissionEditModal({
                            <Globe className="h-4 w-4" />
                            Country
                          </FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                           <FormControl>
-                             <SelectTrigger>
-                               <SelectValue placeholder="Select country">
-                                 {field.value && (
-                                   <div className="flex items-center gap-2">
-                                     <FlagIcon 
-                                       code={getCountryFlagCode(field.value) as any} 
-                                       size={16} 
-                                     />
-                                     <span>{field.value}</span>
-                                   </div>
-                                 )}
-                               </SelectValue>
-                             </SelectTrigger>
-                           </FormControl>
-                           <SelectContent>
-                             {COUNTRIES.map((country) => (
-                               <SelectItem key={country} value={country}>
-                                 <div className="flex items-center gap-2">
-                                   <FlagIcon code={getCountryFlagCode(country) as any} size={16} />
-                                   <span>{country}</span>
-                                 </div>
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
+                         <FormControl>
+                           <SearchableCountrySelect
+                             value={field.value}
+                             onValueChange={field.onChange}
+                             placeholder="Select country"
+                           />
+                         </FormControl>
                          <FormMessage />
                        </FormItem>
                      )}
@@ -588,33 +548,15 @@ export function SubmissionEditModal({
                      render={({ field }) => (
                        <FormItem>
                          <FormLabel>Platform Name (Country)</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                           <FormControl>
-                             <SelectTrigger>
-                               <SelectValue placeholder="Select country">
-                                 {field.value && (
-                                   <div className="flex items-center gap-2">
-                                     <FlagIcon 
-                                       code={getCountryFlagCode(field.value) as any} 
-                                       size={16} 
-                                     />
-                                     <span>{field.value}</span>
-                                   </div>
-                                 )}
-                               </SelectValue>
-                             </SelectTrigger>
-                           </FormControl>
-                           <SelectContent>
-                             {availableCountries.map((country) => (
-                               <SelectItem key={country} value={country}>
-                                 <div className="flex items-center gap-2">
-                                   <FlagIcon code={getCountryFlagCode(country) as any} size={16} />
-                                   <span>{country}</span>
-                                 </div>
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
+                         <FormControl>
+                           <SearchableSubmissionCountrySelect
+                             countries={availableCountries}
+                             value={field.value}
+                             onValueChange={field.onChange}
+                             placeholder="Select country"
+                             emptyText="No countries found"
+                           />
+                         </FormControl>
                          <FormMessage />
                        </FormItem>
                      )}

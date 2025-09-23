@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSubmissionCountrySelect } from "@/components/ui/searchable-submission-country-select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -878,17 +879,13 @@ export default function Submissions() {
                 </SelectContent>
               </Select>
 
-              <Select value={countryFilter} onValueChange={setCountryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by country" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {uniqueCountries.map(country => (
-                    <SelectItem key={country} value={country}>{country}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSubmissionCountrySelect
+                countries={uniqueCountries}
+                value={countryFilter === "all" ? "" : countryFilter}
+                onValueChange={(value) => setCountryFilter(value || "all")}
+                placeholder="Filter by country"
+                emptyText="No countries found"
+              />
 
               <Select 
                 value={connectionFilter || "all"} 

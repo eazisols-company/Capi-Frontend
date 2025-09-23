@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableCountrySelect } from "@/components/ui/searchable-country-select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -464,34 +465,11 @@ export default function Connections() {
                 {formData.countries.map((country, index) => (
                   <div key={index} className="flex gap-2 items-end">
                     <div className="flex-1">
-                      <Select
+                      <SearchableCountrySelect
                         value={country.country}
                         onValueChange={(value) => updateCountryField(index, 'country', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select country">
-                            {country.country && (
-                              <div className="flex items-center gap-2">
-                                <FlagIcon 
-                                  code={getCountryFlagCode(country.country) as any} 
-                                  size={16} 
-                                />
-                                <span>{country.country}</span>
-                              </div>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {COUNTRIES.map((countryName) => (
-                            <SelectItem key={countryName} value={countryName}>
-                              <div className="flex items-center gap-2">
-                                <FlagIcon code={getCountryFlagCode(countryName) as any} size={16} />
-                                <span>{countryName}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Select country"
+                      />
                     </div>
                     <div className="w-32 relative">
                       <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">

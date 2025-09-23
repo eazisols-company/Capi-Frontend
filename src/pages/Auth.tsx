@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { OptimizedCountryCodeSelect } from "@/components/ui/optimized-country-code-select";
 import { Loader2, Eye, EyeOff, Clock } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -841,37 +842,14 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label>Phone Number</Label>
                     <div className="flex gap-2">
-                      <Select
+                      <OptimizedCountryCodeSelect
                         value={signUpForm.countryCode}
                         onValueChange={(value) =>
                           setSignUpForm({ ...signUpForm, countryCode: value })
                         }
-                      >
-                        <SelectTrigger className="w-36">
-                          <SelectValue>
-                            {signUpForm.countryCode && (
-                              <div className="flex items-center gap-2">
-                                <FlagIcon 
-                                  code={COUNTRY_CODES.find(cc => cc.code === signUpForm.countryCode)?.flagCode as any} 
-                                  size={16} 
-                                />
-                                <span>{signUpForm.countryCode}</span>
-                              </div>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {COUNTRY_CODES.map((country) => (
-                            <SelectItem key={country.code} value={country.code}>
-                              <div className="flex items-center gap-2">
-                                <FlagIcon code={country.flagCode as any} size={16} />
-                                <span className="font-medium">{country.code}</span>
-                                <span className="text-xs text-muted-foreground">{country.country}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        className="w-36"
+                        placeholder="Select country code"
+                      />
                       <Input
                         id="signup-phone"
                         type="tel"
