@@ -219,7 +219,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email,
         password,
         first_name: metadata?.first_name || metadata?.firstName || '',
-        last_name: metadata?.last_name || metadata?.lastName || ''
+        last_name: metadata?.last_name || metadata?.lastName || '',
+        phone: metadata?.phone || '',
+        country_code: metadata?.country_code || '',
+        system_currency: metadata?.system_currency || '',
+        timezone: metadata?.timezone || ''
       };
       
       await apiClient.register(registrationData);

@@ -7,10 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Eye, EyeOff, Clock } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { LoginRateLimit } from "@/lib/rate-limit";
+import { FlagIcon } from 'react-flag-kit';
+import { COUNTRY_CODES, SYSTEM_CURRENCIES } from "@/utils/constants";
+import { TIMEZONES } from "@/lib/timezone-utils";
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -83,6 +87,10 @@ export default function Auth() {
     confirmPassword: "",
     firstName: "",
     lastName: "",
+    phone: "",
+    countryCode: "+1",
+    systemCurrency: "USD",
+    timezone: "",
   });
 
   const [forgotPasswordForm, setForgotPasswordForm] = useState({
@@ -187,14 +195,119 @@ export default function Auth() {
     setIsLoading(true);
     setError("");
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!signUpForm.email.trim()) {
+      setError("Email is required");
+      setIsLoading(false);
+      return;
+    }
+    if (!emailRegex.test(signUpForm.email)) {
+      setError("Please enter a valid email address");
+      setIsLoading(false);
+      return;
+    }
+
+    // First name validation
+    if (!signUpForm.firstName.trim()) {
+      setError("First name is required");
+      setIsLoading(false);
+      return;
+    }
+    if (signUpForm.firstName.trim().length < 2) {
+      setError("First name must be at least 2 characters");
+      setIsLoading(false);
+      return;
+    }
+
+    // Last name validation
+    if (!signUpForm.lastName.trim()) {
+      setError("Last name is required");
+      setIsLoading(false);
+      return;
+    }
+    if (signUpForm.lastName.trim().length < 2) {
+      setError("Last name must be at least 2 characters");
+      setIsLoading(false);
+      return;
+    }
+
+    // Password validation
+    if (!signUpForm.password) {
+      setError("Password is required");
+      setIsLoading(false);
+      return;
+    }
+    if (signUpForm.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setIsLoading(false);
+      return;
+    }
+
+    // Confirm password validation
+    if (!signUpForm.confirmPassword) {
+      setError("Please confirm your password");
+      setIsLoading(false);
+      return;
+    }
     if (signUpForm.password !== signUpForm.confirmPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
       return;
     }
 
-    if (signUpForm.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    // Country code validation
+    if (!signUpForm.countryCode) {
+      setError("Country code is required");
+      setIsLoading(false);
+      return;
+    }
+    // Validate that the selected country code exists in our constants
+    const validCountryCode = COUNTRY_CODES.find(cc => cc.code === signUpForm.countryCode);
+    if (!validCountryCode) {
+      setError("Please select a valid country code");
+      setIsLoading(false);
+      return;
+    }
+
+    // Phone number validation
+    if (!signUpForm.phone.trim()) {
+      setError("Phone number is required");
+      setIsLoading(false);
+      return;
+    }
+    // Phone number should be numeric only and between 7-15 digits
+    const phoneRegex = /^\d{7,15}$/;
+    if (!phoneRegex.test(signUpForm.phone.trim())) {
+      setError("Please enter a valid phone number (7-15 digits)");
+      setIsLoading(false);
+      return;
+    }
+
+    // System currency validation
+    if (!signUpForm.systemCurrency) {
+      setError("Please select a system currency");
+      setIsLoading(false);
+      return;
+    }
+    // Validate that the selected currency exists in our constants
+    const validCurrency = SYSTEM_CURRENCIES.find(c => c.code === signUpForm.systemCurrency);
+    if (!validCurrency) {
+      setError("Please select a valid system currency");
+      setIsLoading(false);
+      return;
+    }
+
+    // Timezone validation
+    if (!signUpForm.timezone) {
+      setError("Please select a timezone");
+      setIsLoading(false);
+      return;
+    }
+    // Validate that the selected timezone exists in our constants
+    const validTimezone = TIMEZONES.find(tz => tz.value === signUpForm.timezone);
+    if (!validTimezone) {
+      setError("Please select a valid timezone");
       setIsLoading(false);
       return;
     }
@@ -203,6 +316,10 @@ export default function Auth() {
       const { error } = await signUp(signUpForm.email, signUpForm.password, {
         first_name: signUpForm.firstName,
         last_name: signUpForm.lastName,
+        phone: signUpForm.phone,
+        country_code: signUpForm.countryCode,
+        system_currency: signUpForm.systemCurrency,
+        timezone: signUpForm.timezone,
       });
 
       if (error) {
@@ -219,6 +336,10 @@ export default function Auth() {
           confirmPassword: "",
           firstName: "",
           lastName: "",
+          phone: "",
+          countryCode: "+1",
+          systemCurrency: "USD",
+          timezone: "",
         });
         
         // Show success message
@@ -715,6 +836,131 @@ export default function Auth() {
                       </button>
                     </div>
                   </div>
+                  
+                  {/* Phone Number and Country Code */}
+                  <div className="space-y-2">
+                    <Label>Phone Number</Label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={signUpForm.countryCode}
+                        onValueChange={(value) =>
+                          setSignUpForm({ ...signUpForm, countryCode: value })
+                        }
+                      >
+                        <SelectTrigger className="w-36">
+                          <SelectValue>
+                            {signUpForm.countryCode && (
+                              <div className="flex items-center gap-2">
+                                <FlagIcon 
+                                  code={COUNTRY_CODES.find(cc => cc.code === signUpForm.countryCode)?.flagCode as any} 
+                                  size={16} 
+                                />
+                                <span>{signUpForm.countryCode}</span>
+                              </div>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COUNTRY_CODES.map((country) => (
+                            <SelectItem key={country.code} value={country.code}>
+                              <div className="flex items-center gap-2">
+                                <FlagIcon code={country.flagCode as any} size={16} />
+                                <span className="font-medium">{country.code}</span>
+                                <span className="text-xs text-muted-foreground">{country.country}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        id="signup-phone"
+                        type="tel"
+                        placeholder="Enter your phone number"
+                        value={signUpForm.phone}
+                        onChange={(e) => {
+                          // Only allow numeric input
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          setSignUpForm({ ...signUpForm, phone: value });
+                        }}
+                        required
+                        className="flex-1 bg-input border-border focus:border-secondary"
+                      />
+                    </div>
+                  </div>
+
+                  {/* System Currency */}
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-currency">System Currency</Label>
+                    <Select
+                      value={signUpForm.systemCurrency}
+                      onValueChange={(value) =>
+                        setSignUpForm({ ...signUpForm, systemCurrency: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue>
+                          {signUpForm.systemCurrency && (
+                            <div className="flex items-center gap-2">
+                              <FlagIcon 
+                                code={SYSTEM_CURRENCIES.find(c => c.code === signUpForm.systemCurrency)?.flagCode as any} 
+                                size={16} 
+                              />
+                              <span>{SYSTEM_CURRENCIES.find(c => c.code === signUpForm.systemCurrency)?.name}</span>
+                              <span>({SYSTEM_CURRENCIES.find(c => c.code === signUpForm.systemCurrency)?.symbol})</span>
+                            </div>
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SYSTEM_CURRENCIES.map((currency) => (
+                          <SelectItem key={currency.code} value={currency.code}>
+                            <div className="flex items-center gap-2">
+                              <FlagIcon code={currency.flagCode as any} size={16} />
+                              <span className="font-medium">{currency.name}</span>
+                              <span className="text-xs text-gray-500">({currency.symbol})</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Timezone */}
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-timezone">Timezone</Label>
+                    <Select
+                      value={signUpForm.timezone}
+                      onValueChange={(value) =>
+                        setSignUpForm({ ...signUpForm, timezone: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timezone">
+                          {signUpForm.timezone && (
+                            <span className="truncate">
+                              {TIMEZONES.find(tz => tz.value === signUpForm.timezone)?.label}
+                            </span>
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60 overflow-y-auto">
+                        {TIMEZONES.map((timezone) => (
+                          <SelectItem key={timezone.value} value={timezone.value}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{timezone.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {timezone.offset.includes('/') 
+                                  ? `GMT ${timezone.offset.split('/')[0]} / GMT ${timezone.offset.split('/')[1]}`
+                                  : `GMT ${timezone.offset}`
+                                }
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full interactive-button bg-secondary hover:bg-secondary/90 text-secondary-foreground"
