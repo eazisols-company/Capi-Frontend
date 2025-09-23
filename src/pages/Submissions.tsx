@@ -38,6 +38,7 @@ import { SubmissionDetailsModal } from "@/components/SubmissionDetailsModal";
 import { SubmissionEditModal } from "@/components/SubmissionEditModal";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatDateForTable, formatDateForExport, getTimezoneDisplayName } from "@/lib/timezone-utils";
+import { COUNTRY_CODES, getCountryCodeByPhone } from "@/utils/constants";
 
 export default function Submissions() {
   const { user } = useAuth();
@@ -528,126 +529,28 @@ export default function Submissions() {
 
   // Map country codes (dial codes) to country codes for flag display
   const getCountryCodeFromDialCode = (dialCode: string): string => {
-    const dialCodeMap: { [key: string]: string } = {
-      '+1': 'US',
-      '+44': 'GB',
-      '+49': 'DE',
-      '+33': 'FR',
-      '+32': 'BE',
-      '+41': 'CH',
-      '+43': 'AT',
-      '+46': 'SE',
-      '+47': 'NO',
-      '+45': 'DK',
-      '+358': 'FI',
-      '+31': 'NL',
-      '+39': 'IT',
-      '+34': 'ES',
-      '+351': 'PT',
-      '+61': 'AU',
-      '+81': 'JP',
-      '+82': 'KR',
-      '+65': 'SG',
-      '+852': 'HK',
-      '+55': 'BR',
-      '+52': 'MX',
-      '+54': 'AR',
-      '+56': 'CL',
-      '+57': 'CO',
-      '+91': 'IN',
-      '+92': 'PK',
-      '+86': 'CN',
-      '+27': 'ZA',
-      '+234': 'NG',
-      '+20': 'EG',
-      '+971': 'AE',
-      '+966': 'SA',
-      '+90': 'TR',
-      '+48': 'PL',
-      '+7': 'RU',
-      '+380': 'UA',
-      '+30': 'GR',
-      '+420': 'CZ',
-      '+36': 'HU',
-      '+40': 'RO'
-    };
-    
-    return dialCodeMap[dialCode] || 'US'; // Default to US if not found
+    const countryCode = getCountryCodeByPhone(dialCode);
+    return countryCode?.flagCode || 'US'; // Default to US if not found
   };
 
   const getCountryInfo = (phone: string, country: string) => {
-    // Common country codes mapping
-    const countryMap: { [key: string]: { countryCode: string; dialCode: string } } = {
-      'AU': { countryCode: 'AU', dialCode: '+61' },
-      'US': { countryCode: 'US', dialCode: '+1' },
-      'UK': { countryCode: 'GB', dialCode: '+44' },
-      'GB': { countryCode: 'GB', dialCode: '+44' },
-      'CA': { countryCode: 'CA', dialCode: '+1' },
-      'NZ': { countryCode: 'NZ', dialCode: '+64' },
-      'DE': { countryCode: 'DE', dialCode: '+49' },
-      'FR': { countryCode: 'FR', dialCode: '+33' },
-      'IT': { countryCode: 'IT', dialCode: '+39' },
-      'ES': { countryCode: 'ES', dialCode: '+34' },
-      'NL': { countryCode: 'NL', dialCode: '+31' },
-      'BE': { countryCode: 'BE', dialCode: '+32' },
-      'CH': { countryCode: 'CH', dialCode: '+41' },
-      'AT': { countryCode: 'AT', dialCode: '+43' },
-      'SE': { countryCode: 'SE', dialCode: '+46' },
-      'NO': { countryCode: 'NO', dialCode: '+47' },
-      'DK': { countryCode: 'DK', dialCode: '+45' },
-      'FI': { countryCode: 'FI', dialCode: '+358' },
-      'JP': { countryCode: 'JP', dialCode: '+81' },
-      'KR': { countryCode: 'KR', dialCode: '+82' },
-      'CN': { countryCode: 'CN', dialCode: '+86' },
-      'IN': { countryCode: 'IN', dialCode: '+91' },
-      'SG': { countryCode: 'SG', dialCode: '+65' },
-      'HK': { countryCode: 'HK', dialCode: '+852' },
-      'TW': { countryCode: 'TW', dialCode: '+886' },
-      'BR': { countryCode: 'BR', dialCode: '+55' },
-      'MX': { countryCode: 'MX', dialCode: '+52' },
-      'AR': { countryCode: 'AR', dialCode: '+54' },
-      'CL': { countryCode: 'CL', dialCode: '+56' },
-      'CO': { countryCode: 'CO', dialCode: '+57' },
-      'PE': { countryCode: 'PE', dialCode: '+51' },
-      'ZA': { countryCode: 'ZA', dialCode: '+27' },
-      'EG': { countryCode: 'EG', dialCode: '+20' },
-      'NG': { countryCode: 'NG', dialCode: '+234' },
-      'KE': { countryCode: 'KE', dialCode: '+254' },
-      'GH': { countryCode: 'GH', dialCode: '+233' },
-      'AE': { countryCode: 'AE', dialCode: '+971' },
-      'SA': { countryCode: 'SA', dialCode: '+966' },
-      'IL': { countryCode: 'IL', dialCode: '+972' },
-      'TR': { countryCode: 'TR', dialCode: '+90' },
-      'RU': { countryCode: 'RU', dialCode: '+7' },
-      'PL': { countryCode: 'PL', dialCode: '+48' },
-      'CZ': { countryCode: 'CZ', dialCode: '+420' },
-      'HU': { countryCode: 'HU', dialCode: '+36' },
-      'RO': { countryCode: 'RO', dialCode: '+40' },
-      'BG': { countryCode: 'BG', dialCode: '+359' },
-      'HR': { countryCode: 'HR', dialCode: '+385' },
-      'SI': { countryCode: 'SI', dialCode: '+386' },
-      'SK': { countryCode: 'SK', dialCode: '+421' },
-      'LT': { countryCode: 'LT', dialCode: '+370' },
-      'LV': { countryCode: 'LV', dialCode: '+371' },
-      'EE': { countryCode: 'EE', dialCode: '+372' },
-      'GR': { countryCode: 'GR', dialCode: '+30' },
-      'PT': { countryCode: 'PT', dialCode: '+351' },
-      'IE': { countryCode: 'IE', dialCode: '+353' },
-      'LU': { countryCode: 'LU', dialCode: '+352' },
-      'MT': { countryCode: 'MT', dialCode: '+356' },
-      'CY': { countryCode: 'CY', dialCode: '+357' },
-      'IS': { countryCode: 'IS', dialCode: '+354' },
-    };
-
     // First try to match by country code if available
-    if (country && countryMap[country.toUpperCase()]) {
-      const countryInfo = countryMap[country.toUpperCase()];
-      const phoneWithoutCountryCode = phone?.toString().replace(new RegExp(`^\\+?${countryInfo.dialCode.replace('+', '')}`), '') || '';
-      return {
-        countryCode: countryInfo.countryCode,
-        dialCode: countryInfo.dialCode,
-        number: phoneWithoutCountryCode
-      };
+    if (country) {
+      // Find country code by matching country abbreviation or full name
+      const countryCode = COUNTRY_CODES.find(cc => 
+        cc.country === country.toUpperCase() || 
+        cc.country.includes(country.toUpperCase()) ||
+        cc.flagCode === country.toUpperCase()
+      );
+      
+      if (countryCode) {
+        const phoneWithoutCountryCode = phone?.toString().replace(new RegExp(`^\\+?${countryCode.code.replace('+', '')}`), '') || '';
+        return {
+          countryCode: countryCode.flagCode,
+          dialCode: countryCode.code,
+          number: phoneWithoutCountryCode
+        };
+      }
     }
 
     // Fallback: try to detect from phone number
