@@ -15,6 +15,7 @@ import { LoginRateLimit } from "@/lib/rate-limit";
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
@@ -488,17 +489,26 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="reset-confirm">Confirm New Password</Label>
-                    <Input
-                      id="reset-confirm"
-                      type="password"
-                      placeholder="Confirm new password"
-                      value={resetPasswordForm.confirmPassword}
-                      onChange={(e) =>
-                        setResetPasswordForm({ ...resetPasswordForm, confirmPassword: e.target.value })
-                      }
-                      required
-                      className="bg-input border-border focus:border-primary"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="reset-confirm"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm new password"
+                        value={resetPasswordForm.confirmPassword}
+                        onChange={(e) =>
+                          setResetPasswordForm({ ...resetPasswordForm, confirmPassword: e.target.value })
+                        }
+                        required
+                        className="bg-input border-border focus:border-primary pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
@@ -684,17 +694,26 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm">Confirm Password</Label>
-                    <Input
-                      id="signup-confirm"
-                      type="password"
-                      placeholder="Confirm your password"
-                      value={signUpForm.confirmPassword}
-                      onChange={(e) =>
-                        setSignUpForm({ ...signUpForm, confirmPassword: e.target.value })
-                      }
-                      required
-                      className="bg-input border-border focus:border-secondary"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="signup-confirm"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        value={signUpForm.confirmPassword}
+                        onChange={(e) =>
+                          setSignUpForm({ ...signUpForm, confirmPassword: e.target.value })
+                        }
+                        required
+                        className="bg-input border-border focus:border-secondary pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
