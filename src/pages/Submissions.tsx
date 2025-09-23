@@ -9,8 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { DateRangePicker, DateRange } from "@/components/ui/date-range-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Users, 
@@ -40,6 +39,53 @@ import { useTimezone } from "@/hooks/useTimezone";
 import { formatDateForTable, formatDateForExport, getTimezoneDisplayName } from "@/lib/timezone-utils";
 import { COUNTRY_CODES, getCountryCodeByPhone } from "@/utils/constants";
 
+// Helper function to get date range for presets
+const getDateRangeForPreset = (preset: string) => {
+  const today = new Date();
+  
+  switch (preset) {
+    case "today":
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+      const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      return { from: startOfToday, to: endOfToday };
+    
+    case "yesterday":
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
+      const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
+      return { from: startOfYesterday, to: endOfYesterday };
+    
+    case "7d":
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 6); // Include today, so 7 days total
+      const startOfWeek = new Date(lastWeek.getFullYear(), lastWeek.getMonth(), lastWeek.getDate(), 0, 0, 0, 0);
+      const endOfToday7d = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      return { from: startOfWeek, to: endOfToday7d };
+    
+    case "14d":
+      const lastTwoWeeks = new Date();
+      lastTwoWeeks.setDate(today.getDate() - 13); // Include today, so 14 days total
+      const startOfTwoWeeks = new Date(lastTwoWeeks.getFullYear(), lastTwoWeeks.getMonth(), lastTwoWeeks.getDate(), 0, 0, 0, 0);
+      const endOfToday14d = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      return { from: startOfTwoWeeks, to: endOfToday14d };
+    
+    case "28d":
+      const lastMonth = new Date();
+      lastMonth.setDate(today.getDate() - 27); // Include today, so 28 days total
+      const startOfMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), lastMonth.getDate(), 0, 0, 0, 0);
+      const endOfToday28d = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      return { from: startOfMonth, to: endOfToday28d };
+    
+    case "all":
+      const allTime = new Date("2020-01-01");
+      return { from: allTime, to: today };
+    
+    default:
+      return { from: undefined, to: undefined };
+  }
+};
+
 export default function Submissions() {
   const { user } = useAuth();
   const { userTimezone } = useTimezone();
@@ -52,13 +98,8 @@ export default function Submissions() {
   const [countryFilter, setCountryFilter] = useState("all");
   const [connectionFilter, setConnectionFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState("all");
-  const [timeFilter, setTimeFilter] = useState("all");
-  const [customDateRange, setCustomDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({ from: undefined, to: undefined });
-  const [showCustomDateDialog, setShowCustomDateDialog] = useState(false);
-  const [isTimeFilterOpen, setIsTimeFilterOpen] = useState(false);
+  const [timeFilter, setTimeFilter] = useState("7d");
+  const [customDateRange, setCustomDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [autoSubmission, setAutoSubmission] = useState(true);
   const [autoSubmissionLoading, setAutoSubmissionLoading] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -164,40 +205,6 @@ export default function Submissions() {
     }
   };
 
-  const getStartDateForTimeFilter = (filter: string) => {
-    const now = new Date();
-    switch (filter) {
-      case 'today':
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return today;
-      case '1d':
-        return new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      case '7d':
-        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      case '14d':
-        return new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-      case '28d':
-        return new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
-      case '30d':
-        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      case '90d':
-        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-      case 'custom':
-        return customDateRange.from || null;
-      default:
-        return null; // "all" case - no time filter
-    }
-  };
-
-  const getEndDateForTimeFilter = (filter: string) => {
-    if (filter === 'custom' && customDateRange.to) {
-      const endDate = new Date(customDateRange.to);
-      endDate.setHours(23, 59, 59, 999);
-      return endDate;
-    }
-    return null; // Use current time as end date
-  };
 
   const filterSubmissions = () => {
     let filtered = submissions;
@@ -236,14 +243,31 @@ export default function Submissions() {
 
     // Time filter
     if (timeFilter !== "all") {
-      const startDate = getStartDateForTimeFilter(timeFilter);
-      const endDate = getEndDateForTimeFilter(timeFilter);
+      let dateRange = customDateRange;
       
-      if (startDate) {
+      // If customDateRange is not set but we have a preset, get the preset's range
+      if ((!customDateRange.from || !customDateRange.to) && timeFilter !== "custom") {
+        dateRange = getDateRangeForPreset(timeFilter);
+      }
+      
+      // Apply filtering if we have a valid date range
+      if (dateRange.from && dateRange.to) {
         filtered = filtered.filter(submission => {
           const submissionDate = new Date(submission.created_at);
+          
+          // Normalize dates to start of day for accurate comparison
+          const startDate = new Date(dateRange.from!);
+          startDate.setHours(0, 0, 0, 0);
+          
+          const endDate = new Date(dateRange.to!);
+          endDate.setHours(23, 59, 59, 999);
+          
+          const submissionDateNormalized = new Date(submissionDate);
+          submissionDateNormalized.setHours(0, 0, 0, 0);
+          
           const isAfterStart = submissionDate >= startDate;
-          const isBeforeEnd = !endDate || submissionDate <= endDate;
+          const isBeforeEnd = submissionDate <= endDate;
+          
           return isAfterStart && isBeforeEnd;
         });
       }
@@ -252,58 +276,10 @@ export default function Submissions() {
     setFilteredSubmissions(filtered);
   };
 
-  const handleTimeFilterChange = (value: string) => {
-    if (value === 'custom' || value === 'custom-display') {
-      setShowCustomDateDialog(true);
-      // Don't change the timeFilter value here, let the dialog handle it
-    } else {
-      // When switching to a non-custom filter, clear custom date range
-      if (timeFilter === 'custom') {
-        setCustomDateRange({ from: undefined, to: undefined });
-      }
-      setTimeFilter(value);
-    }
-  };
-
-  const handleCustomRangeClick = () => {
-    setIsTimeFilterOpen(false); // Close the dropdown
-    setShowCustomDateDialog(true);
-  };
-
-  const handleCustomDateApply = () => {
-    if (customDateRange.from && customDateRange.to) {
-      setTimeFilter('custom');
-      setShowCustomDateDialog(false);
-    }
-  };
-
-  const handleCustomDateCancel = () => {
-    // If no previous custom range was set, reset to 'all'
-    if (timeFilter !== 'custom') {
-      setCustomDateRange({ from: undefined, to: undefined });
-    }
-    setShowCustomDateDialog(false);
-  };
-
-  const getTimeFilterDisplayText = () => {
-    switch (timeFilter) {
-      case 'all':
-        return 'All Time';
-      case 'today':
-        return 'Today';
-      case '7d':
-        return 'Last 7 days';
-      case '14d':
-        return 'Last 14 days';
-      case '28d':
-        return 'Last 28 days';
-      case 'custom':
-        if (customDateRange.from && customDateRange.to) {
-          return `${customDateRange.from.toLocaleDateString()} - ${customDateRange.to.toLocaleDateString()}`;
-        }
-        return 'Custom Range';
-      default:
-        return 'Filter by time';
+  const handleTimeFilterChange = (filterValue: string, dateRange?: DateRange) => {
+    setTimeFilter(filterValue);
+    if (dateRange) {
+      setCustomDateRange(dateRange);
     }
   };
 
@@ -413,7 +389,7 @@ export default function Submissions() {
       'Phone Number',
       'Country',
       'Deposit Amount',
-      'Commission Tier',
+      // 'Commission Tier',
       'Custom Event Name',
       'Submission Status',
       'Connection Name',
@@ -458,7 +434,7 @@ export default function Submissions() {
       formatPhoneNumber(submission.phone) || 'N/A',
       submission.country || 'N/A',
       submission.deposit_amount ? `$${submission.deposit_amount}` : 'N/A',
-      submission.commission_tier || '1',
+      // submission.commission_tier || '1',
       submission.custom_event_name || 'N/A',
       submission.status ? submission.status.charAt(0).toUpperCase() + submission.status.slice(1) : 'N/A',
       submission.connection_name || getConnectionForSubmission(submission)?.name || 'N/A',
@@ -727,116 +703,96 @@ export default function Submissions() {
           </Card>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search submissions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+         {/* Filters */}
+         <Card>
+           <CardContent className="pt-6">
+             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+               <div className="relative sm:col-span-2 lg:col-span-1">
+                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                 <Input
+                   placeholder="Search submissions..."
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                   className="pl-10"
+                 />
+               </div>
 
-              <Select 
-                value={timeFilter === 'custom' ? 'custom-display' : timeFilter} 
-                onValueChange={handleTimeFilterChange}
-                open={isTimeFilterOpen}
-                onOpenChange={setIsTimeFilterOpen}
-              >
-                <SelectTrigger>
-                  <div className="flex items-center justify-between w-full">
-                    <span className="truncate">{getTimeFilterDisplayText()}</span>
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  {/* <SelectItem value="1d">Last 24h</SelectItem> */}
-                  <SelectItem value="7d">Last 7 days</SelectItem>
-                  <SelectItem value="14d">Last 14 days</SelectItem>
-                  <SelectItem value="28d">Last 28 days</SelectItem>
-                  {/* <SelectItem value="30d">Last 30 days</SelectItem> */}
-                  {/* <SelectItem value="90d">Last 90 days</SelectItem> */}
-                  <div 
-                    className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-accent hover:text-accent-foreground"
-                    onClick={handleCustomRangeClick}
-                  >
-                    Custom Range
-                  </div>
-                </SelectContent>
-              </Select>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                </SelectContent>
-              </Select>
+               <div className="sm:col-span-2 lg:col-span-1 xl:col-span-1">
+                 <DateRangePicker
+                   value={timeFilter}
+                   onChange={handleTimeFilterChange}
+                   placeholder="Select date range"
+                   className="w-full"
+                 />
+               </div>
+               
+               <Select value={statusFilter} onValueChange={setStatusFilter}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Filter by status" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">All Statuses</SelectItem>
+                   <SelectItem value="pending">Pending</SelectItem>
+                   <SelectItem value="submitted">Submitted</SelectItem>
+                   <SelectItem value="failed">Failed</SelectItem>
+                 </SelectContent>
+               </Select>
 
-              <SearchableSubmissionCountrySelect
-                countries={uniqueCountries}
-                value={countryFilter === "all" ? "" : countryFilter}
-                onValueChange={(value) => setCountryFilter(value || "all")}
-                placeholder="Filter by country"
-                emptyText="No countries found"
-              />
+               <SearchableSubmissionCountrySelect
+                 countries={uniqueCountries}
+                 value={countryFilter === "all" ? "" : countryFilter}
+                 onValueChange={(value) => setCountryFilter(value || "all")}
+                 placeholder="Filter by country"
+                 emptyText="No countries found"
+               />
 
-              <Select 
-                value={connectionFilter || "all"} 
-                onValueChange={(value) => setConnectionFilter(value || "all")}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by connection" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Connections</SelectItem>
-                  {connections.filter(conn => conn.id && conn.name).map((connection, index) => (
-                    <SelectItem key={`connection-${connection.id}-${index}`} value={String(connection.id)}>
-                      {connection.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+               <Select 
+                 value={connectionFilter || "all"} 
+                 onValueChange={(value) => setConnectionFilter(value || "all")}
+               >
+                 <SelectTrigger>
+                   <SelectValue placeholder="Filter by connection" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">All Connections</SelectItem>
+                   {connections.filter(conn => conn.id && conn.name).map((connection, index) => (
+                     <SelectItem key={`connection-${connection.id}-${index}`} value={String(connection.id)}>
+                       {connection.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
 
-              <Select value={eventFilter} onValueChange={setEventFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by event" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Events</SelectItem>
-                  {uniqueEventNames.map(eventName => (
-                    <SelectItem key={eventName} value={eventName}>{eventName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+               <Select value={eventFilter} onValueChange={setEventFilter}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Filter by event" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">All Events</SelectItem>
+                   {uniqueEventNames.map(eventName => (
+                     <SelectItem key={eventName} value={eventName}>{eventName}</SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
 
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchTerm("");
-                  setTimeFilter("all");
-                  setStatusFilter("all");
-                  setCountryFilter("all");
-                  setConnectionFilter("all");
-                  setEventFilter("all");
-                }}
-                className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+               <Button 
+                 variant="outline" 
+                 onClick={() => {
+                   setSearchTerm("");
+                   setTimeFilter("7d");
+                   setStatusFilter("all");
+                   setCountryFilter("all");
+                   setConnectionFilter("all");
+                   setEventFilter("all");
+                 }}
+                 className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
+               >
+                 <Filter className="h-4 w-4 mr-2" />
+                 Clear
+               </Button>
+             </div>
+           </CardContent>
+         </Card>
       </div>
 
       {/* Submissions List */}
@@ -864,17 +820,17 @@ export default function Submissions() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="w-[120px] font-medium">ID</TableHead>
-                    <TableHead className="font-medium">NAME</TableHead>
-                    <TableHead className="font-medium">EMAIL</TableHead>
-                    <TableHead className="font-medium">PHONE</TableHead>
-                    <TableHead className="w-[100px] font-medium">AMOUNT</TableHead>
-                    <TableHead className="w-[100px] font-medium">CURRENCY</TableHead>
-                    <TableHead className="w-[120px] font-medium">PLATFORM</TableHead>
-                    {/* <TableHead className="w-[80px] font-medium">TIERS</TableHead> */}
-                    <TableHead className="w-[100px] font-medium">STATUS</TableHead>
-                    <TableHead className="w-[120px] font-medium">DATE</TableHead>
-                    <TableHead className="w-[100px] font-medium">ACTIONS</TableHead>
+                     <TableHead className="w-[120px] font-medium">ID</TableHead>
+                     <TableHead className="font-medium">NAME</TableHead>
+                     <TableHead className="font-medium">EMAIL</TableHead>
+                     <TableHead className="font-medium">PHONE</TableHead>
+                     <TableHead className="w-[100px] font-medium">AMOUNT</TableHead>
+                     <TableHead className="w-[100px] font-medium">CURRENCY</TableHead>
+                     <TableHead className="w-[120px] font-medium">PLATFORM</TableHead>
+                     {/* <TableHead className="w-[80px] font-medium">TIERS</TableHead> */}
+                     <TableHead className="w-[100px] font-medium">STATUS</TableHead>
+                     <TableHead className="w-[120px] font-medium">DATE</TableHead>
+                     <TableHead className="w-[100px] font-medium">ACTIONS</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -906,39 +862,39 @@ export default function Submissions() {
                       <TableCell className="text-muted-foreground">
                         {submission.email}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {(() => {
-                          // Use the new country_code field if available, otherwise fallback to old logic
-                          if (submission.country_code && submission.phone) {
-                            const flagCountryCode = getCountryCodeFromDialCode(submission.country_code);
-                            return (
+                       <TableCell className="text-muted-foreground">
+                         {(() => {
+                           // Use the new country_code field if available, otherwise fallback to old logic
+                           if (submission.country_code && submission.phone) {
+                             const flagCountryCode = getCountryCodeFromDialCode(submission.country_code);
+                             return (
                               <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <FlagIcon code={flagCountryCode as any} size={20} />
-                                  <span className="text-sm font-medium text-muted-foreground">{submission.country_code}</span>
-                                </div>
-                                <span className="text-sm font-medium text-foreground">
-                                  {submission.phone}
-                                </span>
-                              </div>
-                            );
-                          } else {
-                            // Fallback to old logic for backward compatibility
-                            const countryInfo = getCountryInfo(submission.phone, submission.country);
-                            return (
+                               <div className="flex items-center gap-2">
+                                 <FlagIcon code={flagCountryCode as any} size={20} />
+                                 <span className="text-sm font-medium text-muted-foreground">{submission.country_code}</span>
+                                 </div>
+                                 <span className="text-sm font-medium text-foreground">
+                                   {submission.phone}
+                                 </span>
+                               </div>
+                             );
+                           } else {
+                             // Fallback to old logic for backward compatibility
+                             const countryInfo = getCountryInfo(submission.phone, submission.country);
+                             return (
                               <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <FlagIcon code={countryInfo.countryCode as any} size={20} />
-                                  <span className="text-sm font-medium text-muted-foreground">{countryInfo.dialCode}</span>
-                                </div>
-                                <span className="text-sm font-medium text-foreground">
-                                  {countryInfo.number || 'N/A'}
-                                </span>
-                              </div>
-                            );
-                          }
-                        })()}
-                      </TableCell>
+                               <div className="flex items-center gap-2">
+                                 <FlagIcon code={countryInfo.countryCode as any} size={20} />
+                                 <span className="text-sm font-medium text-muted-foreground">{countryInfo.dialCode}</span>
+                                 </div>
+                                 <span className="text-sm font-medium text-foreground">
+                                   {countryInfo.number || 'N/A'}
+                                 </span>
+                               </div>
+                             );
+                           }
+                         })()}
+                       </TableCell>
                       <TableCell>
                         <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-sm font-medium">
                           {submission.deposit_amount}
@@ -1055,98 +1011,6 @@ export default function Submissions() {
         onSubmissionUpdated={handleSubmissionUpdated}
       />
 
-      {/* Custom Date Range Dialog */}
-      <Dialog open={showCustomDateDialog} onOpenChange={setShowCustomDateDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Custom Date Range</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">From Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {customDateRange.from ? (
-                      customDateRange.from.toLocaleDateString()
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={customDateRange.from}
-                    onSelect={(date) =>
-                      setCustomDateRange(prev => ({ ...prev, from: date }))
-                    }
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">To Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {customDateRange.to ? (
-                      customDateRange.to.toLocaleDateString()
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={customDateRange.to}
-                    onSelect={(date) =>
-                      setCustomDateRange(prev => ({ ...prev, to: date }))
-                    }
-                    disabled={(date) =>
-                      date > new Date() || 
-                      date < new Date("1900-01-01") ||
-                      (customDateRange.from && date < customDateRange.from)
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCustomDateCancel}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCustomDateApply}
-                disabled={!customDateRange.from || !customDateRange.to}
-                className="flex-1"
-              >
-                Apply Range
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

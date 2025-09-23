@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DateRangePicker, DateRange } from "@/components/ui/date-range-picker";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Users, 
   DollarSign, 
@@ -24,15 +23,57 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { getCurrencySymbol } from "@/lib/utils";
 
+// Helper function to get date range for presets
+const getDateRangeForPreset = (preset: string) => {
+  const today = new Date();
+  
+  switch (preset) {
+    case "today":
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+      const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      return { from: startOfToday, to: endOfToday };
+    
+    case "yesterday":
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
+      const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
+      return { from: startOfYesterday, to: endOfYesterday };
+    
+    case "7d":
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 6); // Include today, so 7 days total
+      const startOfWeek = new Date(lastWeek.getFullYear(), lastWeek.getMonth(), lastWeek.getDate(), 0, 0, 0, 0);
+      const endOfToday7d = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      return { from: startOfWeek, to: endOfToday7d };
+    
+    case "14d":
+      const lastTwoWeeks = new Date();
+      lastTwoWeeks.setDate(today.getDate() - 13); // Include today, so 14 days total
+      const startOfTwoWeeks = new Date(lastTwoWeeks.getFullYear(), lastTwoWeeks.getMonth(), lastTwoWeeks.getDate(), 0, 0, 0, 0);
+      const endOfToday14d = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      return { from: startOfTwoWeeks, to: endOfToday14d };
+    
+    case "28d":
+      const lastMonth = new Date();
+      lastMonth.setDate(today.getDate() - 27); // Include today, so 28 days total
+      const startOfMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), lastMonth.getDate(), 0, 0, 0, 0);
+      const endOfToday28d = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      return { from: startOfMonth, to: endOfToday28d };
+    
+    case "all":
+      const allTime = new Date("2020-01-01");
+      return { from: allTime, to: today };
+    
+    default:
+      return { from: undefined, to: undefined };
+  }
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [timeFilter, setTimeFilter] = useState("7d");
-  const [customDateRange, setCustomDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({ from: undefined, to: undefined });
-  const [showCustomDateDialog, setShowCustomDateDialog] = useState(false);
-  const [isTimeFilterOpen, setIsTimeFilterOpen] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [stats, setStats] = useState({
     totalSubmissions: 0,
     totalDeposits: 0,
@@ -102,33 +143,48 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // For custom date ranges and unsupported periods, we'll calculate analytics from submissions data
-      // For standard periods, use the analytics endpoint
-      if (timeFilter === 'custom' || timeFilter === '14d') {
-        // Get submissions for custom date range or unsupported periods and calculate stats manually
-        const submissionsResponse = await apiClient.getSubmissions({
-          start_date: getStartDateForFilter(timeFilter),
-          end_date: getEndDateForFilter(timeFilter)
-        });
+      // Always fetch all submissions and filter client-side for consistency
+      const submissionsResponse = await apiClient.getSubmissions();
         const allSubmissions = submissionsResponse.data.submissions || [];
         
-        // Calculate stats from submissions
-        const totalSubmissions = allSubmissions.length;
-        const totalDeposits = allSubmissions.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
-        const depositsCount = allSubmissions.filter(sub => sub.status === 'submitted').length;
-        const conversionRate = totalSubmissions > 0 ? (depositsCount / totalSubmissions) * 100 : 0;
+      // Filter submissions based on date range
+      let filteredSubmissions = allSubmissions;
+      if (timeFilter !== "all") {
+        let dateRange = customDateRange;
         
-        // Debug logging for conversion rate
-        console.log('14d Filter Debug:', {
-          totalSubmissions,
-          depositsCount,
-          conversionRate,
-          statuses: allSubmissions.map(sub => sub.status),
-          timeFilter
-        });
+        // If customDateRange is not set but we have a preset, get the preset's range
+        if ((!customDateRange.from || !customDateRange.to) && timeFilter !== "custom") {
+          dateRange = getDateRangeForPreset(timeFilter);
+        }
         
-        // Get top countries
-        const countryStats = allSubmissions.reduce((acc: Record<string, number>, sub: any) => {
+        // Apply filtering if we have a valid date range
+        if (dateRange.from && dateRange.to) {
+          filteredSubmissions = allSubmissions.filter(submission => {
+            const submissionDate = new Date(submission.created_at);
+            
+            // Normalize dates to start of day for accurate comparison
+            const startDate = new Date(dateRange.from!);
+            startDate.setHours(0, 0, 0, 0);
+            
+            const endDate = new Date(dateRange.to!);
+            endDate.setHours(23, 59, 59, 999);
+            
+            const isAfterStart = submissionDate >= startDate;
+            const isBeforeEnd = submissionDate <= endDate;
+            
+            return isAfterStart && isBeforeEnd;
+          });
+        }
+      }
+        
+      // Calculate stats from filtered submissions
+      const totalSubmissions = filteredSubmissions.length;
+      const totalDeposits = filteredSubmissions.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
+      const depositsCount = filteredSubmissions.filter(sub => sub.status === 'submitted').length;
+      const conversionRate = totalSubmissions > 0 ? (depositsCount / totalSubmissions) * 100 : 0;
+      
+      // Get top countries from filtered submissions
+      const countryStats = filteredSubmissions.reduce((acc: Record<string, number>, sub: any) => {
           acc[sub.country] = (acc[sub.country] || 0) + 1;
           return acc;
         }, {});
@@ -137,12 +193,12 @@ export default function Dashboard() {
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
 
-        // Get recent submissions (last 10)
-        const recentSubmissions = allSubmissions
+      // Get recent submissions (last 10) from filtered submissions
+      const recentSubmissions = filteredSubmissions
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
           .slice(0, 10);
 
-        const totalCommissions = calculateTotalCommissions(allSubmissions);
+        const totalCommissions = calculateTotalCommissions(filteredSubmissions);
 
         setStats({
           totalSubmissions,
@@ -152,83 +208,12 @@ export default function Dashboard() {
           recentSubmissions,
           totalCommissions
         });
-      } else {
-        // Use analytics endpoint for standard periods
-        const analyticsFilter = mapTimeFilterToAnalytics(timeFilter);
-        const response = await apiClient.getDashboardAnalytics(analyticsFilter);
-        const analytics = response.data.analytics;
-
-        // Get all submissions for commission calculation
-        const submissionsResponse = await apiClient.getSubmissions({
-          start_date: getStartDateForFilter(timeFilter),
-          end_date: getEndDateForFilter(timeFilter)
-        });
-        const allSubmissions = submissionsResponse.data.submissions || [];
-
-        // Calculate total commissions
-        const totalCommissions = calculateTotalCommissions(allSubmissions);
-
-        setStats({
-          totalSubmissions: analytics.total_submissions,
-          totalDeposits: analytics.total_deposits,
-          conversionRate: analytics.conversion_rate,
-          topCountries: analytics.top_countries,
-          recentSubmissions: analytics.recent_submissions || [],
-          totalCommissions: totalCommissions
-        });
-      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     }
   };
 
-  const getStartDateForFilter = (filter: string) => {
-    const now = new Date();
-    switch (filter) {
-      case 'today':
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return today.toISOString();
-      case '7d':
-        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      case '14d':
-        return new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-      case '28d':
-        return new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000).toISOString();
-      case 'all':
-        return new Date('2020-01-01').toISOString();
-      case 'custom':
-        return customDateRange.from ? customDateRange.from.toISOString() : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      default:
-        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    }
-  };
 
-  const getEndDateForFilter = (filter: string) => {
-    if (filter === 'custom' && customDateRange.to) {
-      const endDate = new Date(customDateRange.to);
-      endDate.setHours(23, 59, 59, 999);
-      return endDate.toISOString();
-    }
-    return new Date().toISOString();
-  };
-
-  const mapTimeFilterToAnalytics = (filter: string) => {
-    // Map our filter values to what the analytics API expects
-    // Note: 14d is not supported by analytics API, so it's handled via custom calculation
-    switch (filter) {
-      case 'today':
-        return '1d';
-      case '7d':
-        return '7d';
-      case '28d':
-        return '30d'; // Map to closest supported value
-      case 'all':
-        return '90d'; // Use 90d as "all time" fallback
-      default:
-        return '7d';
-    }
-  };
 
   const calculateTotalCommissions = (submissions: any[]) => {
     let total = 0;
@@ -260,81 +245,13 @@ export default function Dashboard() {
     return total;
   };
 
-  const handleTimeFilterChange = (value: string) => {
-    if (value === 'custom' || value === 'custom-display') {
-      setShowCustomDateDialog(true);
-    } else {
-      // When switching to a non-custom filter, clear custom date range
-      if (timeFilter === 'custom') {
-        setCustomDateRange({ from: undefined, to: undefined });
-      }
-      setTimeFilter(value);
+  const handleTimeFilterChange = (filterValue: string, dateRange?: DateRange) => {
+    setTimeFilter(filterValue);
+    if (dateRange) {
+      setCustomDateRange(dateRange);
     }
   };
 
-  const handleCustomRangeClick = () => {
-    setIsTimeFilterOpen(false); // Close the dropdown
-    setShowCustomDateDialog(true);
-  };
-
-  const handleCustomDateApply = () => {
-    if (customDateRange.from && customDateRange.to) {
-      setTimeFilter('custom');
-      setShowCustomDateDialog(false);
-    }
-  };
-
-  const handleCustomDateCancel = () => {
-    // If no previous custom range was set, reset to previous filter
-    if (timeFilter !== 'custom') {
-      setCustomDateRange({ from: undefined, to: undefined });
-    }
-    setShowCustomDateDialog(false);
-  };
-
-  const getTimeFilterDisplayText = () => {
-    switch (timeFilter) {
-      case 'today':
-        return 'Today';
-      case '7d':
-        return '7 Days';
-      case '14d':
-        return '14 Days';
-      case '28d':
-        return '28 Days';
-      case 'all':
-        return 'All Time';
-      case 'custom':
-        if (customDateRange.from && customDateRange.to) {
-          return `${customDateRange.from.toLocaleDateString()} - ${customDateRange.to.toLocaleDateString()}`;
-        }
-        return 'Custom Range';
-      default:
-        return '7 Days';
-    }
-  };
-
-  const getTimeFilterLabel = () => {
-    switch (timeFilter) {
-      case 'today':
-        return 'Today';
-      case '7d':
-        return '7 Days';
-      case '14d':
-        return '14 Days';
-      case '28d':
-        return '28 Days';
-      case 'all':
-        return 'All Time';
-      case 'custom':
-        if (customDateRange.from && customDateRange.to) {
-          return `${customDateRange.from.toLocaleDateString()} - ${customDateRange.to.toLocaleDateString()}`;
-        }
-        return 'Custom';
-      default:
-        return '7 Days';
-    }
-  };
 
   const statCards = [
     {
@@ -392,11 +309,11 @@ export default function Dashboard() {
               Here's a summary of your account performance.
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             {profile && (
-              <Badge 
+              <Badge
                 variant="outline" 
-                className="text-primary border-primary/20 cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-2"
+                className="text-primary border-primary/20 cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-2 whitespace-nowrap"
                 onClick={copyClientId}
                 title="Click to copy Client ID"
               >
@@ -404,31 +321,12 @@ export default function Dashboard() {
                 <Copy className="h-3 w-3" />
               </Badge>
             )}
-            <Select 
-              value={timeFilter === 'custom' ? 'custom-display' : timeFilter} 
-              onValueChange={handleTimeFilterChange}
-              open={isTimeFilterOpen}
-              onOpenChange={setIsTimeFilterOpen}
-            >
-              <SelectTrigger className="w-40">
-                <div className="flex items-center justify-between w-full">
-                  <span className="truncate">{getTimeFilterDisplayText()}</span>
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="7d">7 Days</SelectItem>
-                <SelectItem value="14d">14 Days</SelectItem>
-                <SelectItem value="28d">28 Days</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-                <div 
-                  className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-accent hover:text-accent-foreground"
-                  onClick={handleCustomRangeClick}
-                >
-                  Custom Range
-                </div>
-              </SelectContent>
-            </Select>
+            <DateRangePicker
+              value={timeFilter}
+              onChange={handleTimeFilterChange}
+              placeholder="Select date range"
+              className="w-full max-w-64"
+            />
           </div>
         </div>
       </div>
@@ -585,98 +483,6 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Custom Date Range Dialog */}
-      <Dialog open={showCustomDateDialog} onOpenChange={setShowCustomDateDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Custom Date Range</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">From Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {customDateRange.from ? (
-                      customDateRange.from.toLocaleDateString()
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={customDateRange.from}
-                    onSelect={(date) =>
-                      setCustomDateRange(prev => ({ ...prev, from: date }))
-                    }
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">To Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {customDateRange.to ? (
-                      customDateRange.to.toLocaleDateString()
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={customDateRange.to}
-                    onSelect={(date) =>
-                      setCustomDateRange(prev => ({ ...prev, to: date }))
-                    }
-                    disabled={(date) =>
-                      date > new Date() || 
-                      date < new Date("1900-01-01") ||
-                      (customDateRange.from && date < customDateRange.from)
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCustomDateCancel}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCustomDateApply}
-                disabled={!customDateRange.from || !customDateRange.to}
-                className="flex-1"
-              >
-                Apply Range
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
