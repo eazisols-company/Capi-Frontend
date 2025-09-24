@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OptimizedCountryCodeSelect } from "@/components/ui/optimized-country-code-select";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings as SettingsIcon, User, CreditCard, Save, Lock } from "lucide-react";
+import { Settings as SettingsIcon, User, CreditCard, Save, Lock, Eye, EyeOff } from "lucide-react";
 import { FlagIcon } from 'react-flag-kit';
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +48,11 @@ export default function Settings() {
   });
 
   const [changingPassword, setChangingPassword] = useState(false);
+
+  // Password visibility states
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Utility function to check if form data has changed
   const hasFormDataChanged = () => {
@@ -339,30 +344,72 @@ export default function Settings() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Current Password</Label>
-              <Input
-                type="password"
-                value={passwordData.current_password}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, current_password: e.target.value }))}
-                placeholder="Enter your current password"
-              />
+              <div className="relative">
+                <Input
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={passwordData.current_password}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, current_password: e.target.value }))}
+                  placeholder="Enter your current password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                >
+                  {showCurrentPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>New Password</Label>
-              <Input
-                type="password"
-                value={passwordData.new_password}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, new_password: e.target.value }))}
-                placeholder="Enter your new password"
-              />
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? "text" : "password"}
+                  value={passwordData.new_password}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, new_password: e.target.value }))}
+                  placeholder="Enter your new password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Confirm New Password</Label>
-              <Input
-                type="password"
-                value={passwordData.confirm_password}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, confirm_password: e.target.value }))}
-                placeholder="Confirm your new password"
-              />
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={passwordData.confirm_password}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirm_password: e.target.value }))}
+                  placeholder="Confirm your new password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <Button 
               onClick={handleChangePassword} 
