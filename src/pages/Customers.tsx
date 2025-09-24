@@ -36,6 +36,7 @@ interface Customer {
   created_at: string;
   last_login?: string;
   verified: boolean;
+  admin?: string;
 }
 
 interface CustomersResponse {
@@ -58,6 +59,7 @@ export default function Customers() {
   const [verifiedFilter, setVerifiedFilter] = useState<string>("all");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
+  const [updatingCustomerId, setUpdatingCustomerId] = useState<string | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -107,7 +109,9 @@ export default function Customers() {
       const response = await apiClient.getCustomers(params);
       const data: CustomersResponse = response.data;
       
-      setCustomers(data.customers);
+      const nonAdminCustomers = data.customers.filter(customer => customer.admin !== 'true');
+      setCustomers(nonAdminCustomers);
+
       setTotalPages(data.pagination.total_pages);
       setTotalCustomers(data.pagination.total_count);
     } catch (error: any) {
@@ -217,6 +221,43 @@ export default function Customers() {
         description: errorMessage,
         variant: "destructive"
       });
+    }
+  };
+
+  const handleUpdateVerificationStatus = async (customerId: string) => {
+    try {
+      setUpdatingCustomerId(customerId);
+      
+      await apiClient.updateVerificationStatus(customerId);
+      
+      // Update the customer's verification status in the local state
+      setCustomers(prevCustomers => 
+        prevCustomers.map(customer => 
+          customer._id === customerId 
+            ? { ...customer, verified: true }
+            : customer
+        )
+      );
+      
+      toast({
+        title: "Success",
+        description: "Customer verification status updated successfully",
+        variant: "default"
+      });
+      
+    } catch (error: any) {
+      console.error('Error updating verification status:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          "Failed to update verification status";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingCustomerId(null);
     }
   };
 
@@ -433,6 +474,27 @@ export default function Customers() {
                             <User className="h-3 w-3 mr-1" />
                             View Details
                           </Button> */}
+                          {!customer.verified && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleUpdateVerificationStatus(customer._id)}
+                              disabled={updatingCustomerId === customer._id}
+                              className="interactive-button"
+                            >
+                              {updatingCustomerId === customer._id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-1"></div>
+                                  Updating...
+                                </>
+                              ) : (
+                                <>
+                                  <User className="h-3 w-3 mr-1" />
+                                  Update Status
+                                </>
+                              )}
+                            </Button>
+                          )}
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>

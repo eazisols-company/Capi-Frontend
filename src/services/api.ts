@@ -341,6 +341,10 @@ class ApiClient {
   async loginAsCustomer(customerId: string) {
     return this.client.post('/api/admin/login-as-customer', { customer_id: customerId });
   }
+
+  async updateVerificationStatus(customerId: string) {
+    return this.client.put('/api/admin/update-verification-status', { customer_id: customerId });
+  }
 }
 
 export const apiClient = new ApiClient();
