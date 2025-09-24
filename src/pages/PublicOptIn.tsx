@@ -355,7 +355,7 @@ export default function PublicOptIn() {
           background: 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 100%)'
         }}
       >
-      <div className="max-w-md w-full">
+      <div className="max-w-lg w-full">
         <div className="text-center space-y-6 mb-8">
           {/* Logo */}
           {getEffectiveLogoUrl() && (
@@ -499,6 +499,11 @@ export default function PublicOptIn() {
                   onChange={(e) => setFormData(prev => ({ ...prev, deposit_amount: e.target.value }))}
                   placeholder="Enter deposit amount"
                   required
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                    }
+                  }}
                   className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   style={{ 
                     backgroundColor: 'rgba(255,255,255,0.1)',

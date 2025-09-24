@@ -483,6 +483,11 @@ export default function Connections() {
                         min="0"
                         step="0.01"
                         className="pl-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        onKeyDown={(e) => {
+                          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                          }
+                        }}
                       />
                     </div>
                     {formData.countries.length > 1 && (

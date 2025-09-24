@@ -373,6 +373,11 @@ export function SubmissionEditModal({
                             className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             {...field}
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -472,6 +477,11 @@ export function SubmissionEditModal({
                             className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             {...field}
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
