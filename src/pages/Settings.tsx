@@ -298,12 +298,13 @@ export default function Settings() {
                 <Input
                   value={formData.phone}
                   onChange={(e) => {
-                    // Only allow numeric input
-                    const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                    // Only allow numeric input and limit to 15 characters
+                    const numericValue = e.target.value.replace(/[^0-9]/g, '').slice(0, 15);
                     setFormData(prev => ({ ...prev, phone: numericValue }));
                   }}
                   placeholder="Enter phone number"
                   className="flex-1"
+                  maxLength={15}
                   required
                 />
               </div>

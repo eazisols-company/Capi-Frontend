@@ -148,10 +148,10 @@ export default function PublicOptIn() {
     if (!optInData) return;
 
     // Validate phone number
-    if (!formData.phone || formData.phone.length < 7) {
+    if (!formData.phone || formData.phone.length < 5 || formData.phone.length > 15) {
       toast({
         title: "Invalid Phone Number",
-        description: "Please enter a valid phone number with at least 7 digits",
+        description: "Please enter a valid phone number",
         variant: "destructive"
       });
       return;
@@ -460,8 +460,9 @@ export default function PublicOptIn() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
-                  placeholder="2345678900"
+                  placeholder="1234567890"
                   required
+                  maxLength={15}
                   className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 flex-1"
                   style={{ 
                     backgroundColor: 'rgba(255,255,255,0.1)',

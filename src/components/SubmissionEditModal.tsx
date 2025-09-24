@@ -50,7 +50,7 @@ const submissionEditSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(50, "First name too long"),
   last_name: z.string().min(1, "Last name is required").max(50, "Last name too long"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(1, "Phone number is required").regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone format"),
+  phone: z.string().min(5, "Phone number must be at least 5 digits").max(15, "Phone number cannot exceed 15 digits").regex(/^\d+$/, "Phone number must contain only digits"),
   country_code: z.string().min(1, "Country code is required"),
   country: z.string().min(1, "Country is required"),
   deposit_amount: z.number().min(0, "Amount must be positive").max(999999, "Amount too large"),
@@ -286,7 +286,7 @@ export function SubmissionEditModal({
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Phone className="h-4 w-4" />
-                          Phone Number
+                          {/* Phone Number <span className="text-red-500">*</span> */}
                         </FormLabel>
                         <div className="flex gap-2">
                           <FormField
@@ -306,7 +306,18 @@ export function SubmissionEditModal({
                             )}
                           />
                           <FormControl>
-                            <Input placeholder="Enter phone number" {...field} className="flex-1" />
+                            <Input 
+                              placeholder="Enter phone number" 
+                              {...field} 
+                              className="flex-1"
+                              maxLength={15}
+                              onChange={(e) => {
+                                // Only allow numeric input and limit to 15 characters
+                                const numericValue = e.target.value.replace(/[^0-9]/g, '').slice(0, 15);
+                                field.onChange(numericValue);
+                              }}
+                              required
+                            />
                           </FormControl>
                         </div>
                         <FormMessage />
