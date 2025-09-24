@@ -100,6 +100,45 @@ export default function Settings() {
 
   const handleSave = async () => {
     try {
+      console.log('Saving form data:', formData);
+      
+      // Validate required fields
+      if (formData.first_name.trim() === "") {
+        toast({
+          title: "Error",
+          description: "First name is required",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (formData.last_name.trim() === "") {
+        toast({
+          title: "Error",
+          description: "Last name is required",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (formData.phone.trim() === "") {
+        toast({
+          title: "Error",
+          description: "Phone number is required",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!/^\d{4,15}$/.test(formData.phone)) {
+        toast({
+          title: "Error",
+          description: "Phone number must be between 4 to 15 digits",
+          variant: "destructive"
+        });
+        return;
+      }
+
       setSaving(true);
       await apiClient.updateProfile(formData);
 
@@ -227,17 +266,19 @@ export default function Settings() {
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>First Name</Label>
+                <Label>First Name <span className="text-red-500">*</span></Label>
                 <Input
                   value={formData.first_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label>Last Name</Label>
+                <Label>Last Name <span className="text-red-500">*</span></Label>
                 <Input
                   value={formData.last_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+                  required
                 />
               </div>
             </div>
@@ -246,7 +287,7 @@ export default function Settings() {
               <Input value={user?.email || ""} disabled className="bg-muted" />
             </div>
             <div className="space-y-2">
-              <Label>Phone Number</Label>
+              <Label>Phone Number <span className="text-red-500">*</span></Label>
               <div className="flex gap-2">
                 <OptimizedCountryCodeSelect
                   value={formData.country_code}
@@ -256,14 +297,19 @@ export default function Settings() {
                 />
                 <Input
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  onChange={(e) => {
+                    // Only allow numeric input
+                    const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                    setFormData(prev => ({ ...prev, phone: numericValue }));
+                  }}
                   placeholder="Enter phone number"
                   className="flex-1"
+                  required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>System Currency</Label>
+              {/* <Label>System Currency <span className="text-red-500">*</span></Label> */}
               <Select
                 value={formData.system_currency}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, system_currency: value as "EUR" | "USD" }))}
@@ -296,7 +342,7 @@ export default function Settings() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Timezone</Label>
+              {/* <Label>Timezone <span className="text-red-500">*</span></Label> */}
               <Select
                 value={formData.timezone}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, timezone: value }))}
