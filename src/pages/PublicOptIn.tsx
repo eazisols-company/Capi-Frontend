@@ -499,7 +499,7 @@ export default function PublicOptIn() {
                   onChange={(e) => setFormData(prev => ({ ...prev, deposit_amount: e.target.value }))}
                   placeholder="Enter deposit amount"
                   required
-                  className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
+                  className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   style={{ 
                     backgroundColor: 'rgba(255,255,255,0.1)',
                     borderColor: `${settings.secondary_color}60`,

@@ -482,7 +482,7 @@ export default function Connections() {
                         placeholder="0.00"
                         min="0"
                         step="0.01"
-                        className="pl-8"
+                        className="pl-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
                     {formData.countries.length > 1 && (
