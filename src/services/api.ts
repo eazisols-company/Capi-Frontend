@@ -345,6 +345,10 @@ class ApiClient {
   async updateVerificationStatus(customerId: string) {
     return this.client.put('/api/admin/update-verification-status', { customer_id: customerId });
   }
+
+  async blockUnblockCustomer(customerId: string) {
+    return this.client.put('/api/admin/block-unblock-customer', { customer_id: customerId });
+  }
 }
 
 export const apiClient = new ApiClient();

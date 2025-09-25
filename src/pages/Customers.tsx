@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
@@ -37,6 +38,7 @@ interface Customer {
   last_login?: string;
   verified: boolean;
   admin?: string;
+  block_login?: boolean;
 }
 
 interface CustomersResponse {
@@ -60,6 +62,7 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [updatingCustomerId, setUpdatingCustomerId] = useState<string | null>(null);
+  const [blockingCustomerId, setBlockingCustomerId] = useState<string | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -261,6 +264,45 @@ export default function Customers() {
     }
   };
 
+  const handleBlockUnblockCustomer = async (customerId: string) => {
+    try {
+      setBlockingCustomerId(customerId);
+      
+      const response = await apiClient.blockUnblockCustomer(customerId);
+      const { customer } = response.data;
+      
+      // Update the customer's block status in the local state
+      setCustomers(prevCustomers => 
+        prevCustomers.map(customerItem => 
+          customerItem._id === customerId 
+            ? { ...customerItem, block_login: customer.block_login }
+            : customerItem
+        )
+      );
+      
+      const action = customer.block_login ? "blocked" : "unblocked";
+      toast({
+        title: "Success",
+        description: `Customer has been ${action} successfully`,
+        variant: "default"
+      });
+      
+    } catch (error: any) {
+      console.error('Error blocking/unblocking customer:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          "Failed to update customer access";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setBlockingCustomerId(null);
+    }
+  };
+
   // Redirect non-admin users
   if (!user?.admin) {
     return (
@@ -410,6 +452,7 @@ export default function Customers() {
                   <TableHead>Customer</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Access</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -417,7 +460,7 @@ export default function Customers() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                         <span className="ml-2">Loading customers...</span>
@@ -426,7 +469,7 @@ export default function Customers() {
                   </TableRow>
                 ) : filteredCustomers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <div className="text-muted-foreground">
                         {customers.length === 0 ? "No customers found" : "No customers match your verification filter"}
                       </div>
@@ -453,6 +496,19 @@ export default function Customers() {
                       </TableCell>
                       <TableCell>
                         {getVerifiedBadge(customer.verified)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={!customer.block_login}
+                            onCheckedChange={() => handleBlockUnblockCustomer(customer._id)}
+                            disabled={blockingCustomerId === customer._id}
+                            className="data-[state=checked]:bg-green-600"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {customer.block_login ? "Blocked" : "Active"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center text-sm">
