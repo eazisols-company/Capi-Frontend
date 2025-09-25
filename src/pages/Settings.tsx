@@ -310,7 +310,7 @@ export default function Settings() {
               </div>
             </div>
             <div className="space-y-2">
-              {/* <Label>System Currency <span className="text-red-500">*</span></Label> */}
+              <Label>System Currency <span className="text-red-500"></span></Label>
               <Select
                 value={formData.system_currency}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, system_currency: value as "EUR" | "USD" }))}
@@ -343,7 +343,7 @@ export default function Settings() {
               </Select>
             </div>
             <div className="space-y-2">
-              {/* <Label>Timezone <span className="text-red-500">*</span></Label> */}
+              <Label>Timezone <span className="text-red-500"></span></Label>
               <Select
                 value={formData.timezone}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, timezone: value }))}

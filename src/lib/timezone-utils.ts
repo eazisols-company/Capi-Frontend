@@ -19,18 +19,18 @@ export const TIMEZONES = [
   
   // Europe
   { value: 'Europe/London', label: 'Greenwich Mean Time (London)', offset: '+00:00/+01:00' },
-  { value: 'Europe/Berlin', label: 'Central European Time (Berlin)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Paris', label: 'Central European Time (Paris)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Rome', label: 'Central European Time (Rome)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Madrid', label: 'Central European Time (Madrid)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Amsterdam', label: 'Central European Time (Amsterdam)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Zurich', label: 'Central European Time (Zurich)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Vienna', label: 'Central European Time (Vienna)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Stockholm', label: 'Central European Time (Stockholm)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Oslo', label: 'Central European Time (Oslo)', offset: '+01:00/+02:00' },
-  { value: 'Europe/Copenhagen', label: 'Central European Time (Copenhagen)', offset: '+01:00/+02:00' },
+  { value: 'Europe/Berlin', label: 'Central European Time', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Paris', label: 'Central European Time (Paris)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Rome', label: 'Central European Time (Rome)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Madrid', label: 'Central European Time (Madrid)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Amsterdam', label: 'Central European Time (Amsterdam)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Zurich', label: 'Central European Time (Zurich)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Vienna', label: 'Central European Time (Vienna)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Stockholm', label: 'Central European Time (Stockholm)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Oslo', label: 'Central European Time (Oslo)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Copenhagen', label: 'Central European Time (Copenhagen)', offset: '+01:00/+02:00' },
+  // { value: 'Europe/Warsaw', label: 'Central European Time (Warsaw)', offset: '+01:00/+02:00' },
   { value: 'Europe/Helsinki', label: 'Eastern European Time (Helsinki)', offset: '+02:00/+03:00' },
-  { value: 'Europe/Warsaw', label: 'Central European Time (Warsaw)', offset: '+01:00/+02:00' },
   { value: 'Europe/Moscow', label: 'Moscow Standard Time', offset: '+03:00' },
   { value: 'Europe/Istanbul', label: 'Turkey Time (Istanbul)', offset: '+03:00' },
   
@@ -47,8 +47,8 @@ export const TIMEZONES = [
   { value: 'Asia/Jakarta', label: 'Western Indonesia Time (Jakarta)', offset: '+07:00' },
   
   // Australia & Oceania
-  { value: 'Australia/Sydney', label: 'Australian Eastern Time (Sydney)', offset: '+10:00/+11:00' },
-  { value: 'Australia/Melbourne', label: 'Australian Eastern Time (Melbourne)', offset: '+10:00/+11:00' },
+  { value: 'Australia/Sydney', label: 'Australian Eastern Time (Sydney/Melbourne)', offset: '+10:00/+11:00' },
+  // { value: 'Australia/Melbourne', label: 'Australian Eastern Time (Melbourne)', offset: '+10:00/+11:00' },
   { value: 'Australia/Perth', label: 'Australian Western Time (Perth)', offset: '+08:00' },
   { value: 'Pacific/Auckland', label: 'New Zealand Standard Time (Auckland)', offset: '+12:00/+13:00' },
   

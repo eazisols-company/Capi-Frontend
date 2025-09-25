@@ -116,7 +116,7 @@ export default function Customers() {
       setCustomers(nonAdminCustomers);
 
       setTotalPages(data.pagination.total_pages);
-      setTotalCustomers(data.pagination.total_count);
+      setTotalCustomers(data.customers.length);
     } catch (error: any) {
       console.error('Error fetching customers:', error);
       const errorMessage = error?.response?.data?.error || 
