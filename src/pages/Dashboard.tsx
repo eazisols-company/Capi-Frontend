@@ -22,6 +22,9 @@ import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { getCurrencySymbol } from "@/lib/utils";
+import SubmissionStatusChart from "@/components/SubmissionStatusChart";
+import CountriesChart from "@/components/CountriesChart";
+import PerformanceOverTimeChart from "@/components/PerformanceOverTimeChart";
 
 // Helper function to get date range for presets
 const getDateRangeForPreset = (preset: string) => {
@@ -80,7 +83,8 @@ export default function Dashboard() {
     conversionRate: 0,
     topCountries: [],
     recentSubmissions: [],
-    totalCommissions: 0
+    totalCommissions: 0,
+    allSubmissions: []
   });
   const [profile, setProfile] = useState<any>(null);
   const [connections, setConnections] = useState<any[]>([]);
@@ -193,10 +197,10 @@ export default function Dashboard() {
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
 
-      // Get recent submissions (last 10) from filtered submissions
+      // Get recent submissions (last 5) from filtered submissions
       const recentSubmissions = filteredSubmissions
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          .slice(0, 10);
+          .slice(0, 3);
 
         const totalCommissions = calculateTotalCommissions(filteredSubmissions);
 
@@ -206,7 +210,8 @@ export default function Dashboard() {
           conversionRate,
           topCountries,
           recentSubmissions,
-          totalCommissions
+          totalCommissions,
+          allSubmissions: filteredSubmissions
         });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -353,84 +358,32 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Top Countries */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-primary" />
-              Top Performing Countries
-            </CardTitle>
-            <CardDescription>
-              Countries with the most submissions in the selected period
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {stats.topCountries.length > 0 ? (
-              <div className="space-y-4">
-                {stats.topCountries.map((country: any, index) => (
-                  <div key={country.country} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {index + 1}
-                      </div>
-                      <span className="font-medium text-foreground">{country.country}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">{country.count} submissions</span>
-                      <div className="w-20 h-2 rounded-full bg-muted">
-                        <div 
-                          className="h-full rounded-full bg-primary" 
-                          style={{ width: `${(country.count / stats.totalSubmissions) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Globe className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No submissions data available for the selected period</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Submission Status Chart */}
+        <SubmissionStatusChart 
+          data={stats.allSubmissions}
+          timeFilter={timeFilter}
+        />
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-secondary" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>
-              Common tasks and shortcuts
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button className="w-full interactive-button bg-primary hover:bg-primary/90" size="sm" onClick={() => window.location.href = '/submissions'}>
-              <Users className="h-4 w-4 mr-2" />
-              View All Submissions
-            </Button>
-            <Button className="w-full interactive-button bg-secondary hover:bg-secondary/90" size="sm" variant="secondary" onClick={() => window.location.href = '/connections'}>
-              <Activity className="h-4 w-4 mr-2" />
-              Add New Connections
-            </Button>
-            {/* <Button className="w-full interactive-button" size="sm" variant="outline">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Export Analytics
-            </Button>
-            <Button className="w-full interactive-button" size="sm" variant="outline">
-              <Calendar className="h-4 w-4 mr-2" />
-              Schedule Report
-            </Button> */}
-          </CardContent>
-        </Card>
+        {/* Countries Chart */}
+        <CountriesChart 
+          data={stats.allSubmissions}
+          currency={profile?.system_currency || 'USD'}
+          timeFilter={timeFilter}
+        />
       </div>
 
-      {/* Recent Activity */}
+      {/* Performance Over Time Chart */}
+      <PerformanceOverTimeChart 
+        data={stats.allSubmissions}
+        timeFilter={timeFilter}
+        currency={profile?.system_currency || 'USD'}
+      />
+
+      {/* Main Content */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Activity */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -482,6 +435,39 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+        
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-secondary" />
+              Quick Actions
+            </CardTitle>
+            <CardDescription>
+              Common tasks and shortcuts
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button className="w-full interactive-button bg-primary hover:bg-primary/90" size="sm" onClick={() => window.location.href = '/submissions'}>
+              <Users className="h-4 w-4 mr-2" />
+              View All Submissions
+            </Button>
+            <Button className="w-full interactive-button bg-secondary hover:bg-secondary/90" size="sm" variant="secondary" onClick={() => window.location.href = '/connections'}>
+              <Activity className="h-4 w-4 mr-2" />
+              Add New Connections
+            </Button>
+            {/* <Button className="w-full interactive-button" size="sm" variant="outline">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Export Analytics
+            </Button>
+            <Button className="w-full interactive-button" size="sm" variant="outline">
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule Report
+            </Button> */}
+          </CardContent>
+        </Card>
+      </div>
 
     </div>
   );

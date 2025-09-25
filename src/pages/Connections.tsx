@@ -548,10 +548,22 @@ export default function Connections() {
                       onChange={(e) => setFormData(prev => ({ ...prev, custom_domain: e.target.value }))}
                       placeholder="tracking.yourdomain.com"
                     />
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p>To set up your custom domain:</p>
-                      <p>1. Add a CNAME record: <code className="bg-muted px-1 rounded">tracking.yourdomain.com → trackAff.app</code></p>
-                      <p>2. SSL will be automatically provisioned once DNS propagates</p>
+                   <div className="text-sm text-muted-foreground space-y-2 border rounded-lg p-4 bg-muted/30">
+                      <p className="font-medium text-foreground">To set up your custom domain:</p>
+                      
+                       <p>
+                         Add CNAME record:{" "}
+                         <code className="bg-muted px-1 py-0.5 rounded text-xs inline-block">
+                           www → {editingConnection?.optin_page_url || "your-optin-page-url"}
+                         </code>
+                       </p>
+
+                      <p>SSL will be automatically provisioned once DNS propagates</p>
+
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                        ⚠️ After adding DNS records, it may take some time for changes to fully
+                        propagate. During this time, the domain may not work properly.
+                      </p>
                     </div>
                   </div>
                 )}
