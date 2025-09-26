@@ -779,7 +779,7 @@ export default function Connections() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => copyToClipboard(connection.optin_page_url, "Opt-in page URL")}
-                                    className="h-6 w-6 p-0 hover:bg-muted"
+                                    className="h-6 w-6 p-0 hover:bg-[#F97415]"
                                   >
                                     <Copy className="h-3 w-3" />
                                   </Button>
