@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import Customers from "./pages/Customers";
 import NotFound from "./pages/NotFound";
 import PublicOptIn from "./pages/PublicOptIn";
+import DomainRouter from "./components/DomainRouter";
 import { AuthProvider } from "./hooks/useAuth";
 import { TimezoneProvider } from "./hooks/useTimezone";
 
@@ -29,6 +30,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+          <DomainRouter>
           <Routes>
             {/* Public Routes (No Authentication Required) */}
             <Route path="/optin/:connectionId" element={<PublicOptIn />} />
@@ -64,6 +66,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </DomainRouter>
           </BrowserRouter>
           </TooltipProvider>
         </TimezoneProvider>
