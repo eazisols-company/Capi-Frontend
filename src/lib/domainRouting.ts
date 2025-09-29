@@ -40,7 +40,17 @@ export const getConnectionIdForDomain = async (domain: string): Promise<string |
     // Import apiClient dynamically to avoid circular dependencies
     const { apiClient } = await import('@/services/api');
     const response = await apiClient.resolveDomain(domain);
-    return response.data.connection_id;
+    
+    console.log('🔍 API Response:', response.data);
+    
+    // Check if the response is successful and has the expected structure
+    if (response.data && response.data.success && response.data.data && response.data.data.connection_id) {
+      console.log('✅ Connection ID found:', response.data.data.connection_id);
+      return response.data.data.connection_id;
+    }
+    
+    console.log('❌ Invalid response structure:', response.data);
+    return null;
   } catch (error) {
     console.error('Domain lookup failed:', error);
     return null;
