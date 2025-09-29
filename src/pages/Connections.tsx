@@ -554,7 +554,8 @@ export default function Connections() {
                        <p>
                          Add CNAME record:{" "}
                          <code className="bg-muted px-1 py-0.5 rounded text-xs inline-block">
-                           www → {editingConnection?.optin_page_url || "your-optin-page-url"}
+                           {/* www → {editingConnection?.optin_page_url || "your-optin-page-url"} */}
+                           www → {import.meta.env.VITE_BASE_DOMAIN}
                          </code>
                        </p>
 
