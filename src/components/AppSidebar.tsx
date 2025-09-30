@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { CustomerSupportCard } from "@/components/CustomerSupportCard";
 
 const getMenuItems = (isAdmin: boolean) => {
   const baseItems = [
@@ -123,6 +124,8 @@ export function AppSidebar() {
       <SidebarFooter className="p-4">
         {!collapsed && user && (
           <div className="space-y-3">
+            {/* Customer Support Card */}
+            <CustomerSupportCard collapsed={collapsed} />
             <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border">
               <div className="p-2 rounded-full bg-primary/10">
                 <User className="h-4 w-4 text-primary" />
