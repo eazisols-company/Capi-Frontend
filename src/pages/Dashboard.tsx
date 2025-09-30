@@ -16,7 +16,10 @@ import {
   Copy,
   Banknote,
   Calendar as CalendarIcon,
-  X
+  X,
+  TrendingUp,
+  TrendingDown,
+  Minus
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +28,91 @@ import { getCurrencySymbol } from "@/lib/utils";
 import SubmissionStatusChart from "@/components/SubmissionStatusChart";
 import CountriesChart from "@/components/CountriesChart";
 import PerformanceOverTimeChart from "@/components/PerformanceOverTimeChart";
+
+// Helper function to get comparison period for percentage calculation
+const getComparisonDateRange = (preset: string) => {
+  const today = new Date();
+  
+  switch (preset) {
+    case "today":
+      // Compare with yesterday
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
+      const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
+      return { from: startOfYesterday, to: endOfYesterday };
+    
+    case "yesterday":
+      // Compare with day before yesterday
+      const dayBefore = new Date();
+      dayBefore.setDate(dayBefore.getDate() - 2);
+      const startOfDayBefore = new Date(dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate(), 0, 0, 0, 0);
+      const endOfDayBefore = new Date(dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate(), 23, 59, 59, 999);
+      return { from: startOfDayBefore, to: endOfDayBefore };
+    
+    case "7d":
+      // Compare with previous 7 days (days 8-14)
+      const prevWeekStart = new Date();
+      prevWeekStart.setDate(today.getDate() - 13); // 14 days ago
+      const prevWeekEnd = new Date();
+      prevWeekEnd.setDate(today.getDate() - 7); // 7 days ago
+      return { 
+        from: new Date(prevWeekStart.getFullYear(), prevWeekStart.getMonth(), prevWeekStart.getDate(), 0, 0, 0, 0),
+        to: new Date(prevWeekEnd.getFullYear(), prevWeekEnd.getMonth(), prevWeekEnd.getDate(), 23, 59, 59, 999)
+      };
+    
+    case "14d":
+      // Compare with previous 14 days (days 15-28)
+      const prev2WeeksStart = new Date();
+      prev2WeeksStart.setDate(today.getDate() - 27); // 28 days ago
+      const prev2WeeksEnd = new Date();
+      prev2WeeksEnd.setDate(today.getDate() - 14); // 14 days ago
+      return { 
+        from: new Date(prev2WeeksStart.getFullYear(), prev2WeeksStart.getMonth(), prev2WeeksStart.getDate(), 0, 0, 0, 0),
+        to: new Date(prev2WeeksEnd.getFullYear(), prev2WeeksEnd.getMonth(), prev2WeeksEnd.getDate(), 23, 59, 59, 999)
+      };
+    
+    case "28d":
+      // Compare with previous 28 days (days 29-56)
+      const prevMonthStart = new Date();
+      prevMonthStart.setDate(today.getDate() - 55); // 56 days ago
+      const prevMonthEnd = new Date();
+      prevMonthEnd.setDate(today.getDate() - 28); // 28 days ago
+      return { 
+        from: new Date(prevMonthStart.getFullYear(), prevMonthStart.getMonth(), prevMonthStart.getDate(), 0, 0, 0, 0),
+        to: new Date(prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), prevMonthEnd.getDate(), 23, 59, 59, 999)
+      };
+    
+    default:
+      return { from: undefined, to: undefined };
+  }
+};
+
+// Helper function to calculate percentage change
+const calculatePercentageChange = (current: number, previous: number): number => {
+  if (previous === 0) {
+    return current > 0 ? 100 : 0;
+  }
+  return ((current - previous) / previous) * 100;
+};
+
+// Helper function to get comparison label
+const getComparisonLabel = (preset: string): string => {
+  switch (preset) {
+    case "today":
+      return "vs yesterday";
+    case "yesterday":
+      return "vs day before";
+    case "7d":
+      return "vs last 7 days";
+    case "14d":
+      return "vs last 14 days";
+    case "28d":
+      return "vs last 28 days";
+    default:
+      return "vs previous period";
+  }
+};
 
 // Helper function to get date range for presets
 const getDateRangeForPreset = (preset: string) => {
@@ -85,6 +173,13 @@ export default function Dashboard() {
     recentSubmissions: [],
     totalCommissions: 0,
     allSubmissions: []
+  });
+  const [previousStats, setPreviousStats] = useState({
+    totalSubmissions: 0,
+    totalDeposits: 0,
+    conversionRate: 0,
+    totalCommissions: 0,
+    activeCountries: 0
   });
   const [profile, setProfile] = useState<any>(null);
   const [connections, setConnections] = useState<any[]>([]);
@@ -203,6 +298,43 @@ export default function Dashboard() {
           .slice(0, 3);
 
         const totalCommissions = calculateTotalCommissions(filteredSubmissions);
+        const activeCountries = topCountries.length;
+
+        // Calculate comparison stats for percentage change
+        let previousFilteredSubmissions = [];
+        if (timeFilter !== "all" && timeFilter !== "custom") {
+          const comparisonDateRange = getComparisonDateRange(timeFilter);
+          
+          if (comparisonDateRange.from && comparisonDateRange.to) {
+            previousFilteredSubmissions = allSubmissions.filter(submission => {
+              const submissionDate = new Date(submission.created_at);
+              
+              const startDate = new Date(comparisonDateRange.from!);
+              startDate.setHours(0, 0, 0, 0);
+              
+              const endDate = new Date(comparisonDateRange.to!);
+              endDate.setHours(23, 59, 59, 999);
+              
+              const isAfterStart = submissionDate >= startDate;
+              const isBeforeEnd = submissionDate <= endDate;
+              
+              return isAfterStart && isBeforeEnd;
+            });
+          }
+        }
+
+        // Calculate previous period stats
+        const prevTotalSubmissions = previousFilteredSubmissions.length;
+        const prevTotalDeposits = previousFilteredSubmissions.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
+        const prevDepositsCount = previousFilteredSubmissions.filter(sub => sub.status === 'submitted').length;
+        const prevConversionRate = prevTotalSubmissions > 0 ? (prevDepositsCount / prevTotalSubmissions) * 100 : 0;
+        const prevTotalCommissions = calculateTotalCommissions(previousFilteredSubmissions);
+        
+        const prevCountryStats = previousFilteredSubmissions.reduce((acc: Record<string, number>, sub: any) => {
+          acc[sub.country] = (acc[sub.country] || 0) + 1;
+          return acc;
+        }, {});
+        const prevActiveCountries = Object.keys(prevCountryStats).length;
 
         setStats({
           totalSubmissions,
@@ -212,6 +344,14 @@ export default function Dashboard() {
           recentSubmissions,
           totalCommissions,
           allSubmissions: filteredSubmissions
+        });
+
+        setPreviousStats({
+          totalSubmissions: prevTotalSubmissions,
+          totalDeposits: prevTotalDeposits,
+          conversionRate: prevConversionRate,
+          totalCommissions: prevTotalCommissions,
+          activeCountries: prevActiveCountries
         });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -265,7 +405,9 @@ export default function Dashboard() {
       icon: Users,
       color: "text-primary",
       bgColor: "bg-primary/10",
-      description: "Lead submissions received"
+      description: "Lead submissions received",
+      changePercent: calculatePercentageChange(stats.totalSubmissions, previousStats.totalSubmissions),
+      changeLabel: getComparisonLabel(timeFilter)
     },
     {
       title: "Total Deposits",
@@ -273,7 +415,9 @@ export default function Dashboard() {
       icon: DollarSign,
       color: "text-secondary",
       bgColor: "bg-secondary/10",
-      description: "Sum of all deposit amounts"
+      description: "Sum of all deposit amounts",
+      changePercent: calculatePercentageChange(stats.totalDeposits, previousStats.totalDeposits),
+      changeLabel: getComparisonLabel(timeFilter)
     },
     {
       title: "Conversion Rate",
@@ -281,7 +425,9 @@ export default function Dashboard() {
       icon: Target,
       color: "text-accent",
       bgColor: "bg-accent/10",
-      description: "Successful submission rate"
+      description: "Successful submission rate",
+      changePercent: calculatePercentageChange(stats.conversionRate, previousStats.conversionRate),
+      changeLabel: getComparisonLabel(timeFilter)
     },
     {
       title: "Total Commissions",
@@ -289,7 +435,9 @@ export default function Dashboard() {
       icon: Banknote,
       color: "text-green-600",
       bgColor: "bg-primary/10",
-      description: "Total commission earnings"
+      description: "Total commission earnings",
+      changePercent: calculatePercentageChange(stats.totalCommissions, previousStats.totalCommissions),
+      changeLabel: getComparisonLabel(timeFilter)
     },
     {
       title: "Active Countries",
@@ -297,7 +445,9 @@ export default function Dashboard() {
       icon: Globe,
       color: "text-primary",
       bgColor: "bg-primary/10",
-      description: "Countries with submissions"
+      description: "Countries with submissions",
+      changePercent: calculatePercentageChange(stats.topCountries.length, previousStats.activeCountries),
+      changeLabel: getComparisonLabel(timeFilter)
     }
   ];
 
@@ -338,24 +488,62 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {statCards.map((stat, index) => (
-          <Card key={stat.title} className="stat-card" style={{ animationDelay: `${index * 0.1}s` }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        {statCards.map((stat, index) => {
+          const isPositive = stat.changePercent > 0;
+          const isNegative = stat.changePercent < 0;
+          const isNeutral = stat.changePercent === 0;
+          const showPercentage = timeFilter !== "all" && timeFilter !== "custom";
+          
+          return (
+            <Card key={stat.title} className="stat-card" style={{ animationDelay: `${index * 0.1}s` }}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stat.description}
+                </p>
+                {showPercentage && (
+                  <div className="flex items-center gap-1 mt-2">
+                    {isPositive && (
+                      <>
+                        <TrendingUp className="h-3 w-3 text-green-600" />
+                        <span className="text-xs font-medium text-green-600">
+                          +{Math.abs(stat.changePercent).toFixed(1)}%
+                        </span>
+                      </>
+                    )}
+                    {isNegative && (
+                      <>
+                        <TrendingDown className="h-3 w-3 text-red-600" />
+                        <span className="text-xs font-medium text-red-600">
+                          -{Math.abs(stat.changePercent).toFixed(1)}%
+                        </span>
+                      </>
+                    )}
+                    {isNeutral && (
+                      <>
+                        <Minus className="h-3 w-3 text-gray-500" />
+                        <span className="text-xs font-medium text-gray-500">
+                          0.0%
+                        </span>
+                      </>
+                    )}
+                    <span className="text-xs text-muted-foreground ml-1">
+                      {stat.changeLabel}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Charts Section */}
