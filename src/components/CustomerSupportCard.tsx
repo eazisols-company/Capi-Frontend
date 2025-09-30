@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Mail, MessageCircle, LifeBuoy } from "lucide-react";
+import { Mail, MessageCircle, Settings  } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface CustomerSupportCardProps {
@@ -55,7 +55,7 @@ export function CustomerSupportCard({ collapsed = false }: CustomerSupportCardPr
         {/* Header */}
         <div className="flex flex-col items-center text-center space-y-2">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <LifeBuoy className="h-6 w-6 text-primary" />
+            <Settings  className="h-6 w-6 text-primary" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">
