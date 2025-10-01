@@ -43,6 +43,7 @@ export default function PublicOptIn() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -204,12 +205,33 @@ export default function PublicOptIn() {
       
     } catch (error: any) {
       console.error('Error submitting form:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to submit form';
-      toast({
-        title: "Submission Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      
+      // Clear previous field errors
+      setFieldErrors({});
+      
+      // Check if it's a validation error with field-specific errors
+      if (error.response?.data?.details?.field_errors) {
+        const fieldValidationErrors = error.response.data.details.field_errors;
+        setFieldErrors(fieldValidationErrors);
+        
+        // Show the first field error in toast
+        const firstField = Object.keys(fieldValidationErrors)[0];
+        const firstError = fieldValidationErrors[firstField][0];
+        
+        toast({
+          title: "Validation Error",
+          description: `${firstField.replace('_', ' ')}: ${firstError}`,
+          variant: "destructive"
+        });
+      } else {
+        // Generic error
+        const errorMessage = error.response?.data?.error || 'Failed to submit form';
+        toast({
+          title: "Submission Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -395,32 +417,64 @@ export default function PublicOptIn() {
                 <Input
                   id="first_name"
                   value={formData.first_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, first_name: e.target.value }));
+                    if (fieldErrors.first_name) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.first_name;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   placeholder="John"
                   required
-                  className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
+                  className={`border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 ${
+                    fieldErrors.first_name ? 'border-red-500' : ''
+                  }`}
                   style={{ 
                     backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderColor: `${settings.secondary_color}60`,
-                    '--tw-ring-color': settings.secondary_color
+                    borderColor: fieldErrors.first_name ? '#ef4444' : `${settings.secondary_color}60`,
+                    '--tw-ring-color': fieldErrors.first_name ? '#ef4444' : settings.secondary_color
                   } as React.CSSProperties}
                 />
+                {fieldErrors.first_name && (
+                  <p className="text-red-400 text-sm mt-1">
+                    {fieldErrors.first_name[0]}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="last_name" className="text-white">Last Name</Label>
                 <Input
                   id="last_name"
                   value={formData.last_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, last_name: e.target.value }));
+                    if (fieldErrors.last_name) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.last_name;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   placeholder="Doe"
                   required
-                  className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
+                  className={`border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 ${
+                    fieldErrors.last_name ? 'border-red-500' : ''
+                  }`}
                   style={{ 
                     backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderColor: `${settings.secondary_color}60`,
-                    '--tw-ring-color': settings.secondary_color
+                    borderColor: fieldErrors.last_name ? '#ef4444' : `${settings.secondary_color}60`,
+                    '--tw-ring-color': fieldErrors.last_name ? '#ef4444' : settings.secondary_color
                   } as React.CSSProperties}
                 />
+                {fieldErrors.last_name && (
+                  <p className="text-red-400 text-sm mt-1">
+                    {fieldErrors.last_name[0]}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -430,16 +484,33 @@ export default function PublicOptIn() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, email: e.target.value }));
+                  // Clear field error when user starts typing
+                  if (fieldErrors.email) {
+                    setFieldErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.email;
+                      return newErrors;
+                    });
+                  }
+                }}
                 placeholder="john@example.com"
                 required
-                className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
+                className={`border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 ${
+                  fieldErrors.email ? 'border-red-500' : ''
+                }`}
                 style={{ 
                   backgroundColor: 'rgba(255,255,255,0.1)',
-                  borderColor: `${settings.secondary_color}60`,
-                  '--tw-ring-color': settings.secondary_color
+                  borderColor: fieldErrors.email ? '#ef4444' : `${settings.secondary_color}60`,
+                  '--tw-ring-color': fieldErrors.email ? '#ef4444' : settings.secondary_color
                 } as React.CSSProperties}
               />
+              {fieldErrors.email && (
+                <p className="text-red-400 text-sm mt-1">
+                  {fieldErrors.email[0]}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -447,30 +518,57 @@ export default function PublicOptIn() {
               <div className="flex gap-2">
                 <OptimizedCountryCodeSelect
                   value={formData.country_code}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, country_code: value }))}
-                  className="w-36 border-2 text-white transition-all duration-200"
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, country_code: value }));
+                    if (fieldErrors.phone) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.phone;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  className={`w-36 border-2 text-white transition-all duration-200 ${
+                    fieldErrors.phone ? 'border-red-500' : ''
+                  }`}
                   placeholder="Select country code"
                   style={{ 
                     backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderColor: `${settings.secondary_color}60`
+                    borderColor: fieldErrors.phone ? '#ef4444' : `${settings.secondary_color}60`
                   }}
                 />
                 <Input
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  onChange={(e) => {
+                    handlePhoneChange(e.target.value);
+                    if (fieldErrors.phone) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.phone;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   placeholder="1234567890"
                   required
                   maxLength={15}
-                  className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 flex-1"
+                  className={`border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 flex-1 ${
+                    fieldErrors.phone ? 'border-red-500' : ''
+                  }`}
                   style={{ 
                     backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderColor: `${settings.secondary_color}60`,
-                    '--tw-ring-color': settings.secondary_color
+                    borderColor: fieldErrors.phone ? '#ef4444' : `${settings.secondary_color}60`,
+                    '--tw-ring-color': fieldErrors.phone ? '#ef4444' : settings.secondary_color
                   } as React.CSSProperties}
                 />
               </div>
+              {fieldErrors.phone && (
+                <p className="text-red-400 text-sm mt-1">
+                  {fieldErrors.phone[0]}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -478,15 +576,31 @@ export default function PublicOptIn() {
               <SearchableSubmissionCountrySelect
                 countries={connection.countries.map(c => c.country)}
                 value={formData.country}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, country: value }))}
-                className="border-2 text-white transition-all duration-200"
+                onValueChange={(value) => {
+                  setFormData(prev => ({ ...prev, country: value }));
+                  if (fieldErrors.country) {
+                    setFieldErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.country;
+                      return newErrors;
+                    });
+                  }
+                }}
+                className={`border-2 text-white transition-all duration-200 ${
+                  fieldErrors.country ? 'border-red-500' : ''
+                }`}
                 placeholder="Select country"
                 emptyText="No country found."
                 style={{ 
                   backgroundColor: 'rgba(255,255,255,0.1)',
-                  borderColor: `${settings.secondary_color}60`
+                  borderColor: fieldErrors.country ? '#ef4444' : `${settings.secondary_color}60`
                 }}
               />
+              {fieldErrors.country && (
+                <p className="text-red-400 text-sm mt-1">
+                  {fieldErrors.country[0]}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -496,7 +610,16 @@ export default function PublicOptIn() {
                   id="deposit"
                   type="number"
                   value={formData.deposit_amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, deposit_amount: e.target.value }))}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, deposit_amount: e.target.value }));
+                    if (fieldErrors.deposit_amount) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.deposit_amount;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   placeholder="Enter deposit amount"
                   required
                   onKeyDown={(e) => {
@@ -504,26 +627,44 @@ export default function PublicOptIn() {
                       e.preventDefault();
                     }
                   }}
-                  className="border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className={`border-2 text-white placeholder:text-gray-400 focus:ring-2 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                    fieldErrors.deposit_amount ? 'border-red-500' : ''
+                  }`}
                   style={{ 
                     backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderColor: `${settings.secondary_color}60`,
-                    '--tw-ring-color': settings.secondary_color
+                    borderColor: fieldErrors.deposit_amount ? '#ef4444' : `${settings.secondary_color}60`,
+                    '--tw-ring-color': fieldErrors.deposit_amount ? '#ef4444' : settings.secondary_color
                   } as React.CSSProperties}
                 />
+                {fieldErrors.deposit_amount && (
+                  <p className="text-red-400 text-sm mt-1">
+                    {fieldErrors.deposit_amount[0]}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="currency" className="text-white">Currency</Label>
                 <Select
                   value={formData.currency}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, currency: value }));
+                    if (fieldErrors.currency) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.currency;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   required
                 >
                   <SelectTrigger 
-                    className="border-2 text-white transition-all duration-200"
+                    className={`border-2 text-white transition-all duration-200 ${
+                      fieldErrors.currency ? 'border-red-500' : ''
+                    }`}
                     style={{ 
                       backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderColor: `${settings.secondary_color}60`
+                      borderColor: fieldErrors.currency ? '#ef4444' : `${settings.secondary_color}60`
                     }}
                   >
                     <SelectValue>
@@ -551,6 +692,11 @@ export default function PublicOptIn() {
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldErrors.currency && (
+                  <p className="text-red-400 text-sm mt-1">
+                    {fieldErrors.currency[0]}
+                  </p>
+                )}
               </div>
             </div>
 
