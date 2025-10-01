@@ -16,17 +16,45 @@ interface CountriesChartProps {
   data: any[];
   currency: string;
   timeFilter: string;
+  connections?: any[];
 }
 
 const CountriesChart: React.FC<CountriesChartProps> = ({
   data,
   currency,
-  timeFilter
+  timeFilter,
+  connections = []
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   // Always use the actual filtered data from the dashboard
   const chartData = data;
+  
+  // Commission calculation function (same logic as Dashboard)
+  const calculateCommissionForSubmission = (submission: any) => {
+    // Priority 1: Use explicit commission_amount if available
+    if (submission.commission_amount && typeof submission.commission_amount === 'number') {
+      return submission.commission_amount;
+    }
+    
+    // Priority 2: Fallback to connection country configuration
+    const connection = connections.find(conn => 
+      conn.id === submission.connection_id || conn._id === submission.connection_id
+    );
+    
+    if (connection && connection.countries) {
+      // Find the fee for this submission's country
+      const countryConfig = connection.countries.find((c: any) => 
+        c.country === submission.country
+      );
+      
+      if (countryConfig && countryConfig.value) {
+        return parseFloat(countryConfig.value) || 0;
+      }
+    }
+    
+    return 0;
+  };
   
   // Calculate country statistics
   const countryStats = chartData.reduce((acc, submission) => {
@@ -42,11 +70,8 @@ const CountriesChart: React.FC<CountriesChartProps> = ({
     acc[country].count += 1;
     acc[country].amount += parseFloat(submission.deposit_amount) || 0;
     
-    // Calculate commission for this submission
-    let commission = 0;
-    if (submission.commission_amount && typeof submission.commission_amount === 'number') {
-      commission = submission.commission_amount;
-    }
+    // Calculate commission for this submission using the same logic as Dashboard
+    const commission = calculateCommissionForSubmission(submission);
     acc[country].commission += commission;
     
     acc[country].submissions.push(submission);

@@ -559,6 +559,7 @@ export default function Dashboard() {
           data={stats.allSubmissions}
           currency={profile?.system_currency || 'USD'}
           timeFilter={timeFilter}
+          connections={connections}
         />
       </div>
 
