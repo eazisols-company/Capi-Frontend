@@ -363,6 +363,7 @@ export default function Settings() {
                       <div className="flex flex-col">
                         <span className="font-medium">{timezone.label}</span>
                         <span className="text-xs text-muted-foreground">
+                          {timezone.abbreviation ? `${timezone.abbreviation} - ` : ''}
                           {timezone.offset.includes('/') 
                             ? `GMT ${timezone.offset.split('/')[0]} / GMT ${timezone.offset.split('/')[1]}`
                             : `GMT ${timezone.offset}`
