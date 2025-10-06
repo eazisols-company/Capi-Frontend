@@ -78,7 +78,7 @@ export default function DomainRouter({ children }: DomainRouterProps) {
             <h3 className="text-lg font-semibold text-white mb-2">Domain Not Found</h3>
             <p className="text-red-300 mb-4">{error}</p>
             <button
-              onClick={() => window.location.href = import.meta.env.VITE_BASE_DOMAIN || 'https://trackaff.app'}
+              onClick={() => window.location.href = import.meta.env.VITE_BASE_DOMAIN || 'https://trackaff.io'}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
               Go to TrackAff

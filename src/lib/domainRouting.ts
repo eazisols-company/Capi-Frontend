@@ -12,8 +12,11 @@ const MAIN_DOMAINS = [
   'trackiterra.vercel.app',
   'https://trackiterra.vercel.app',
   'main.d8agcje03b3er.amplifyapp.com',
-  'https://main.d8agcje03b3er.amplifyapp.com'
-
+  'https://main.d8agcje03b3er.amplifyapp.com',
+  'trackaff.io',
+  'https://trackaff.io',
+  'www.trackaff.io',
+  'https://www.trackaff.io'
 ];
 
 /**
