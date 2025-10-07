@@ -3,6 +3,26 @@
  */
 
 // Main domains that should not trigger custom domain routing
+// const MAIN_DOMAINS = [
+//   'localhost',
+//   '127.0.0.1',
+//   'trackaff.app',
+//   'trackaff.vercel.app',
+//   'capi-connect-hub.vercel.app',
+//   'trackiterra.vercel.app',
+//   'https://trackiterra.vercel.app',
+//   'main.d8agcje03b3er.amplifyapp.com',
+//   'https://main.d8agcje03b3er.amplifyapp.com',
+//   'trackaff.io',
+//   'https://trackaff.io',
+//   'www.trackaff.io',
+//   'https://www.trackaff.io',
+//   'app.trackaff.io',
+//   'https://app.trackaff.io',
+//   'https://www.app.trackaff.io'
+// ];
+
+// Cleaner version without protocols
 const MAIN_DOMAINS = [
   'localhost',
   '127.0.0.1',
@@ -10,13 +30,10 @@ const MAIN_DOMAINS = [
   'trackaff.vercel.app',
   'capi-connect-hub.vercel.app',
   'trackiterra.vercel.app',
-  'https://trackiterra.vercel.app',
   'main.d8agcje03b3er.amplifyapp.com',
-  'https://main.d8agcje03b3er.amplifyapp.com',
   'trackaff.io',
-  'https://trackaff.io',
   'www.trackaff.io',
-  'https://www.trackaff.io'
+  'app.trackaff.io',
 ];
 
 /**
