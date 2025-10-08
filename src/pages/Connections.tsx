@@ -770,7 +770,19 @@ export default function Connections() {
                               rel="noopener noreferrer"
                               className="text-sm text-primary hover:underline flex items-center gap-1"
                             >
-                              Opt-in Page: {connection.optin_page_url}
+                              Opt-in Page: {(() => {
+                                try {
+                                  const url = new URL(connection.optin_page_url);
+                                  // Show full URL for trackaff.io domain, only domain for custom domains
+                                  if (url.hostname === import.meta.env.VITE_BASE_DOMAIN) {
+                                    return connection.optin_page_url;
+                                  } else {
+                                    return url.hostname;
+                                  }
+                                } catch {
+                                  return connection.optin_page_url;
+                                }
+                              })()}
                               <ExternalLink className="h-3 w-3" />
                             </a>
                             <TooltipProvider>
