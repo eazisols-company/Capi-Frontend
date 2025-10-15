@@ -35,12 +35,12 @@ export default function OptInPages() {
   
   const [formData, setFormData] = useState({
     connection_id: "",
-    primary_color: "#FACC15",
-    secondary_color: "#10B981",
-    logo_url: "",
+    primary_color: "#E16A14",
+    secondary_color: "#E16A14",
+    logo_url: "https://capi-trackit-prod.s3.us-east-1.amazonaws.com/logos/68b5a890ac742871c4d9fed5/trackaff_logo_background_removed.png",
     uploaded_logo_url: "",
-    page_title: "Join Our Premium Trading Platform",
-    page_subtitle: "Start your trading journey today",
+    page_title: "Track The Untrackable",
+    page_subtitle: "Stop guessing. Start tracking. Boost your ROAS.",
     form_title: "Get Started",
     submit_button_text: "Join Now",
     font_family: "Inter"
@@ -79,12 +79,12 @@ export default function OptInPages() {
         // Reset to defaults if no settings exist for this connection
         setFormData({
           connection_id: selectedConnectionId,
-          primary_color: "#FACC15",
-          secondary_color: "#10B981",
+          primary_color: "#E16A14",
+          secondary_color: "#E16A14", 
           logo_url: "",
           uploaded_logo_url: "",
-          page_title: "Join Our Premium Trading Platform",
-          page_subtitle: "Start your trading journey today",
+          page_title: "Track The Untrackable",
+          page_subtitle: "Stop guessing. Start tracking. Boost your ROAS.",
           form_title: "Get Started",
           submit_button_text: "Join Now",
           font_family: "Inter"
@@ -209,7 +209,7 @@ export default function OptInPages() {
       
       await apiClient.updateOptInSettings({
         ...formData,
-        logo_url: finalLogoUrl,
+        logo_url: finalLogoUrl ? finalLogoUrl : "https://capi-trackit-prod.s3.us-east-1.amazonaws.com/logos/68b5a890ac742871c4d9fed5/trackaff_logo_background_removed.png",
         connection_id: selectedConnectionId
       });
 
@@ -322,8 +322,8 @@ export default function OptInPages() {
 
   // Helper function to get the effective logo URL for preview
   const getEffectiveLogoUrl = () => {
-    // Show preview file first, then preview URL, then saved URL
-    return previewLogoUrl || formData.logo_url;
+    // Show preview file first, then preview URL, then saved URL, then default TrackAff logo
+    return previewLogoUrl || formData.logo_url || "/trackaff_logo_background_removed.png";
   };
 
   // Helper function to check if current saved logo is uploaded (S3 URL)
@@ -393,12 +393,12 @@ export default function OptInPages() {
             onClick={() => {
               setFormData({
                 connection_id: selectedConnectionId,
-                primary_color: "#FACC15",
-                secondary_color: "#10B981",
+                primary_color: "#E16A14",
+                secondary_color: "#E16A14",
                 logo_url: "",
                 uploaded_logo_url: "",
-                page_title: "Join Our Premium Trading Platform",
-                page_subtitle: "Start your trading journey today",
+                page_title: "Track The Untrackable",
+                page_subtitle: "Stop guessing. Start tracking. Boost your ROAS.",
                 form_title: "Get Started",
                 submit_button_text: "Join Now",
                 font_family: "Inter"
@@ -657,7 +657,7 @@ export default function OptInPages() {
                   disabled={uploading}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Current saved URL: {formData.logo_url || 'None'}
+                  Current saved URL: {formData.logo_url || 'None (using default TrackAff logo)'}
                   {pendingUploadFile && (
                     <span className="text-blue-600 block mt-1">
                       📁 Will be replaced with uploaded file when saved
@@ -797,10 +797,10 @@ export default function OptInPages() {
                 <div className="max-w-sm sm:max-w-md mx-auto text-center space-y-4 sm:space-y-6">
                   {/* Logo */}
                   {getEffectiveLogoUrl() && (
-                    <div className="mb-8">
-                      <img 
-                        src={getEffectiveLogoUrl()} 
-                        alt="Logo" 
+                  <div className="mb-8">
+                    <img 
+                      src={getEffectiveLogoUrl()} 
+                         alt="Logo" 
                         className="h-12 mx-auto"
                         key={getEffectiveLogoUrl()} // Force re-render when URL changes
                         onError={(e) => {
@@ -809,7 +809,7 @@ export default function OptInPages() {
                       />
                     </div>
                   )}
-
+                  
                   {/* Header */}
                   <div className="space-y-2">
                     <h1 className="text-3xl font-bold text-white">
