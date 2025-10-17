@@ -242,12 +242,13 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Always fetch all submissions and filter client-side for consistency
-      const submissionsResponse = await apiClient.getSubmissions();
-        const allSubmissions = submissionsResponse.data.submissions || [];
-        
-      // Filter submissions based on date range
-      let filteredSubmissions = allSubmissions;
+      // Prepare filter params for server-side filtering
+      const params: any = {
+        limit: 10000, // Get a large amount for dashboard calculations
+        offset: 0,
+      };
+      
+      // Add date range filters for server-side filtering
       if (timeFilter !== "all") {
         let dateRange = customDateRange;
         
@@ -256,30 +257,35 @@ export default function Dashboard() {
           dateRange = getDateRangeForPreset(timeFilter);
         }
         
-        // Apply filtering if we have a valid date range
+        // Send dates to backend in ISO format
         if (dateRange.from && dateRange.to) {
-          filteredSubmissions = allSubmissions.filter(submission => {
-            const submissionDate = new Date(submission.created_at);
-            
-            // Normalize dates to start of day for accurate comparison
-            const startDate = new Date(dateRange.from!);
-            startDate.setHours(0, 0, 0, 0);
-            
-            const endDate = new Date(dateRange.to!);
-            endDate.setHours(23, 59, 59, 999);
-            
-            const isAfterStart = submissionDate >= startDate;
-            const isBeforeEnd = submissionDate <= endDate;
-            
-            return isAfterStart && isBeforeEnd;
-          });
+          const startDate = new Date(dateRange.from);
+          startDate.setHours(0, 0, 0, 0);
+          
+          const endDate = new Date(dateRange.to);
+          endDate.setHours(23, 59, 59, 999);
+          
+          params.start_date = startDate.toISOString();
+          params.end_date = endDate.toISOString();
         }
       }
+      
+      // Fetch submissions with server-side filtering
+      const submissionsResponse = await apiClient.getSubmissions(params);
+      const filteredSubmissions = submissionsResponse.data.submissions || [];
+      
+      // Get stats from backend response (for accurate counts)
+      const backendStats = submissionsResponse.data.stats || {
+        total: submissionsResponse.data.filtered_count || filteredSubmissions.length,
+        submitted: 0,
+        pending: 0,
+        failed: 0
+      };
         
-      // Calculate stats from filtered submissions
-      const totalSubmissions = filteredSubmissions.length;
+      // Use backend stats for accurate counts (not limited by fetch limit)
+      const totalSubmissions = backendStats.total;
       const totalDeposits = filteredSubmissions.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
-      const depositsCount = filteredSubmissions.filter(sub => sub.status === 'submitted').length;
+      const depositsCount = backendStats.submitted || filteredSubmissions.filter(sub => sub.status === 'submitted').length;
       const conversionRate = totalSubmissions > 0 ? (depositsCount / totalSubmissions) * 100 : 0;
       
       // Get top countries from filtered submissions
@@ -302,31 +308,37 @@ export default function Dashboard() {
 
         // Calculate comparison stats for percentage change
         let previousFilteredSubmissions = [];
+        let prevBackendStats = { total: 0, submitted: 0, pending: 0, failed: 0 };
+        
         if (timeFilter !== "all" && timeFilter !== "custom") {
           const comparisonDateRange = getComparisonDateRange(timeFilter);
           
           if (comparisonDateRange.from && comparisonDateRange.to) {
-            previousFilteredSubmissions = allSubmissions.filter(submission => {
-              const submissionDate = new Date(submission.created_at);
-              
-              const startDate = new Date(comparisonDateRange.from!);
-              startDate.setHours(0, 0, 0, 0);
-              
-              const endDate = new Date(comparisonDateRange.to!);
-              endDate.setHours(23, 59, 59, 999);
-              
-              const isAfterStart = submissionDate >= startDate;
-              const isBeforeEnd = submissionDate <= endDate;
-              
-              return isAfterStart && isBeforeEnd;
-            });
+            // Fetch previous period data with server-side filtering
+            const prevParams: any = {
+              limit: 10000,
+              offset: 0,
+              start_date: new Date(comparisonDateRange.from).toISOString(),
+              end_date: new Date(comparisonDateRange.to).toISOString(),
+            };
+            
+            const prevResponse = await apiClient.getSubmissions(prevParams);
+            previousFilteredSubmissions = prevResponse.data.submissions || [];
+            
+            // Get stats from previous period response
+            prevBackendStats = prevResponse.data.stats || {
+              total: prevResponse.data.filtered_count || previousFilteredSubmissions.length,
+              submitted: 0,
+              pending: 0,
+              failed: 0
+            };
           }
         }
 
-        // Calculate previous period stats
-        const prevTotalSubmissions = previousFilteredSubmissions.length;
+        // Calculate previous period stats using backend data
+        const prevTotalSubmissions = prevBackendStats.total;
         const prevTotalDeposits = previousFilteredSubmissions.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
-        const prevDepositsCount = previousFilteredSubmissions.filter(sub => sub.status === 'submitted').length;
+        const prevDepositsCount = prevBackendStats.submitted || previousFilteredSubmissions.filter(sub => sub.status === 'submitted').length;
         const prevConversionRate = prevTotalSubmissions > 0 ? (prevDepositsCount / prevTotalSubmissions) * 100 : 0;
         const prevTotalCommissions = calculateTotalCommissions(previousFilteredSubmissions);
         

@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DateRangePicker, DateRange } from "@/components/ui/date-range-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { 
   Users, 
   Search, 
@@ -107,24 +108,119 @@ export default function Submissions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubmission, setEditingSubmission] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
+  const [filteredCount, setFilteredCount] = useState(0);
+  const [serverFilteredSubmissions, setServerFilteredSubmissions] = useState<any[]>([]);
+  const [allAvailableCountries, setAllAvailableCountries] = useState<string[]>([]);
+  const [allAvailableEventNames, setAllAvailableEventNames] = useState<string[]>([]);
+  const [stats, setStats] = useState<any>({ pending: 0, submitted: 0, failed: 0, total: 0 });
 
   useEffect(() => {
     if (user) {
-      fetchSubmissions();
       fetchConnections();
       fetchUserProfile();
+      fetchAvailableFilterOptions(); // Fetch all available countries and events
     }
   }, [user]);
 
+  // Fetch submissions when pagination or server-side filters change
+  useEffect(() => {
+    if (user) {
+      fetchSubmissions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currentPage, pageSize, statusFilter, countryFilter, connectionFilter, timeFilter, customDateRange]);
+
+  // Client-side filtering for search and event name (not supported by backend)
   useEffect(() => {
     filterSubmissions();
-  }, [submissions, searchTerm, statusFilter, countryFilter, connectionFilter, eventFilter, timeFilter, customDateRange]);
+  }, [serverFilteredSubmissions, searchTerm, eventFilter]);
+
+  const fetchAvailableFilterOptions = async () => {
+    try {
+      // Fetch a sample of submissions without filters to get available countries and events
+      // We only need unique values, so a small limit is fine
+      const response = await apiClient.getSubmissions({ limit: 1000, offset: 0 });
+      const submissionsData = response.data.submissions || [];
+      
+      // Extract unique countries and event names
+      const countries = [...new Set(submissionsData.map((s: any) => s.country).filter(Boolean))] as string[];
+      const eventNames = [...new Set(submissionsData.map((s: any) => s.custom_event_name).filter(Boolean))] as string[];
+      
+      setAllAvailableCountries(countries);
+      setAllAvailableEventNames(eventNames);
+    } catch (error) {
+      console.error('Error fetching filter options:', error);
+      // Don't show error toast for this as it's not critical
+    }
+  };
 
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getSubmissions();
+      
+      // Calculate offset from current page
+      const offset = (currentPage - 1) * pageSize;
+      
+      // Prepare server-side filter params
+      const params: any = {
+        limit: pageSize,
+        offset: offset,
+      };
+      
+      // Add server-side filters
+      if (statusFilter !== "all") {
+        params.status = statusFilter;
+      }
+      
+      if (countryFilter !== "all") {
+        params.country = countryFilter;
+      }
+      
+      if (connectionFilter && connectionFilter !== "all") {
+        params.connection_id = connectionFilter;
+      }
+      
+      // Add date range filters
+      if (timeFilter !== "all") {
+        let dateRange = customDateRange;
+        
+        // If using a preset (not custom), convert it to actual dates
+        if ((!customDateRange.from || !customDateRange.to) && timeFilter !== "custom") {
+          dateRange = getDateRangeForPreset(timeFilter);
+        }
+        
+        // Send dates to backend in ISO format
+        if (dateRange.from && dateRange.to) {
+          // Set start of day for 'from' date
+          const startDate = new Date(dateRange.from);
+          startDate.setHours(0, 0, 0, 0);
+          
+          // Set end of day for 'to' date
+          const endDate = new Date(dateRange.to);
+          endDate.setHours(23, 59, 59, 999);
+          
+          params.start_date = startDate.toISOString();
+          params.end_date = endDate.toISOString();
+        }
+      }
+      
+      const response = await apiClient.getSubmissions(params);
       const submissionsData = response.data.submissions || [];
+      
+      // Get counts from response
+      const total = response.data.total_count || 0;
+      const filtered = response.data.filtered_count || 0;
+      
+      // Get stats from response (if backend provides them)
+      const responseStats = response.data.stats || {
+        pending: 0,
+        submitted: 0,
+        failed: 0,
+        total: filtered
+      };
       
       // Normalize submission IDs (handle both id and _id fields)
       const normalizedSubmissions = submissionsData.map(submission => ({
@@ -132,6 +228,12 @@ export default function Submissions() {
         id: submission.id || submission._id // Normalize ID field
       })).filter(submission => submission.id); // Filter out submissions without valid IDs
       
+      setServerFilteredSubmissions(normalizedSubmissions);
+      setTotalCount(total);
+      setFilteredCount(filtered);
+      setStats(responseStats);
+      
+      // Set submissions for backward compatibility (stats cards, etc.)
       setSubmissions(normalizedSubmissions);
     } catch (error) {
       console.error('Error fetching submissions:', error);
@@ -207,70 +309,21 @@ export default function Submissions() {
 
 
   const filterSubmissions = () => {
-    let filtered = submissions;
+    let filtered = serverFilteredSubmissions;
 
-    // Search filter
+    // Client-side search filter (name, email, phone) - applies to current page only
     if (searchTerm) {
       filtered = filtered.filter(submission =>
-        submission.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        submission.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        submission.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        submission.phone.includes(searchTerm)
+        submission.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.phone?.includes(searchTerm)
       );
     }
 
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(submission => submission.status === statusFilter);
-    }
-
-    // Country filter
-    if (countryFilter !== "all") {
-      filtered = filtered.filter(submission => submission.country === countryFilter);
-    }
-
-    // Connection filter
-    if (connectionFilter && connectionFilter !== "all") {
-      filtered = filtered.filter(submission => {
-        return String(submission.connection_id) === String(connectionFilter);
-      });
-    }
-
-    // Event filter
+    // Client-side event filter (not supported by backend) - applies to current page only
     if (eventFilter !== "all") {
       filtered = filtered.filter(submission => submission.custom_event_name === eventFilter);
-    }
-
-    // Time filter
-    if (timeFilter !== "all") {
-      let dateRange = customDateRange;
-      
-      // If customDateRange is not set but we have a preset, get the preset's range
-      if ((!customDateRange.from || !customDateRange.to) && timeFilter !== "custom") {
-        dateRange = getDateRangeForPreset(timeFilter);
-      }
-      
-      // Apply filtering if we have a valid date range
-      if (dateRange.from && dateRange.to) {
-        filtered = filtered.filter(submission => {
-          const submissionDate = new Date(submission.created_at);
-          
-          // Normalize dates to start of day for accurate comparison
-          const startDate = new Date(dateRange.from!);
-          startDate.setHours(0, 0, 0, 0);
-          
-          const endDate = new Date(dateRange.to!);
-          endDate.setHours(23, 59, 59, 999);
-          
-          const submissionDateNormalized = new Date(submissionDate);
-          submissionDateNormalized.setHours(0, 0, 0, 0);
-          
-          const isAfterStart = submissionDate >= startDate;
-          const isBeforeEnd = submissionDate <= endDate;
-          
-          return isAfterStart && isBeforeEnd;
-        });
-      }
     }
 
     setFilteredSubmissions(filtered);
@@ -281,7 +334,21 @@ export default function Submissions() {
     if (dateRange) {
       setCustomDateRange(dateRange);
     }
+    setCurrentPage(1); // Reset to first page when date filter changes
   };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
+  // Calculate total pages based on filtered count
+  const totalPages = Math.ceil(filteredCount / pageSize);
 
   const handleManualSubmission = async (submissionId: string) => {
     if (!submissionId || submissionId === 'undefined') {
@@ -551,8 +618,9 @@ export default function Submissions() {
     };
   };
 
-  const uniqueCountries = [...new Set(submissions.map(s => s.country))];
-  const uniqueEventNames = [...new Set(submissions.map(s => s.custom_event_name).filter(Boolean))];
+  // Use pre-fetched available countries and event names for filter dropdowns
+  const uniqueCountries = allAvailableCountries;
+  const uniqueEventNames = allAvailableEventNames;
 
   return (
     <div className="space-y-6 slide-in">
@@ -602,14 +670,18 @@ export default function Submissions() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Submissions</p>
-                  <p className="text-3xl font-bold text-foreground">{submissions.length}</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.total || filteredCount}</p>
                   <div className="flex items-center mt-2">
                     <div className="flex items-center text-green-500 text-sm">
                       <span className="mr-1">↗</span>
-                      <span>100% of total</span>
+                      <span>
+                        {totalCount > 0 
+                          ? Math.round(((stats.total || filteredCount) / totalCount) * 100)
+                          : 100}% of all time
+                      </span>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">All form submissions</p>
+                  <p className="text-xs text-muted-foreground mt-1">Matching current filters</p>
                 </div>
                 <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
                   <Users className="h-6 w-6 text-green-500" />
@@ -625,14 +697,14 @@ export default function Submissions() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Pending</p>
                   <p className="text-3xl font-bold text-foreground">
-                    {submissions.filter(s => s.status === 'pending').length}
+                    {stats.pending || 0}
                   </p>
                   <div className="flex items-center mt-2">
                     <div className="flex items-center text-yellow-500 text-sm">
                       <span className="mr-1">↗</span>
                       <span>
-                        {submissions.length > 0 
-                          ? Math.round((submissions.filter(s => s.status === 'pending').length / submissions.length) * 100)
+                        {stats.total > 0 
+                          ? Math.round((stats.pending / stats.total) * 100)
                           : 0}% of total
                       </span>
                     </div>
@@ -653,14 +725,14 @@ export default function Submissions() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Handled</p>
                   <p className="text-3xl font-bold text-foreground">
-                    {submissions.filter(s => s.status === 'submitted').length}
+                    {stats.submitted || 0}
                   </p>
                   <div className="flex items-center mt-2">
                     <div className="flex items-center text-green-500 text-sm">
                       <span className="mr-1">↗</span>
                       <span>
-                        {submissions.length > 0 
-                          ? Math.round((submissions.filter(s => s.status === 'submitted').length / submissions.length) * 100)
+                        {stats.total > 0 
+                          ? Math.round((stats.submitted / stats.total) * 100)
                           : 0}% of total
                       </span>
                     </div>
@@ -681,14 +753,14 @@ export default function Submissions() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Canceled</p>
                   <p className="text-3xl font-bold text-foreground">
-                    {submissions.filter(s => s.status === 'failed').length}
+                    {stats.failed || 0}
                   </p>
                   <div className="flex items-center mt-2">
                     <div className="flex items-center text-red-500 text-sm">
                       <span className="mr-1">↗</span>
                       <span>
-                        {submissions.length > 0 
-                          ? Math.round((submissions.filter(s => s.status === 'failed').length / submissions.length) * 100)
+                        {stats.total > 0 
+                          ? Math.round((stats.failed / stats.total) * 100)
                           : 0}% of total
                       </span>
                     </div>
@@ -776,20 +848,22 @@ export default function Submissions() {
                </Select>
 
                <Button 
-                 variant="outline" 
-                 onClick={() => {
-                   setSearchTerm("");
-                   setTimeFilter("7d");
-                   setStatusFilter("all");
-                   setCountryFilter("all");
-                   setConnectionFilter("all");
-                   setEventFilter("all");
-                 }}
-                 className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
-               >
-                 <Filter className="h-4 w-4 mr-2" />
-                 Clear
-               </Button>
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm("");
+                  setTimeFilter("7d");
+                  setCustomDateRange({ from: undefined, to: undefined });
+                  setStatusFilter("all");
+                  setCountryFilter("all");
+                  setConnectionFilter("all");
+                  setEventFilter("all");
+                  setCurrentPage(1); // Reset to first page
+                }}
+                className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
              </div>
            </CardContent>
          </Card>
@@ -800,7 +874,8 @@ export default function Submissions() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            Submissions ({filteredSubmissions.length})
+            {/* Submissions ({filteredSubmissions.length}) */}
+            Submissions
           </CardTitle>
           <CardDescription className="flex items-center gap-2">
             Review and manage lead submission details
@@ -989,6 +1064,87 @@ export default function Submissions() {
                   : "Submissions will appear here once leads are captured."
                 }
               </p>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && filteredCount > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border">
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                <p className="text-sm text-muted-foreground text-center sm:text-left">
+                  Showing <span className="font-medium">{((currentPage - 1) * pageSize) + 1}</span> to{' '}
+                  <span className="font-medium">{Math.min(currentPage * pageSize, filteredCount)}</span> of{' '}
+                  <span className="font-medium">{filteredCount.toLocaleString()}</span> results
+                </p>
+                
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
+                  <Select 
+                    value={pageSize.toString()} 
+                    onValueChange={(value) => handlePageSizeChange(Number(value))}
+                  >
+                    <SelectTrigger className="w-[70px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPages <= 5) {
+                      pageNumber = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNumber = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNumber = totalPages - 4 + i;
+                    } else {
+                      pageNumber = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <PaginationItem key={pageNumber}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNumber)}
+                          isActive={currentPage === pageNumber}
+                          className="cursor-pointer"
+                        >
+                          {pageNumber}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && currentPage < totalPages - 2 && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>
