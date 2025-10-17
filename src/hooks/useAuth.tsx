@@ -142,7 +142,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log('Customer token and user found, validating...');
             // Validate customer token by fetching current user
             const response = await apiClient.getCurrentUser();
-            setUser(response.data.user);
+            const userData = response.data.user;
+            
+            // Also fetch profile to get timezone and other profile-specific fields
+            try {
+              const profileResponse = await apiClient.getProfile();
+              const profileData = profileResponse.data.profile;
+              
+              // Merge profile data (timezone, etc.) into user object
+              const mergedUser = {
+                ...userData,
+                timezone: profileData.timezone,
+                system_currency: profileData.system_currency,
+                phone: profileData.phone,
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+                country_code: profileData.country_code,
+                billing_address: profileData.billing_address,
+              };
+              
+              setUser(mergedUser);
+            } catch (profileError) {
+              console.error('Error fetching customer profile:', profileError);
+              // Still set user even if profile fetch fails
+              setUser(userData);
+            }
+            
             setOriginalAdminUser(null);
             setIsImpersonating(false);
             console.log('Customer session validated successfully');
@@ -171,7 +196,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           try {
             // Validate token by fetching current user
             const response = await apiClient.getCurrentUser();
-            setUser(response.data.user);
+            const userData = response.data.user;
+            
+            // Also fetch profile to get timezone and other profile-specific fields
+            try {
+              const profileResponse = await apiClient.getProfile();
+              const profileData = profileResponse.data.profile;
+              
+              // Merge profile data (timezone, etc.) into user object
+              const mergedUser = {
+                ...userData,
+                timezone: profileData.timezone,
+                system_currency: profileData.system_currency,
+                phone: profileData.phone,
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+                country_code: profileData.country_code,
+                billing_address: profileData.billing_address,
+              };
+              
+              setUser(mergedUser);
+            } catch (profileError) {
+              console.error('Error fetching profile during auth check:', profileError);
+              // Still set user even if profile fetch fails
+              setUser(userData);
+            }
             
             // Restore impersonation state if it exists
             if (storedOriginalAdmin && storedIsImpersonating === 'true') {
@@ -199,12 +248,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       const response = await apiClient.login({ email, password });
-      const { access_token, user } = response.data;
+      const { access_token, user: userData } = response.data;
       
-      // Store token and user data
+      // Store token
       localStorage.setItem('access_token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
-      setUser(user);
+      
+      // Fetch profile to get timezone and other profile-specific fields
+      try {
+        const profileResponse = await apiClient.getProfile();
+        const profileData = profileResponse.data.profile;
+        
+        // Merge profile data (timezone, etc.) into user object
+        const mergedUser = {
+          ...userData,
+          timezone: profileData.timezone,
+          system_currency: profileData.system_currency,
+          phone: profileData.phone,
+          first_name: profileData.first_name,
+          last_name: profileData.last_name,
+          country_code: profileData.country_code,
+          billing_address: profileData.billing_address,
+        };
+        
+        localStorage.setItem('user', JSON.stringify(mergedUser));
+        setUser(mergedUser);
+      } catch (profileError) {
+        console.error('Error fetching profile during login:', profileError);
+        // Still set user even if profile fetch fails
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+      }
       
       return { error: null };
     } catch (error: any) {
@@ -309,7 +382,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshUser = async () => {
     try {
       const response = await apiClient.getCurrentUser();
-      setUser(response.data.user);
+      const userData = response.data.user;
+      
+      // Also fetch profile to get timezone and other profile-specific fields
+      try {
+        const profileResponse = await apiClient.getProfile();
+        const profileData = profileResponse.data.profile;
+        
+        // Merge profile data (timezone, etc.) into user object
+        const mergedUser = {
+          ...userData,
+          timezone: profileData.timezone,
+          system_currency: profileData.system_currency,
+          phone: profileData.phone,
+          first_name: profileData.first_name,
+          last_name: profileData.last_name,
+          country_code: profileData.country_code,
+          billing_address: profileData.billing_address,
+        };
+        
+        setUser(mergedUser);
+      } catch (profileError) {
+        console.error('Error fetching profile:', profileError);
+        // Still set user even if profile fetch fails
+        setUser(userData);
+      }
     } catch (error) {
       console.error('Error refreshing user:', error);
     }

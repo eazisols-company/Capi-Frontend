@@ -132,11 +132,26 @@ export const formatDateInTimezone = (
   formatString: string = 'MMM dd, yyyy HH:mm'
 ): string => {
   try {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    let dateObj: Date;
+    
+    if (typeof date === 'string') {
+      // If the date string doesn't end with 'Z' and doesn't have timezone info,
+      // treat it as UTC by adding 'Z'
+      let dateStr = date;
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+        // Add 'Z' to indicate UTC (backend sends dates without timezone indicator)
+        dateStr = dateStr.replace(/(\.\d+)?$/, '$1Z');
+      }
+      dateObj = new Date(dateStr);
+    } else {
+      dateObj = date;
+    }
+    
     if (isNaN(dateObj.getTime())) {
       return 'Invalid Date';
     }
     
+    // Convert to user's timezone
     const zonedDate = toZonedTime(dateObj, userTimezone);
     return format(zonedDate, formatString);
   } catch (error) {
