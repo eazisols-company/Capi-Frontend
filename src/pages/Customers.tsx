@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -20,7 +21,8 @@ import {
   Mail, 
   Calendar,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Trash2
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -63,6 +65,7 @@ export default function Customers() {
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [updatingCustomerId, setUpdatingCustomerId] = useState<string | null>(null);
   const [blockingCustomerId, setBlockingCustomerId] = useState<string | null>(null);
+  const [deletingCustomerId, setDeletingCustomerId] = useState<string | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -300,6 +303,43 @@ export default function Customers() {
       });
     } finally {
       setBlockingCustomerId(null);
+    }
+  };
+
+  const handleDeleteCustomer = async (customerId: string) => {
+    try {
+      setDeletingCustomerId(customerId);
+      
+      const response = await apiClient.deleteCustomer(customerId);
+      const { message, deleted } = response.data;
+      
+      // Remove the customer from the local state
+      setCustomers(prevCustomers => 
+        prevCustomers.filter(customer => customer._id !== customerId)
+      );
+      
+      toast({
+        title: "Customer Deleted",
+        description: `Successfully deleted customer. Removed ${deleted.user} user, ${deleted.opt_in_settings} opt-in settings, ${deleted.connections} connections, and ${deleted.submissions} submissions.`,
+        variant: "default"
+      });
+      
+      // Refresh the customers list to update counts
+      fetchCustomers();
+      
+    } catch (error: any) {
+      console.error('Error deleting customer:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          "Failed to delete customer";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingCustomerId(null);
     }
   };
 
@@ -551,6 +591,54 @@ export default function Customers() {
                               )}
                             </Button>
                           )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={deletingCustomerId === customer._id}
+                                className="interactive-button text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                {deletingCustomerId === customer._id ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-destructive mr-1"></div>
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Delete
+                                  </>
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. Deleting this customer will permanently remove:
+                                  <ul className="list-disc list-inside mt-2 space-y-1">
+                                    <li>The user account</li>
+                                    <li>All opt-in settings</li>
+                                    <li>All connections</li>
+                                    <li>All submissions</li>
+                                  </ul>
+                                  <p className="mt-2 font-semibold">
+                                    Customer: {customer.first_name} {customer.last_name} ({customer.email})
+                                  </p>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteCustomer(customer._id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete Customer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>

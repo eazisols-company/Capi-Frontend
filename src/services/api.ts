@@ -349,6 +349,10 @@ class ApiClient {
   async blockUnblockCustomer(customerId: string) {
     return this.client.put('/api/admin/block-unblock-customer', { customer_id: customerId });
   }
+
+  async deleteCustomer(customerId: string) {
+    return this.client.delete(`/api/users/customers/${customerId}`);
+  }
 }
 
 export const apiClient = new ApiClient();
