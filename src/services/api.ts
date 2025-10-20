@@ -215,6 +215,37 @@ class ApiClient {
     return this.client.put(`/api/submissions/${submissionId}`, submissionData);
   }
 
+  async exportSubmissions(params?: {
+    status?: string;
+    country?: string;
+    connection_id?: string;
+    custom_event_name?: string;
+    search?: string;
+    start_date?: string;
+    end_date?: string;
+    format?: 'json' | 'csv';
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = queryParams.toString() 
+      ? `/api/submissions/export?${queryParams.toString()}` 
+      : '/api/submissions/export';
+    
+    // For CSV format, we need to return the response directly to handle blob
+    if (params?.format === 'csv') {
+      return this.client.get(url, { responseType: 'blob' });
+    }
+    
+    return this.client.get(url);
+  }
+
   // Analytics methods
   async getDashboardAnalytics(period: string = '7d') {
     return this.client.get(`/api/analytics/dashboard?period=${period}`);

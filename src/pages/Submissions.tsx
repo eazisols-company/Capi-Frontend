@@ -116,6 +116,7 @@ export default function Submissions() {
   const [allAvailableCountries, setAllAvailableCountries] = useState<string[]>([]);
   const [allAvailableEventNames, setAllAvailableEventNames] = useState<string[]>([]);
   const [stats, setStats] = useState<any>({ pending: 0, submitted: 0, failed: 0, total: 0 });
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -438,110 +439,113 @@ export default function Submissions() {
     }
   };
 
-  const exportToCSV = () => {
-    if (filteredSubmissions.length === 0) {
+  const exportToCSV = async () => {
+    if (isExporting) return; // Prevent multiple simultaneous exports
+
+    try {
+      setIsExporting(true);
+
+      // Prepare filter parameters for export (same as current filters)
+      const params: any = {
+        format: 'csv' as const,
+      };
+
+      // Add server-side filters
+      if (statusFilter !== "all") {
+        params.status = statusFilter;
+      }
+      
+      if (countryFilter !== "all") {
+        params.country = countryFilter;
+      }
+      
+      if (connectionFilter && connectionFilter !== "all") {
+        params.connection_id = connectionFilter;
+      }
+
+      // Add custom event name filter
+      if (eventFilter !== "all") {
+        params.custom_event_name = eventFilter;
+      }
+
+      // Add search filter
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      
+      // Add date range filters
+      if (timeFilter !== "all") {
+        let dateRange = customDateRange;
+        
+        // If using a preset (not custom), convert it to actual dates
+        if ((!customDateRange.from || !customDateRange.to) && timeFilter !== "custom") {
+          dateRange = getDateRangeForPreset(timeFilter);
+        }
+        
+        // Send dates to backend in ISO format
+        if (dateRange.from && dateRange.to) {
+          // Set start of day for 'from' date
+          const startDate = new Date(dateRange.from);
+          startDate.setHours(0, 0, 0, 0);
+          
+          // Set end of day for 'to' date
+          const endDate = new Date(dateRange.to);
+          endDate.setHours(23, 59, 59, 999);
+          
+          params.start_date = startDate.toISOString();
+          params.end_date = endDate.toISOString();
+        }
+      }
+
+      // Call the new export API
+      const response = await apiClient.exportSubmissions(params);
+
+      // Create and download the CSV file
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      // Generate filename with timestamp
+      const now = new Date();
+      const timestamp = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      const filename = `Lead_Submissions_Export_${timestamp}_${timeStr}.csv`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       toast({
-        title: "No Data",
-        description: "No submissions to export",
+        title: "Export Successful",
+        description: `All matching submissions have been exported to ${filename}`,
+      });
+    } catch (error: any) {
+      console.error('Error exporting submissions:', error);
+      
+      // Handle specific error cases
+      let errorMessage = "Failed to export submissions";
+      
+      if (error.response?.status === 400) {
+        // Handle export limit exceeded or invalid parameters
+        errorMessage = error.response?.data?.error || "Invalid export parameters. Please try with filters to reduce the dataset.";
+      } else if (error.response?.status === 401) {
+        errorMessage = "Authentication required. Please log in again.";
+      } else if (error.response?.status === 500) {
+        errorMessage = "Server error occurred. Please try again later.";
+      }
+      
+      toast({
+        title: "Export Failed",
+        description: errorMessage,
         variant: "destructive"
       });
-      return;
+    } finally {
+      setIsExporting(false);
     }
-
-    // Define CSV headers with better organization
-    const headers = [
-      'First Name',
-      'Last Name',
-      'Email Address',
-      'Phone Number',
-      'Country',
-      'Deposit Amount',
-      // 'Commission Tier',
-      'Custom Event Name',
-      'Submission Status',
-      'Connection Name',
-      'Connection ID',
-      'Submission Date'
-    ];
-
-    // Helper function to format phone numbers properly
-    const formatPhoneNumber = (phone: string | number) => {
-      if (!phone) return '';
-      let phoneStr = String(phone);
-
-      // Handle scientific notation
-      if (/[eE][+-]?\d+/.test(phoneStr)) {
-        phoneStr = Number(phone).toLocaleString('fullwide', { useGrouping: false });
-      }
-
-      // Remove decimals
-      phoneStr = phoneStr.split('.')[0];
-
-      // Ensure international format keeps '+'
-      if (phoneStr.length > 10 && !phoneStr.startsWith('+')) {
-        phoneStr = '+' + phoneStr;
-      }
-
-      // Force Excel to treat it as text
-      return `="${phoneStr}"`;
-    };
-
-
-    // Helper function to format dates nicely
-    const formatDate = (dateStr: string) => {
-      if (!dateStr) return '';
-      return formatDateForExport(dateStr, userTimezone);
-    };
-
-    // Convert submissions to CSV format with better formatting
-    const csvData = filteredSubmissions.map(submission => [
-      submission.first_name || 'N/A',
-      submission.last_name || 'N/A',
-      submission.email || 'N/A',
-      formatPhoneNumber(submission.phone) || 'N/A',
-      submission.country || 'N/A',
-      submission.deposit_amount ? `$${submission.deposit_amount}` : 'N/A',
-      // submission.commission_tier || '1',
-      submission.custom_event_name || 'N/A',
-      submission.status ? submission.status.charAt(0).toUpperCase() + submission.status.slice(1) : 'N/A',
-      submission.connection_name || getConnectionForSubmission(submission)?.name || 'N/A',
-      submission.connection_id || 'N/A',
-      formatDate(submission.created_at)
-    ]);
-
-    // Combine headers and data
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => {
-        // Handle numbers and strings properly for CSV
-        const fieldStr = String(field);
-        // If field contains comma, newline, or quotes, wrap in quotes
-        if (fieldStr.includes(',') || fieldStr.includes('\n') || fieldStr.includes('"')) {
-          return `"${fieldStr.replace(/"/g, '""')}"`;
-        }
-        return fieldStr;
-      }).join(','))
-      .join('\n');
-
-    // Create and download file with better filename
-    const now = new Date();
-    const timestamp = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-    const filename = `Lead_Submissions_Export_${timestamp}_${timeStr}.csv`;
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "Export Successful",
-      description: `Exported ${filteredSubmissions.length} submissions to ${filename}`,
-    });
   };
 
   const getStatusIcon = (status: string) => {
@@ -655,9 +659,19 @@ export default function Submissions() {
             <Button 
               className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
               onClick={exportToCSV}
+              disabled={isExporting}
             >
-              <Download className="h-4 w-4 mr-2" />
-              Export Data
+              {isExporting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Data
+                </>
+              )}
             </Button>
           </div>
         </div>

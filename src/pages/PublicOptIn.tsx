@@ -43,7 +43,7 @@ export default function PublicOptIn() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -216,11 +216,11 @@ export default function PublicOptIn() {
         
         // Show the first field error in toast
         const firstField = Object.keys(fieldValidationErrors)[0];
-        const firstError = fieldValidationErrors[firstField][0];
+        const firstError = fieldValidationErrors[firstField];
         
         toast({
           title: "Validation Error",
-          description: `${firstField.replace('_', ' ')}: ${firstError}`,
+          description: `${firstField.replace(/_/g, ' ')}: ${firstError}`,
           variant: "destructive"
         });
       } else {
@@ -440,7 +440,7 @@ export default function PublicOptIn() {
                 />
                 {fieldErrors.first_name && (
                   <p className="text-red-400 text-sm mt-1">
-                    {fieldErrors.first_name[0]}
+                    {fieldErrors.first_name}
                   </p>
                 )}
               </div>
@@ -472,7 +472,7 @@ export default function PublicOptIn() {
                 />
                 {fieldErrors.last_name && (
                   <p className="text-red-400 text-sm mt-1">
-                    {fieldErrors.last_name[0]}
+                    {fieldErrors.last_name}
                   </p>
                 )}
               </div>
@@ -508,7 +508,7 @@ export default function PublicOptIn() {
               />
               {fieldErrors.email && (
                 <p className="text-red-400 text-sm mt-1">
-                  {fieldErrors.email[0]}
+                  {fieldErrors.email}
                 </p>
               )}
             </div>
@@ -566,7 +566,7 @@ export default function PublicOptIn() {
               </div>
               {fieldErrors.phone && (
                 <p className="text-red-400 text-sm mt-1">
-                  {fieldErrors.phone[0]}
+                  {fieldErrors.phone}
                 </p>
               )}
             </div>
@@ -598,7 +598,7 @@ export default function PublicOptIn() {
               />
               {fieldErrors.country && (
                 <p className="text-red-400 text-sm mt-1">
-                  {fieldErrors.country[0]}
+                  {fieldErrors.country}
                 </p>
               )}
             </div>
@@ -638,7 +638,7 @@ export default function PublicOptIn() {
                 />
                 {fieldErrors.deposit_amount && (
                   <p className="text-red-400 text-sm mt-1">
-                    {fieldErrors.deposit_amount[0]}
+                    {fieldErrors.deposit_amount}
                   </p>
                 )}
               </div>
@@ -694,7 +694,7 @@ export default function PublicOptIn() {
                 </Select>
                 {fieldErrors.currency && (
                   <p className="text-red-400 text-sm mt-1">
-                    {fieldErrors.currency[0]}
+                    {fieldErrors.currency}
                   </p>
                 )}
               </div>
