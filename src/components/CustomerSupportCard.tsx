@@ -11,12 +11,12 @@ export function CustomerSupportCard({ collapsed = false }: CustomerSupportCardPr
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleEmailSupport = () => {
-    window.open("mailto:support@trackaff.com", "_blank");
+    window.open("mailto:support@trackaff.io", "_blank");
     setIsExpanded(false);
   };
 
   const handleTelegramSupport = () => {
-    window.open("https://t.me/trackaff_support", "_blank");
+    window.open("https://t.me/t_trackaff", "_blank");
     setIsExpanded(false);
   };
 
@@ -57,14 +57,14 @@ export function CustomerSupportCard({ collapsed = false }: CustomerSupportCardPr
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Headphones   className="h-6 w-6 text-primary" />
           </div>
-          <div>
+          {/* <div>
             <h3 className="text-sm font-semibold text-foreground">
               Need help?
             </h3>
             <p className="text-xs text-muted-foreground">
               Check out the support page
             </p>
-          </div>
+          </div> */}
         </div>
         
         {/* Customer Support Button or Support Options */}
@@ -85,19 +85,19 @@ export function CustomerSupportCard({ collapsed = false }: CustomerSupportCardPr
                 size="sm"
                 className="w-full justify-start gap-2 h-8 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200"
               >
-                <Mail className="h-3 w-3 text-blue-600" />
+                <Mail className="h-3 w-3 text-primary" />
                 <span className="text-xs">Email Support</span>
               </Button>
               
-              {/* <Button
+              <Button
                 onClick={handleTelegramSupport}
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start gap-2 h-8 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200"
               >
-                <MessageCircle className="h-3 w-3 text-blue-500" />
+                <MessageCircle className="h-3 w-3 text-primary" />
                 <span className="text-xs">Telegram Support</span>
-              </Button> */}
+              </Button>
             </div>
           )}
         </div>

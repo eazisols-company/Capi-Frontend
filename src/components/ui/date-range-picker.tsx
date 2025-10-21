@@ -299,7 +299,7 @@ export function DateRangePicker({
           <div className="mb-3">
             <div className="flex items-center justify-center gap-2 mb-2">
               <Button
-                variant={isSingleDayMode ? "default" : "outline"}
+                variant={!isSingleDayMode ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsSingleDayMode(false)}
                 className="text-xs"
@@ -307,7 +307,7 @@ export function DateRangePicker({
                 Range
               </Button>
               <Button
-                variant={isSingleDayMode ? "outline" : "default"}
+                variant={isSingleDayMode ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsSingleDayMode(true)}
                 className="text-xs"
@@ -516,7 +516,7 @@ export function DateRangePicker({
             <div className="mb-3">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Button
-                  variant={isSingleDayMode ? "default" : "outline"}
+                  variant={!isSingleDayMode ? "default" : "outline"}
                   size="sm"
                   onClick={() => setIsSingleDayMode(false)}
                   className="text-xs"
@@ -524,7 +524,7 @@ export function DateRangePicker({
                   Range
                 </Button>
                 <Button
-                  variant={isSingleDayMode ? "outline" : "default"}
+                  variant={isSingleDayMode ? "default" : "outline"}
                   size="sm"
                   onClick={() => setIsSingleDayMode(true)}
                   className="text-xs"
