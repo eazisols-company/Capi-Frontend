@@ -986,7 +986,7 @@ export default function Submissions() {
                        </TableCell>
                       <TableCell>
                         <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-sm font-medium">
-                          {submission.deposit_amount}
+                          {submission.display_deposit_amount}
                         </span>
                       </TableCell>
                       <TableCell>
