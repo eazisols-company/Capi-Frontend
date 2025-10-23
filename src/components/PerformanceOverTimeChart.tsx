@@ -18,13 +18,46 @@ interface PerformanceOverTimeChartProps {
   data: any[];
   timeFilter: string;
   currency: string;
+  connections: any[];
 }
 
 const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
   data,
   timeFilter,
-  currency
+  currency,
+  connections
 }) => {
+  // Commission calculation function (same logic as Dashboard)
+  const calculateCommissions = (submissions: any[]) => {
+    let total = 0;
+    
+    submissions.forEach((submission: any) => {
+      // Priority 1: Use explicit commission_amount if available
+      if (submission.commission_amount && typeof submission.commission_amount === 'number') {
+        total += submission.commission_amount;
+        return;
+      }
+      
+      // Priority 2: Fallback to connection country configuration
+      const connection = connections.find(conn => 
+        conn.id === submission.connection_id || conn._id === submission.connection_id
+      );
+      
+      if (connection && connection.countries) {
+        // Find the fee for this submission's country
+        const countryConfig = connection.countries.find((c: any) => 
+          c.country === submission.country
+        );
+        
+        if (countryConfig && countryConfig.value) {
+          total += parseFloat(countryConfig.value) || 0;
+        }
+      }
+    });
+    
+    return total;
+  };
+
   // Generate performance data based on time filter
   const generatePerformanceDataFromSubmissions = () => {
     const performanceData = [];
@@ -67,7 +100,7 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
       // Calculate metrics for the day
       const submissions = dayData.length;
       const deposits = dayData.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
-      const commissions = dayData.reduce((sum, sub) => sum + (sub.commission_amount || 0), 0);
+      const commissions = calculateCommissions(dayData);
 
       performanceData.push({
         date: date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }),

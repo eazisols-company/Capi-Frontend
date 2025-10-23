@@ -134,7 +134,37 @@ export default function PublicOptIn() {
         throw new Error('No connection ID or domain provided');
       }
 
-      setOptInData(response.data.data);
+      const responseData = response.data.data;
+      
+      // Handle multiple settings - pick the latest by date
+      if (Array.isArray(responseData)) {
+        // If we get an array of settings, sort by date and pick the latest
+        const sortedSettings = responseData.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.updated_at || 0);
+          const dateB = new Date(b.created_at || b.updated_at || 0);
+          return dateB.getTime() - dateA.getTime(); // Latest first
+        });
+        
+        // Use the first (latest) setting
+        setOptInData(sortedSettings[0]);
+      } else if (responseData && responseData.settings && Array.isArray(responseData.settings)) {
+        // If settings is an array within the response data
+        const sortedSettings = responseData.settings.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.updated_at || 0);
+          const dateB = new Date(b.created_at || b.updated_at || 0);
+          return dateB.getTime() - dateA.getTime(); // Latest first
+        });
+        
+        // Create a new response object with the latest settings
+        const latestSettings = sortedSettings[0];
+        setOptInData({
+          ...responseData,
+          settings: latestSettings
+        });
+      } else {
+        // Single setting or already processed
+        setOptInData(responseData);
+      }
     } catch (error: any) {
       console.error('Error fetching opt-in settings:', error);
       setError(error.response?.data?.error || 'Failed to load opt-in page');

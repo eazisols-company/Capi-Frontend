@@ -105,7 +105,16 @@ export default function OptInPages() {
       const data = response.data.data;
       
       if (data && data.settings) {
-        setSettings(Array.isArray(data.settings) ? data.settings : [data.settings]);
+        let settingsArray = Array.isArray(data.settings) ? data.settings : [data.settings];
+        
+        // Sort settings by date to ensure latest is first
+        settingsArray = settingsArray.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.updated_at || 0);
+          const dateB = new Date(b.created_at || b.updated_at || 0);
+          return dateB.getTime() - dateA.getTime(); // Latest first
+        });
+        
+        setSettings(settingsArray);
       } else {
         setSettings([]);
       }
