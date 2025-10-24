@@ -909,17 +909,16 @@ export default function Submissions() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
-                     <TableHead className="w-[120px] font-medium">ID</TableHead>
                      <TableHead className="font-medium">NAME</TableHead>
                      <TableHead className="font-medium">EMAIL</TableHead>
                      <TableHead className="font-medium">PHONE</TableHead>
-                     <TableHead className="w-[100px] font-medium">AMOUNT</TableHead>
-                     <TableHead className="w-[100px] font-medium">CURRENCY</TableHead>
-                     <TableHead className="w-[120px] font-medium">PLATFORM</TableHead>
+                     <TableHead className="font-medium">AMOUNT</TableHead>
+                     <TableHead className="font-medium">CURRENCY</TableHead>
+                     <TableHead className="font-medium">COUNTRY</TableHead>
                      {/* <TableHead className="w-[80px] font-medium">TIERS</TableHead> */}
-                     <TableHead className="w-[100px] font-medium">STATUS</TableHead>
-                     <TableHead className="w-[120px] font-medium">DATE</TableHead>
-                     <TableHead className="w-[100px] font-medium">ACTIONS</TableHead>
+                     <TableHead className="font-medium">STATUS</TableHead>
+                     <TableHead className="font-medium">DATE</TableHead>
+                     <TableHead className="font-medium">ACTIONS</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -928,23 +927,6 @@ export default function Submissions() {
                       key={submission.id}
                       className="hover:bg-muted/30 border-border"
                     >
-                      <TableCell className="font-mono text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">#</span>
-                          <span>{submission.id?.substring(0, 8)}...</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0 hover:bg-[#F97415] hover:text-white"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copyToClipboard(submission.id);
-                            }}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
                       <TableCell className="font-medium">
                         {submission.first_name} {submission.last_name}
                       </TableCell>

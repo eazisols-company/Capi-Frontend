@@ -457,6 +457,76 @@ export default function Connections() {
                     />
                   </div>
                 </div>
+
+                {/* Help & Documentation Section - Moved here */}
+                <Collapsible open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+                  <div className="border rounded-lg">
+                    <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#F97415]/10">
+                          <HelpCircle className="h-4 w-4 text-[#F97415]" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-medium text-foreground">Where can I find them?</h3>
+                          <p className="text-sm text-muted-foreground">How to get your Pixel ID & System Access Token</p>
+                        </div>
+                      </div>
+                      {isHelpOpen ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent>
+                      <div className="p-4 pt-0 space-y-4">
+                        <div className="bg-[#F97415]/5 border border-[#F97415]/20 rounded-lg p-4">
+                          <h4 className="font-medium text-foreground mb-3">How to get your System Access Token:</h4>
+                          <ol className="space-y-2 text-sm text-foreground/80">
+                            <li className="flex items-start gap-2">
+                              <span className="font-medium min-w-[20px] text-[#F97415]">1.</span>
+                              <span>Go to <strong>Meta Business Manager</strong> → <strong>Events Manager</strong></span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="font-medium min-w-[20px] text-[#F97415]">2.</span>
+                              <span>Select your pixel → <strong>Settings</strong> → <strong>Conversions API</strong></span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="font-medium min-w-[20px] text-[#F97415]">3.</span>
+                              <span>Click <strong>Generate Access Token</strong> or copy your existing token</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="font-medium min-w-[20px] text-[#F97415]">4.</span>
+                              <span>Paste the token in the System Access Token field above</span>
+                            </li>
+                          </ol>
+                        </div>
+                        
+                        <div className="bg-muted/50 border border-border rounded-lg p-4">
+                          <h4 className="font-medium text-foreground mb-3">Important Notes:</h4>
+                          <ul className="space-y-1 text-sm text-foreground/80">
+                            <li className="flex items-start gap-2">
+                              <span className="text-[#F97415]">•</span>
+                              <span>System access tokens are different from regular access tokens</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-[#F97415]">•</span>
+                              <span>They start with "EAA" and are used for server-side API calls</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-[#F97415]">•</span>
+                              <span>Keep your tokens secure and never share them publicly</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-[#F97415]">•</span>
+                              <span>Pixel ID should be around 16 digits from your Facebook pixel</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
               </div>
 
               {/* Countries & Values */}
@@ -570,16 +640,16 @@ export default function Connections() {
                 )}
               </div>
 
-              {/* Advanced Settings Section */}
+              {/* Event Configuration & Testing Section */}
               <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
                 <div className="border rounded-lg">
                   <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
-                        <Settings className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <div className="p-2 rounded-lg bg-[#F97415]/10">
+                        <Settings className="h-4 w-4 text-[#F97415]" />
                       </div>
                       <div className="text-left">
-                        <h3 className="font-medium text-foreground">Advanced Settings</h3>
+                        <h3 className="font-medium text-foreground">Event Configuration & Testing</h3>
                         <p className="text-sm text-muted-foreground">Optional test and event configuration</p>
                       </div>
                     </div>
@@ -641,76 +711,6 @@ export default function Connections() {
                             {/* Default: tracksters_opt_in */}
                           </p>
                         </div>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-
-              {/* Help & Documentation Section */}
-              <Collapsible open={isHelpOpen} onOpenChange={setIsHelpOpen}>
-                <div className="border rounded-lg">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
-                        <HelpCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="text-left">
-                        <h3 className="font-medium text-foreground">Help & Documentation</h3>
-                        <p className="text-sm text-muted-foreground">How to get your Pixel ID & System Access Token</p>
-                      </div>
-                    </div>
-                    {isHelpOpen ? (
-                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent>
-                    <div className="p-4 pt-0 space-y-4">
-                      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3">How to get your System Access Token:</h4>
-                        <ol className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
-                          <li className="flex items-start gap-2">
-                            <span className="font-medium min-w-[20px]">1.</span>
-                            <span>Go to <strong>Meta Business Manager</strong> → <strong>Events Manager</strong></span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="font-medium min-w-[20px]">2.</span>
-                            <span>Select your pixel → <strong>Settings</strong> → <strong>Conversions API</strong></span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="font-medium min-w-[20px]">3.</span>
-                            <span>Click <strong>Generate Access Token</strong> or copy your existing token</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="font-medium min-w-[20px]">4.</span>
-                            <span>Paste the token in the System Access Token field above</span>
-                          </li>
-                        </ol>
-                      </div>
-                      
-                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                        <h4 className="font-medium text-amber-900 dark:text-amber-100 mb-3">Important Notes:</h4>
-                        <ul className="space-y-1 text-sm text-amber-800 dark:text-amber-200">
-                          <li className="flex items-start gap-2">
-                            <span className="text-amber-600 dark:text-amber-400">•</span>
-                            <span>System access tokens are different from regular access tokens</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-amber-600 dark:text-amber-400">•</span>
-                            <span>They start with "EAA" and are used for server-side API calls</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-amber-600 dark:text-amber-400">•</span>
-                            <span>Keep your tokens secure and never share them publicly</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-amber-600 dark:text-amber-400">•</span>
-                            <span>Pixel ID should be around 16 digits from your Facebook pixel</span>
-                          </li>
-                        </ul>
                       </div>
                     </div>
                   </CollapsibleContent>
@@ -944,11 +944,11 @@ export default function Connections() {
                     </div>
                   </div>
 
-                  {/* Advanced Settings */}
+                  {/* Event Configuration & Testing */}
                   <div>
                     <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                      <Settings className="h-4 w-4 text-green-600" />
-                      Advanced Settings
+                      <Settings className="h-4 w-4 text-[#F97415]" />
+                      Event Configuration & Testing
                     </h4>
                     <div className="space-y-1 text-sm">
                       <div className="flex items-center gap-2">

@@ -44,10 +44,7 @@ export function SubmissionDetailsModal({
 }: SubmissionDetailsModalProps) {
   const { userTimezone } = useTimezone();
   const [expandedSections, setExpandedSections] = useState({
-    pushAttempts: false,
-    eventInfo: false,
-    platformResponse: false,
-    customerInfo: false,
+    dataLog: false,
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -184,6 +181,21 @@ export function SubmissionDetailsModal({
             </div>
           </div>
 
+          {/* Submission Information - Always Open */}
+          <Card>
+            <div className="flex items-center gap-3 p-4 border-b">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium">Submission Information</h3>
+                <p className="text-sm text-muted-foreground">
+                  Customer and financial information related to this event
+                </p>
+              </div>
+            </div>
+            <CardContent className="pt-4">
+              <div className="space-y-6">
           {/* Event ID and Timestamp */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -211,23 +223,200 @@ export function SubmissionDetailsModal({
             </div>
           </div>
 
-          {/* Push Attempts Timeline Section */}
-          <Collapsible open={expandedSections.pushAttempts} onOpenChange={() => toggleSection('pushAttempts')}>
+                {/* Customer Information */}
+                <div>
+                  <h4 className="font-medium mb-4 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Customer Information
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-muted-foreground">First Name</label>
+                        <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                          <User className="h-3 w-3" />
+                          <span className="text-sm">{submission.first_name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(submission.first_name)}
+                            className="h-6 w-6 p-0 ml-auto"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm text-muted-foreground">Last Name</label>
+                        <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                          <User className="h-3 w-3" />
+                          <span className="text-sm">{submission.last_name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(submission.last_name)}
+                            className="h-6 w-6 p-0 ml-auto"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm text-muted-foreground">Email Address</label>
+                      <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                        <span className="text-sm">{submission.email}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(submission.email)}
+                          className="h-6 w-6 p-0 ml-auto"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-muted-foreground">Country</label>
+                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                            <span className="text-sm">{submission.country}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Phone Number</label>
+                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                            <span className="text-sm">{submission.phone}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(submission.phone)}
+                              className="h-6 w-6 p-0 ml-auto"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {submission.ip_address && (
+                        <div>
+                          <label className="text-sm text-muted-foreground">IP Address</label>
+                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                            <span className="text-sm font-mono">{submission.ip_address}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(submission.ip_address)}
+                              className="h-6 w-6 p-0 ml-auto"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {submission.user_agent && (
+                        <div>
+                          <label className="text-sm text-muted-foreground">User Agent</label>
+                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                            <span className="text-xs font-mono break-all">{submission.user_agent}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(submission.user_agent)}
+                              className="h-6 w-6 p-0 ml-auto flex-shrink-0"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {submission.source_url && (
+                        <div>
+                          <label className="text-sm text-muted-foreground">Source URL</label>
+                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                            <span className="text-xs break-all">{submission.source_url}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(submission.source_url)}
+                              className="h-6 w-6 p-0 ml-auto flex-shrink-0"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Details */}
+                <div>
+                  <h4 className="font-medium mb-4 flex items-center gap-2">
+                    <span className="text-green-600">$</span>
+                    Financial Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">Deposit Amount</label>
+                      <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                        <span className="text-sm font-medium">${submission.display_deposit_amount}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Currency</label>
+                      <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                        <span className="text-sm">{getCurrency()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Platform Details */}
+                <div>
+                  <h4 className="font-medium mb-4">Platform Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">Platform Name (Country)</label>
+                      <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                        <span className="text-sm">{getPlatformName()}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Event Sent To</label>
+                      <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                        <span className="text-sm">{submission.event_sent_to || 'facebook'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Data Log - Collapsible */}
+          <Collapsible open={expandedSections.dataLog} onOpenChange={() => toggleSection('dataLog')}>
             <Card>
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-primary" />
+                      <Database className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-medium">Push Attempts Timeline</h3>
+                      <h3 className="font-medium">Data Log</h3>
                       <p className="text-sm text-muted-foreground">
-                        1 attempt • {submission.status === 'submitted' ? '1 successful' : '0 successful'} • {submission.status === 'failed' ? '1 failed' : '0 failed'}
+                        Push attempts, event information, and platform response data
                       </p>
                     </div>
                   </div>
-                  {expandedSections.pushAttempts ? (
+                  {expandedSections.dataLog ? (
                     <ChevronUp className="h-4 w-4" />
                   ) : (
                     <ChevronDown className="h-4 w-4" />
@@ -235,7 +424,16 @@ export function SubmissionDetailsModal({
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 space-y-6">
+                  {/* Push Attempts Timeline */}
+                  <div className="mb-6 pb-6 border-b">
+                    <h4 className="font-medium mb-4 flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-primary" />
+                      Push Attempts Timeline
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      1 attempt • {submission.status === 'submitted' ? '1 successful' : '0 successful'} • {submission.status === 'failed' ? '1 failed' : '0 failed'}
+                    </p>
                   <div className="space-y-4">
                     {/* Timeline Table */}
                     <div className="overflow-hidden rounded-lg border">
@@ -274,36 +472,17 @@ export function SubmissionDetailsModal({
                       <span>Total Duration: {getDuration()}</span>
                     </div>
                   </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                  </div>
 
-          {/* Event Information Section */}
-          <Collapsible open={expandedSections.eventInfo} onOpenChange={() => toggleSection('eventInfo')}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  {/* Event Information */}
+                  <div className="mb-6 pb-6 border-b">
+                    <h4 className="font-medium mb-4 flex items-center gap-2">
                       <Database className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Event Information</h3>
-                      <p className="text-sm text-muted-foreground">
+                      Event Information
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-4">
                         Technical details about the data push event
                       </p>
-                    </div>
-                  </div>
-                  {expandedSections.eventInfo ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-0">
                   <div className="space-y-4">
                     {/* Event Properties */}
                     <div>
@@ -423,36 +602,17 @@ export function SubmissionDetailsModal({
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-
-          {/* Platform Response Data Section */}
-          <Collapsible open={expandedSections.platformResponse} onOpenChange={() => toggleSection('platformResponse')}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Code className="h-4 w-4 text-primary" />
                     </div>
+
+                  {/* Platform Response Data */}
                     <div>
-                      <h3 className="font-medium">Platform Response Data</h3>
-                      <p className="text-sm text-muted-foreground">
+                    <h4 className="font-medium mb-4 flex items-center gap-2">
+                      <Code className="h-4 w-4 text-primary" />
+                      Platform Response Data
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-4">
                         Raw response from advertising platform API
                       </p>
-                    </div>
-                  </div>
-                  {expandedSections.platformResponse ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-0">
                   <div className="space-y-4">
                     {/* Response Status */}
                     <div className="flex items-center justify-between">
@@ -578,210 +738,6 @@ export function SubmissionDetailsModal({
                             </div>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-
-          {/* Customer Information Section */}
-          <Collapsible open={expandedSections.customerInfo} onOpenChange={() => toggleSection('customerInfo')}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Submission Context</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Customer and financial information related to this event
-                      </p>
-                    </div>
-                  </div>
-                  {expandedSections.customerInfo ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-0">
-                  <div className="space-y-6">
-                    {/* Customer Information */}
-                    <div>
-                      <h4 className="font-medium mb-4 flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Customer Information
-                      </h4>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm text-muted-foreground">First Name</label>
-                            <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                              <User className="h-3 w-3" />
-                              <span className="text-sm">{submission.first_name}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => copyToClipboard(submission.first_name)}
-                                className="h-6 w-6 p-0 ml-auto"
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="text-sm text-muted-foreground">Last Name</label>
-                            <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                              <User className="h-3 w-3" />
-                              <span className="text-sm">{submission.last_name}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => copyToClipboard(submission.last_name)}
-                                className="h-6 w-6 p-0 ml-auto"
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-sm text-muted-foreground">Email Address</label>
-                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                            <span className="text-sm">{submission.email}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => copyToClipboard(submission.email)}
-                              className="h-6 w-6 p-0 ml-auto"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-sm text-muted-foreground">Country</label>
-                              <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                                <span className="text-sm">{submission.country}</span>
-                              </div>
-                            </div>
-                            <div>
-                              <label className="text-sm text-muted-foreground">Phone Number</label>
-                              <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                                <span className="text-sm">{submission.phone}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(submission.phone)}
-                                  className="h-6 w-6 p-0 ml-auto"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {submission.ip_address && (
-                            <div>
-                              <label className="text-sm text-muted-foreground">IP Address</label>
-                              <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                                <span className="text-sm font-mono">{submission.ip_address}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(submission.ip_address)}
-                                  className="h-6 w-6 p-0 ml-auto"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-
-                          {submission.user_agent && (
-                            <div>
-                              <label className="text-sm text-muted-foreground">User Agent</label>
-                              <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                                <span className="text-xs font-mono break-all">{submission.user_agent}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(submission.user_agent)}
-                                  className="h-6 w-6 p-0 ml-auto flex-shrink-0"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-
-                          {submission.source_url && (
-                            <div>
-                              <label className="text-sm text-muted-foreground">Source URL</label>
-                              <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                                <span className="text-xs break-all">{submission.source_url}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(submission.source_url)}
-                                  className="h-6 w-6 p-0 ml-auto flex-shrink-0"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Financial Details */}
-                    <div>
-                      <h4 className="font-medium mb-4 flex items-center gap-2">
-                        <span className="text-green-600">$</span>
-                        Financial Details
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-muted-foreground">Deposit Amount</label>
-                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                            <span className="text-sm font-medium">${submission.display_deposit_amount}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm text-muted-foreground">Currency</label>
-                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                            <span className="text-sm">{getCurrency()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Platform Details */}
-                    <div>
-                      <h4 className="font-medium mb-4">Platform Details</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-muted-foreground">Platform Name (Country)</label>
-                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                            <span className="text-sm">{getPlatformName()}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm text-muted-foreground">Event Sent To</label>
-                          <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                            <span className="text-sm">{submission.event_sent_to || 'facebook'}</span>
-                          </div>
                         </div>
                       </div>
                     </div>

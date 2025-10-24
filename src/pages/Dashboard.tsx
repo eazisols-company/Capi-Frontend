@@ -172,7 +172,8 @@ export default function Dashboard() {
     topCountries: [],
     recentSubmissions: [],
     totalCommissions: 0,
-    allSubmissions: []
+    allSubmissions: [],
+    activeCountries: 0
   });
   const [previousStats, setPreviousStats] = useState({
     totalSubmissions: 0,
@@ -293,6 +294,10 @@ export default function Dashboard() {
           acc[sub.country] = (acc[sub.country] || 0) + 1;
           return acc;
         }, {});
+        
+        // Calculate total number of unique countries (before slicing)
+        const activeCountries = Object.keys(countryStats).length;
+        
         const topCountries = Object.entries(countryStats)
           .map(([country, count]) => ({ country, count: count as number }))
           .sort((a, b) => b.count - a.count)
@@ -304,7 +309,6 @@ export default function Dashboard() {
           .slice(0, 3);
 
         const totalCommissions = calculateTotalCommissions(filteredSubmissions);
-        const activeCountries = topCountries.length;
 
         // Calculate comparison stats for percentage change
         let previousFilteredSubmissions = [];
@@ -355,7 +359,8 @@ export default function Dashboard() {
           topCountries,
           recentSubmissions,
           totalCommissions,
-          allSubmissions: filteredSubmissions
+          allSubmissions: filteredSubmissions,
+          activeCountries
         });
 
         setPreviousStats({
@@ -453,12 +458,12 @@ export default function Dashboard() {
     },
     {
       title: "Active Countries",
-      value: stats.topCountries.length.toString(),
+      value: stats.activeCountries.toString(),
       icon: Globe,
       color: "text-primary",
       bgColor: "bg-primary/10",
       description: "Countries with submissions",
-      changePercent: calculatePercentageChange(stats.topCountries.length, previousStats.activeCountries),
+      changePercent: calculatePercentageChange(stats.activeCountries, previousStats.activeCountries),
       changeLabel: getComparisonLabel(timeFilter)
     }
   ];
