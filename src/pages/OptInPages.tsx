@@ -65,12 +65,12 @@ export default function OptInPages() {
       if (connectionSettings) {
         setFormData({
           connection_id: selectedConnectionId,
-          primary_color: connectionSettings.primary_color || "#FACC15",
-          secondary_color: connectionSettings.secondary_color || "#10B981",
+          primary_color: connectionSettings.primary_color || "#E16A14",
+          secondary_color: connectionSettings.secondary_color || "#E16A14",
           logo_url: connectionSettings.logo_url || "",
           uploaded_logo_url: connectionSettings.uploaded_logo_url || "",
-          page_title: connectionSettings.page_title || "Join Our Premium Trading Platform",
-          page_subtitle: connectionSettings.page_subtitle || "Start your trading journey today",
+          page_title: connectionSettings.page_title || "Track The Untrackable",
+          page_subtitle: connectionSettings.page_subtitle || "Stop guessing. Start tracking. Boost your ROAS.",
           form_title: connectionSettings.form_title || "Get Started",
           submit_button_text: connectionSettings.submit_button_text || "Join Now",
           font_family: connectionSettings.font_family || "Inter"
@@ -700,7 +700,7 @@ export default function OptInPages() {
                   id="page_title"
                   value={formData.page_title}
                   onChange={(e) => setFormData(prev => ({ ...prev, page_title: e.target.value }))}
-                  placeholder="Join Our Premium Trading Platform"
+                  placeholder="Track The Untrackable"
                   maxLength={100}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -713,7 +713,7 @@ export default function OptInPages() {
                   id="page_subtitle"
                   value={formData.page_subtitle}
                   onChange={(e) => setFormData(prev => ({ ...prev, page_subtitle: e.target.value }))}
-                  placeholder="Start your trading journey today"
+                  placeholder="Stop guessing. Start tracking. Boost your ROAS."
                   maxLength={150}
                 />
                 <p className="text-xs text-muted-foreground">
