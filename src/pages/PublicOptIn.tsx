@@ -21,13 +21,29 @@ interface OptInSettings {
   settings: {
     primary_color: string;
     secondary_color: string;
+    text_color?: string;
+    button_text_color?: string;
     logo_url: string;
     uploaded_logo_url?: string;
+    page_bg_color?: string;
+    page_bg_image_url?: string;
+    uploaded_bg_image_url?: string;
+    form_bg_color?: string;
     page_title: string;
     page_subtitle: string;
     form_title: string;
     submit_button_text: string;
     font_family: string;
+    show_deposit_section?: boolean;
+    field_labels?: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      country?: string;
+      depositAmount?: string;
+      currency?: string;
+    };
   };
   connection: {
     name: string;
@@ -404,7 +420,9 @@ export default function PublicOptIn() {
         className="min-h-screen flex items-center justify-center p-4"
         style={{ 
           fontFamily: selectedFont?.cssName || "'Inter', sans-serif",
-          background: 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 100%)'
+          background: settings.page_bg_image_url 
+            ? `linear-gradient(${settings.page_bg_color || '#000000'}CC, ${settings.page_bg_color || '#000000'}EE), url(${settings.page_bg_image_url}) center/cover`
+            : settings.page_bg_color || 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 100%)'
         }}
       >
       <div className="max-w-lg w-full">
@@ -425,25 +443,39 @@ export default function PublicOptIn() {
 
           {/* Header */}
           <div className="space-y-3">
-            <h1 className="text-4xl font-bold text-white leading-tight">
+            <h1 
+              className="text-4xl font-bold leading-tight"
+              style={{ color: settings.text_color || '#FFFFFF' }}
+            >
               {settings.page_title}
             </h1>
-            <p className="text-xl text-gray-300">
+            <p 
+              className="text-xl"
+              style={{ color: settings.text_color || '#FFFFFF', opacity: 0.9 }}
+            >
               {settings.page_subtitle}
             </p>
           </div>
         </div>
 
         {/* Form */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20">
-          <h2 className="text-2xl font-semibold text-white mb-6 text-center">
+        <div 
+          className="backdrop-blur-sm rounded-xl p-8 border border-white/20"
+          style={{ background: settings.form_bg_color || 'rgba(255, 255, 255, 0.1)' }}
+        >
+          <h2 
+            className="text-2xl font-semibold mb-6 text-center"
+            style={{ color: settings.text_color || '#FFFFFF' }}
+          >
             {settings.form_title}
           </h2>
           
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="first_name" className="text-white">First Name</Label>
+                <Label htmlFor="first_name" className="text-white">
+                  {settings.field_labels?.firstName || "First Name"}
+                </Label>
                 <Input
                   id="first_name"
                   value={formData.first_name}
@@ -475,7 +507,9 @@ export default function PublicOptIn() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="last_name" className="text-white">Last Name</Label>
+                <Label htmlFor="last_name" className="text-white">
+                  {settings.field_labels?.lastName || "Last Name"}
+                </Label>
                 <Input
                   id="last_name"
                   value={formData.last_name}
@@ -509,7 +543,9 @@ export default function PublicOptIn() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-white">Email Address</Label>
+              <Label htmlFor="email" className="text-white">
+                {settings.field_labels?.email || "Email Address"}
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -544,7 +580,9 @@ export default function PublicOptIn() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-white">Phone Number</Label>
+              <Label htmlFor="phone" className="text-white">
+                {settings.field_labels?.phone || "Phone Number"}
+              </Label>
               <div className="flex gap-2">
                 <OptimizedCountryCodeSelect
                   value={formData.country_code}
@@ -602,7 +640,9 @@ export default function PublicOptIn() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="country" className="text-white">Country</Label>
+              <Label htmlFor="country" className="text-white">
+                {settings.field_labels?.country || "Country"}
+              </Label>
               <SearchableSubmissionCountrySelect
                 countries={connection.countries.map(c => c.country)}
                 value={formData.country}
@@ -633,9 +673,13 @@ export default function PublicOptIn() {
               )}
             </div>
 
+            {/* Deposit Section - Conditional */}
+            {settings.show_deposit_section !== false && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="deposit" className="text-white">Deposit Amount</Label>
+                <Label htmlFor="deposit" className="text-white">
+                  {settings.field_labels?.depositAmount || "Deposit Amount"}
+                </Label>
                 <Input
                   id="deposit"
                   type="number"
@@ -673,7 +717,9 @@ export default function PublicOptIn() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="currency" className="text-white">Currency</Label>
+                <Label htmlFor="currency" className="text-white">
+                  {settings.field_labels?.currency || "Currency"}
+                </Label>
                 <Select
                   value={formData.currency}
                   onValueChange={(value) => {
@@ -729,13 +775,15 @@ export default function PublicOptIn() {
                 )}
               </div>
             </div>
+            )}
 
             <Button 
               type="submit"
               disabled={submitting}
-              className="w-full text-white font-semibold py-4 text-lg transition-all duration-300 hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full font-semibold py-4 text-lg transition-all duration-300 hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               style={{ 
                 backgroundColor: settings.primary_color,
+                color: settings.button_text_color || '#FFFFFF',
                 borderColor: settings.primary_color,
                 boxShadow: `0 6px 20px ${settings.primary_color}40`
               }}
@@ -769,7 +817,10 @@ export default function PublicOptIn() {
 
           {/* Powered by TrackAff */}
           <div className="mt-8 pt-4 border-t border-white/20">
-            <p className="text-xs text-gray-400 text-center">
+            <p 
+              className="text-xs text-center opacity-60"
+              style={{ color: settings.text_color || '#FFFFFF' }}
+            >
               Powered by TrackAff
             </p>
           </div>
