@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit3, Save, X, User, Phone, Mail, Globe, DollarSign } from "lucide-react";
+import { Edit3, Save, X, User, Phone, Mail, Globe, DollarSign, CheckCircle, RefreshCw } from "lucide-react";
 import { FlagIcon } from 'react-flag-kit';
 import { toast } from "@/hooks/use-toast";
 import { apiClient } from "@/services/api";
@@ -73,6 +73,8 @@ interface SubmissionEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmissionUpdated: () => void;
+  handleManualSubmission?: (submissionId: string) => void;
+  processingIds?: Set<string>;
 }
 
 export function SubmissionEditModal({
@@ -81,6 +83,8 @@ export function SubmissionEditModal({
   isOpen,
   onClose,
   onSubmissionUpdated,
+  handleManualSubmission,
+  processingIds = new Set(),
 }: SubmissionEditModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -211,13 +215,37 @@ export function SubmissionEditModal({
             <Edit3 className="h-5 w-5 text-primary" />
             Edit Submission
           </DialogTitle>
-          <div className="flex items-center gap-2 mt-2">
-            <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
-              ID: {submission.id?.substring(0, 8)}...
-            </Badge>
-            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-              Pending
-            </Badge>
+          <div className="flex items-center justify-between gap-2 mt-2">
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
+                ID: {submission.id?.substring(0, 8)}...
+              </Badge>
+              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                Pending
+              </Badge>
+            </div>
+            {handleManualSubmission && submission.status !== 'success' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleManualSubmission(submission.id)}
+                disabled={processingIds.has(submission.id)}
+                className="h-8 px-3 hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
+                title="Submit to Meta manually"
+              >
+                {processingIds.has(submission.id) ? (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Submit to Meta
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </DialogHeader>
 

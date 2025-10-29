@@ -27,6 +27,7 @@ import {
   RefreshCw,
   Download,
   Eye,
+  FileSearch,
   Copy,
   Edit
 } from "lucide-react";
@@ -918,7 +919,7 @@ export default function Submissions() {
                      {/* <TableHead className="w-[80px] font-medium">TIERS</TableHead> */}
                      <TableHead className="font-medium">STATUS</TableHead>
                      <TableHead className="font-medium">DATE</TableHead>
-                     <TableHead className="font-medium">ACTIONS</TableHead>
+                     <TableHead className="font-medium">DATA</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1041,7 +1042,7 @@ export default function Submissions() {
                             className="h-8 w-8 p-0 hover:bg-[#F97415] hover:text-white"
                             title="View submission details"
                           >
-                            <Eye className="h-4 w-4" />
+                            <FileSearch className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -1161,6 +1162,8 @@ export default function Submissions() {
         isOpen={isEditModalOpen}
         onClose={handleEditModalClose}
         onSubmissionUpdated={handleSubmissionUpdated}
+        handleManualSubmission={handleManualSubmission}
+        processingIds={processingIds}
       />
 
     </div>

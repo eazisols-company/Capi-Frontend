@@ -384,6 +384,18 @@ class ApiClient {
   async deleteCustomer(customerId: string) {
     return this.client.delete(`/api/users/customers/${customerId}`);
   }
+
+  async updateCustomerLimits(customerId: string, limitsData: {
+    max_connections: number;
+    connections_expiry_date: string;
+  }) {
+    return this.client.put('/api/admin/update-customer-limits', {
+      customer_id: customerId,
+      max_connections: limitsData.max_connections,
+      connections_expiry_date: limitsData.connections_expiry_date
+    });
+  }
+
 }
 
 export const apiClient = new ApiClient();

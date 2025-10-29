@@ -735,15 +735,15 @@ export default function OptInPages() {
 
       {/* Customization Sections - Side by Side */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Color Scheme, Typography and Text Content - Combined Card */}
+        {/* Color Scheme and Typography - Combined Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5 text-primary" />
-              Colors, Typography & Text Content
+              Colors & Typography
             </CardTitle>
             <CardDescription>
-              Customize colors, font and all text content for your opt-in page
+              Customize colors and font for your opt-in page
             </CardDescription>
           </CardHeader>
         <CardContent className="space-y-6">
@@ -846,54 +846,6 @@ export default function OptInPages() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          {/* Text Content Section */}
-          <div className="space-y-4 pt-4 border-t">
-            <h3 className="text-sm font-semibold text-foreground">Text Content</h3>
-            <p className="text-xs text-muted-foreground">Customize all text content that appears on your opt-in page</p>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="page_title">Page Title</Label>
-                <Input
-                  id="page_title"
-                  value={formData.page_title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, page_title: e.target.value }))}
-                  placeholder="Track The Untrackable"
-                  maxLength={100}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="page_subtitle">Page Subtitle</Label>
-                <Input
-                  id="page_subtitle"
-                  value={formData.page_subtitle}
-                  onChange={(e) => setFormData(prev => ({ ...prev, page_subtitle: e.target.value }))}
-                  placeholder="Stop guessing. Start tracking. Boost your ROAS."
-                  maxLength={150}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="form_title">Form Title</Label>
-                <Input
-                  id="form_title"
-                  value={formData.form_title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, form_title: e.target.value }))}
-                  placeholder="Get Started"
-                  maxLength={50}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="submit_button_text">Submit Button Text</Label>
-                <Input
-                  id="submit_button_text"
-                  value={formData.submit_button_text}
-                  onChange={(e) => setFormData(prev => ({ ...prev, submit_button_text: e.target.value }))}
-                  placeholder="Join Now"
-                  maxLength={30}
-                />
-              </div>
             </div>
           </div>
         </CardContent>
@@ -1110,7 +1062,7 @@ export default function OptInPages() {
                 Live Preview
               </CardTitle>
               <CardDescription>
-                See how your opt-in page will look to visitors with your current settings.
+                Click on any text below to edit directly (headlines, form title, button text, and field labels).
               </CardDescription>
             </div>
             <div className="flex items-center gap-4">
@@ -1128,6 +1080,25 @@ export default function OptInPages() {
           </div>
         </CardHeader>
         <CardContent>
+          <style>
+            {`
+              .editable-preview {
+                cursor: text;
+                outline: 2px solid transparent;
+                transition: outline 0.2s;
+                border-radius: 4px;
+                padding: 2px 4px;
+                margin: -2px -4px;
+              }
+              .editable-preview:hover {
+                outline: 2px solid rgba(255,255,255,0.3);
+              }
+              .editable-preview:focus {
+                outline: 2px solid rgba(255,255,255,0.6);
+                background: rgba(255,255,255,0.05);
+              }
+            `}
+          </style>
           <div 
             className="border rounded-lg p-8 md:p-12 bg-background min-h-[700px] overflow-hidden"
             style={{ 
@@ -1153,17 +1124,29 @@ export default function OptInPages() {
                 </div>
               )}
               
-              {/* Header */}
+              {/* Header - Editable */}
               <div className="space-y-3">
                 <h1 
-                  className="text-3xl md:text-4xl font-bold"
+                  className="text-3xl md:text-4xl font-bold editable-preview"
                   style={{ color: formData.text_color }}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => {
+                    const newValue = e.currentTarget.textContent || "";
+                    setFormData(prev => ({ ...prev, page_title: newValue }));
+                  }}
                 >
                   {formData.page_title}
                 </h1>
                 <p 
-                  className="text-base md:text-lg"
+                  className="text-base md:text-lg editable-preview"
                   style={{ color: formData.text_color, opacity: 0.9 }}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => {
+                    const newValue = e.currentTarget.textContent || "";
+                    setFormData(prev => ({ ...prev, page_subtitle: newValue }));
+                  }}
                 >
                   {formData.page_subtitle}
                 </p>
@@ -1175,17 +1158,38 @@ export default function OptInPages() {
                 style={{ background: formData.form_bg_color }}
               >
                 <h2 
-                  className="text-xl md:text-2xl font-semibold mb-4"
+                  className="text-xl md:text-2xl font-semibold mb-4 editable-preview text-center"
                   style={{ color: formData.text_color }}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => {
+                    const newValue = e.currentTarget.textContent || "";
+                    setFormData(prev => ({ ...prev, form_title: newValue }));
+                  }}
                 >
                   {formData.form_title}
                 </h2>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 text-left">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="relative">
+                    <div className="space-y-1">
+                      <label 
+                        className="text-xs editable-preview inline-block"
+                        style={{ color: formData.text_color, opacity: 0.8 }}
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => {
+                          const newValue = e.currentTarget.textContent || "First Name";
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            field_labels: { ...prev.field_labels, firstName: newValue }
+                          }));
+                        }}
+                      >
+                        {formData.field_labels.firstName}
+                      </label>
                       <Input 
-                        placeholder={formData.field_labels.firstName}
+                        placeholder="John"
                         className="border-2 placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
                         style={{ 
                           backgroundColor: 'rgba(255,255,255,0.1)',
@@ -1196,9 +1200,24 @@ export default function OptInPages() {
                         disabled
                       />
                     </div>
-                    <div className="relative">
+                    <div className="space-y-1">
+                      <label 
+                        className="text-xs editable-preview inline-block"
+                        style={{ color: formData.text_color, opacity: 0.8 }}
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => {
+                          const newValue = e.currentTarget.textContent || "Last Name";
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            field_labels: { ...prev.field_labels, lastName: newValue }
+                          }));
+                        }}
+                      >
+                        {formData.field_labels.lastName}
+                      </label>
                       <Input 
-                        placeholder={formData.field_labels.lastName}
+                        placeholder="Doe"
                         className="border-2 placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
                         style={{ 
                           backgroundColor: 'rgba(255,255,255,0.1)',
@@ -1210,40 +1229,25 @@ export default function OptInPages() {
                       />
                     </div>
                   </div>
-                  <Input 
-                    placeholder={formData.field_labels.email}
-                    className="border-2 placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
-                    style={{ 
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderColor: `${formData.secondary_color}40`,
-                      color: formData.text_color,
-                      '--tw-ring-color': formData.secondary_color
-                    } as React.CSSProperties}
-                    disabled
-                  />
-                  <div className="flex gap-3">
-                    <Select disabled>
-                      <SelectTrigger
-                        className="border-2 transition-all duration-200 w-32"
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.1)',
-                          borderColor: `${formData.secondary_color}40`,
-                          color: formData.text_color
-                        }}
-                      >
-                        <SelectValue
-                          placeholder={
-                            <div className="flex items-center gap-1">
-                              <span>🇺🇸</span>
-                              <span>+1</span>
-                            </div>
-                          }
-                        />
-                      </SelectTrigger>
-                    </Select>
+                  <div className="space-y-1">
+                    <label 
+                      className="text-xs editable-preview inline-block"
+                      style={{ color: formData.text_color, opacity: 0.8 }}
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => {
+                        const newValue = e.currentTarget.textContent || "Email Address";
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          field_labels: { ...prev.field_labels, email: newValue }
+                        }));
+                      }}
+                    >
+                      {formData.field_labels.email}
+                    </label>
                     <Input 
-                      placeholder={formData.field_labels.phone}
-                      className="border-2 placeholder:text-gray-400 focus:ring-2 transition-all duration-200 flex-1"
+                      placeholder="john@example.com"
+                      className="border-2 placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
                       style={{ 
                         backgroundColor: 'rgba(255,255,255,0.1)',
                         borderColor: `${formData.secondary_color}40`,
@@ -1253,29 +1257,45 @@ export default function OptInPages() {
                       disabled
                     />
                   </div>
-                  <Select disabled>
-                    <SelectTrigger 
-                      className="border-2 transition-all duration-200"
-                      style={{ 
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                        borderColor: `${formData.secondary_color}40`,
-                        color: formData.text_color
+                  <div className="space-y-1">
+                    <label 
+                      className="text-xs editable-preview inline-block"
+                      style={{ color: formData.text_color, opacity: 0.8 }}
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => {
+                        const newValue = e.currentTarget.textContent || "Phone Number";
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          field_labels: { ...prev.field_labels, phone: newValue }
+                        }));
                       }}
                     >
-                      <SelectValue placeholder={
-                        selectedConnectionId && connections.find(c => c._id === selectedConnectionId)?.countries?.length > 0
-                          ? connections.find(c => c._id === selectedConnectionId)?.countries[0].country
-                          : formData.field_labels.country
-                      } />
-                    </SelectTrigger>
-                  </Select>
-                  
-                  {/* Deposit Section - Conditional */}
-                  {formData.show_deposit_section && (
-                    <div className="grid grid-cols-2 gap-4">
+                      {formData.field_labels.phone}
+                    </label>
+                    <div className="flex gap-3">
+                      <Select disabled>
+                        <SelectTrigger
+                          className="border-2 transition-all duration-200 w-32"
+                          style={{
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderColor: `${formData.secondary_color}40`,
+                            color: formData.text_color
+                          }}
+                        >
+                          <SelectValue
+                            placeholder={
+                              <div className="flex items-center gap-1">
+                                <span>🇺🇸</span>
+                                <span>+1</span>
+                              </div>
+                            }
+                          />
+                        </SelectTrigger>
+                      </Select>
                       <Input 
-                        placeholder={formData.field_labels.depositAmount}
-                        className="border-2 placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
+                        placeholder="1234567890"
+                        className="border-2 placeholder:text-gray-400 focus:ring-2 transition-all duration-200 flex-1"
                         style={{ 
                           backgroundColor: 'rgba(255,255,255,0.1)',
                           borderColor: `${formData.secondary_color}40`,
@@ -1284,39 +1304,128 @@ export default function OptInPages() {
                         } as React.CSSProperties}
                         disabled
                       />
-                      <Select disabled>
-                        <SelectTrigger 
-                          className="border-2 transition-all duration-200"
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label 
+                      className="text-xs editable-preview inline-block"
+                      style={{ color: formData.text_color, opacity: 0.8 }}
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => {
+                        const newValue = e.currentTarget.textContent || "Select Country";
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          field_labels: { ...prev.field_labels, country: newValue }
+                        }));
+                      }}
+                    >
+                      {formData.field_labels.country}
+                    </label>
+                    <Select disabled>
+                      <SelectTrigger 
+                        className="border-2 transition-all duration-200"
+                        style={{ 
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          borderColor: `${formData.secondary_color}40`,
+                          color: formData.text_color
+                        }}
+                      >
+                        <SelectValue placeholder={
+                          selectedConnectionId && connections.find(c => c._id === selectedConnectionId)?.countries?.length > 0
+                            ? connections.find(c => c._id === selectedConnectionId)?.countries[0].country
+                            : "Argentina"
+                        } />
+                      </SelectTrigger>
+                    </Select>
+                  </div>
+                  
+                  {/* Deposit Section - Conditional */}
+                  {formData.show_deposit_section && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label 
+                          className="text-xs editable-preview inline-block"
+                          style={{ color: formData.text_color, opacity: 0.8 }}
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => {
+                            const newValue = e.currentTarget.textContent || "Deposit Amount";
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              field_labels: { ...prev.field_labels, depositAmount: newValue }
+                            }));
+                          }}
+                        >
+                          {formData.field_labels.depositAmount}
+                        </label>
+                        <Input 
+                          placeholder="Enter deposit amount"
+                          className="border-2 placeholder:text-gray-400 focus:ring-2 transition-all duration-200"
                           style={{ 
                             backgroundColor: 'rgba(255,255,255,0.1)',
                             borderColor: `${formData.secondary_color}40`,
-                            color: formData.text_color
+                            color: formData.text_color,
+                            '--tw-ring-color': formData.secondary_color
+                          } as React.CSSProperties}
+                          disabled
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label 
+                          className="text-xs editable-preview inline-block"
+                          style={{ color: formData.text_color, opacity: 0.8 }}
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => {
+                            const newValue = e.currentTarget.textContent || "Select Currency";
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              field_labels: { ...prev.field_labels, currency: newValue }
+                            }));
                           }}
                         >
-                          <SelectValue placeholder={formData.field_labels.currency}>
-                            <div className="flex items-center gap-2">
-                              <FlagIcon code="US" size={16} />
-                              <span>US Dollar</span>
-                              <span className="text-xs opacity-70">($)</span>
-                            </div>
-                          </SelectValue>
-                        </SelectTrigger>
-                      </Select>
+                          {formData.field_labels.currency}
+                        </label>
+                        <Select disabled>
+                          <SelectTrigger 
+                            className="border-2 transition-all duration-200"
+                            style={{ 
+                              backgroundColor: 'rgba(255,255,255,0.1)',
+                              borderColor: `${formData.secondary_color}40`,
+                              color: formData.text_color
+                            }}
+                          >
+                            <SelectValue>
+                              <div className="flex items-center gap-2">
+                                <FlagIcon code="US" size={16} />
+                                <span>US Dollar</span>
+                                <span className="text-xs opacity-70">($)</span>
+                              </div>
+                            </SelectValue>
+                          </SelectTrigger>
+                        </Select>
+                      </div>
                     </div>
                   )}
                   
-                  <Button 
-                    className="w-full font-semibold py-5 text-base transition-all duration-300 hover:shadow-lg"
+                  <div
+                    className="w-full font-semibold py-5 text-base transition-all duration-300 hover:shadow-lg rounded-md flex items-center justify-center cursor-pointer editable-preview"
                     style={{ 
                       backgroundColor: formData.primary_color,
                       color: formData.button_text_color,
-                      borderColor: formData.primary_color,
+                      border: `1px solid ${formData.primary_color}`,
                       boxShadow: `0 4px 20px ${formData.primary_color}60`
                     }}
-                    disabled
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={(e) => {
+                      const newValue = e.currentTarget.textContent || "Join Now";
+                      setFormData(prev => ({ ...prev, submit_button_text: newValue }));
+                    }}
                   >
                     {formData.submit_button_text}
-                  </Button>
+                  </div>
                 </div>
               </div>
 

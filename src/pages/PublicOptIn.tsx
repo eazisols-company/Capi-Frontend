@@ -18,6 +18,7 @@ import { FONT_OPTIONS, COUNTRY_CODES, CURRENCIES, getCountryFlagCode } from "@/u
 interface OptInSettings {
   connection_id: string;
   user_id: string;
+  expiry_date?: string;
   settings: {
     primary_color: string;
     secondary_color: string;
@@ -140,18 +141,39 @@ export default function PublicOptIn() {
       const isLocalhost = domain === 'localhost' || domain === '127.0.0.1' || domain.includes('localhost');
       const isBaseDomain = domain.includes(baseDomain);
       
-      if (!isLocalhost && !isBaseDomain) {
-        // Custom domain - resolve by domain
-        response = await apiClient.getPublicOptInSettings(undefined, domain);
-      } else if (connectionId) {
-        // Default domain with connection ID or localhost development
-        response = await apiClient.getPublicOptInSettings(connectionId);
-      } else {
-        throw new Error('No connection ID or domain provided');
+      try {
+        if (!isLocalhost && !isBaseDomain) {
+          // Custom domain - resolve by domain
+          response = await apiClient.getPublicOptInSettings(undefined, domain);
+        } else if (connectionId) {
+          // Default domain with connection ID or localhost development
+          response = await apiClient.getPublicOptInSettings(connectionId);
+        } else {
+          throw new Error('No connection ID or domain provided');
+        }
+      } catch (error: any) {
+        // Check if this is an expiry error (403 status)
+        if (error.response?.status === 403 && error.response?.data?.expired) {
+          setError('Connection link expired. Please contact your administrator.');
+          return;
+        }
+        // Re-throw other errors to be handled below
+        throw error;
       }
 
       const responseData = response.data.data;
       
+       // Check expiry date on frontend as well (double validation)
+      if (responseData?.expiry_date) {
+        const expiryDate = new Date(responseData.expiry_date);
+        const currentDate = new Date();
+        
+        if (currentDate > expiryDate) {
+          setError('Connection link expired. Please contact your administrator.');
+          return;
+        }
+      }
+
       // Handle multiple settings - pick the latest by date
       if (Array.isArray(responseData)) {
         // If we get an array of settings, sort by date and pick the latest

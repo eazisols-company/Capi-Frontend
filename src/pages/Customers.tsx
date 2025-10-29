@@ -22,7 +22,8 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  Settings
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,6 +42,8 @@ interface Customer {
   verified: boolean;
   admin?: string;
   block_login?: boolean;
+  max_connections?: number;
+  connections_expiry_date?: string;
 }
 
 interface CustomersResponse {
@@ -67,6 +70,14 @@ export default function Customers() {
   const [blockingCustomerId, setBlockingCustomerId] = useState<string | null>(null);
   const [deletingCustomerId, setDeletingCustomerId] = useState<string | null>(null);
   
+// Add these new states for the Settings modal
+const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+const [selectedCustomerForSettings, setSelectedCustomerForSettings] = useState<Customer | null>(null);
+const [numberOfConnections, setNumberOfConnections] = useState<number>(1);
+const [expiryDate, setExpiryDate] = useState<string>("");
+const [savingSettings, setSavingSettings] = useState(false);
+
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
@@ -75,6 +86,79 @@ export default function Customers() {
   
   // Search debounce
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const handleSaveCustomerSettings = async () => {
+    if (!selectedCustomerForSettings) return;
+    
+    try {
+      setSavingSettings(true);
+      
+      // Validation
+      if (!numberOfConnections || numberOfConnections < 1) {
+        toast({
+          title: "Validation Error",
+          description: "Number of connections must be at least 1",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!expiryDate) {
+        toast({
+          title: "Validation Error",
+          description: "Please select an expiry date",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Convert date to ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
+      const expiryDateTime = new Date(expiryDate);
+      // Set time to end of day (23:59:59)
+      expiryDateTime.setHours(23, 59, 59, 999);
+      const isoExpiryDate = expiryDateTime.toISOString();
+      
+      // Call API to update customer limits
+      const response = await apiClient.updateCustomerLimits(
+        selectedCustomerForSettings._id,
+        {
+          max_connections: numberOfConnections,
+          connections_expiry_date: isoExpiryDate
+        }
+      );
+      
+      const { customer, current_connections_count } = response.data;
+      
+      toast({
+        title: "Success",
+        description: `Settings updated for ${selectedCustomerForSettings.first_name} ${selectedCustomerForSettings.last_name}. Current connections: ${current_connections_count}/${numberOfConnections}`,
+        variant: "default"
+      });
+      
+      // Close modal and reset form
+      setShowSettingsDialog(false);
+      setSelectedCustomerForSettings(null);
+      setNumberOfConnections(1);
+      setExpiryDate("");
+      
+      // Optionally refresh customers list
+      fetchCustomers();
+      
+    } catch (error: any) {
+      console.error('Error saving customer settings:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          "Failed to save customer settings";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   useEffect(() => {
     if (user?.admin) {
@@ -667,6 +751,30 @@ export default function Customers() {
                               )}
                             </Tooltip>
                           </TooltipProvider>
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedCustomerForSettings(customer);
+                                // Set existing values or defaults
+                                setNumberOfConnections(customer.max_connections || 1);
+                                
+                                // Format expiry date for input field (YYYY-MM-DD)
+                                if (customer.connections_expiry_date) {
+                                  const expiryDate = new Date(customer.connections_expiry_date);
+                                  const formattedDate = expiryDate.toISOString().split('T')[0];
+                                  setExpiryDate(formattedDate);
+                                } else {
+                                  setExpiryDate("");
+                                }
+                                
+                                setShowSettingsDialog(true);
+                              }}
+                              className="interactive-button"
+                            >
+                              <Settings className="h-3 w-3 mr-1" />
+                              Settings
+                            </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -717,6 +825,100 @@ export default function Customers() {
               <div>
                 <Label>Joined Date</Label>
                 <Input value={formatDate(selectedCustomer.created_at)} readOnly />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+{/* Customer Settings Dialog */}
+<Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Customer Settings</DialogTitle>
+          </DialogHeader>
+          {selectedCustomerForSettings && (
+            <div className="space-y-6">
+              {/* Customer Info */}
+              <div className="bg-muted p-3 rounded-md">
+                <p className="text-sm font-medium">
+                  {selectedCustomerForSettings.first_name} {selectedCustomerForSettings.last_name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedCustomerForSettings.email}
+                </p>
+                {selectedCustomerForSettings.max_connections && (
+    <p className="text-xs text-muted-foreground mt-2">
+      <span className="font-medium">Current Limits:</span> {selectedCustomerForSettings.max_connections} connections
+      {selectedCustomerForSettings.connections_expiry_date && (
+        <> • Expires: {new Date(selectedCustomerForSettings.connections_expiry_date).toLocaleDateString()}</>
+      )}
+    </p>
+  )}
+              </div>
+
+              {/* Number of Connections Input */}
+              <div className="space-y-2">
+                <Label htmlFor="numberOfConnections">
+                  Number of Connections <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="numberOfConnections"
+                  type="number"
+                  min="1"
+                  placeholder="Enter number of connections"
+                  value={numberOfConnections}
+                  onChange={(e) => setNumberOfConnections(parseInt(e.target.value) || 1)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Set the maximum number of connections allowed
+                </p>
+              </div>
+
+              {/* Expiry Date Input */}
+              <div className="space-y-2">
+                <Label htmlFor="expiryDate">
+                  Expiry Date <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="expiryDate"
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]} // Today's date as minimum
+                />
+                <p className="text-xs text-muted-foreground">
+                  Select when the connections will expire
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowSettingsDialog(false);
+                    setSelectedCustomerForSettings(null);
+                    setNumberOfConnections(1);
+                    setExpiryDate("");
+                  }}
+                  disabled={savingSettings}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveCustomerSettings}
+                  disabled={savingSettings}
+                  className="interactive-button"
+                >
+                  {savingSettings ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Settings"
+                  )}
+                </Button>
               </div>
             </div>
           )}
