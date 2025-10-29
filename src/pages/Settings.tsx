@@ -476,13 +476,59 @@ export default function Settings() {
               <CreditCard className="h-5 w-5 text-secondary" />
               Billing Information
             </CardTitle>
-            <CardDescription>Manage your billing details</CardDescription>
+            <CardDescription>View your plan details and limits</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <CreditCard className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Billing management coming soon</p>
-            </div>
+          <CardContent className="space-y-4">
+            {profile?.max_connections || profile?.connections_expiry_date ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <h3 className="font-semibold text-sm mb-3 text-primary">Connection Limits</h3>
+                  <div className="space-y-3">
+                    {profile.max_connections && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Maximum Connections</span>
+                        <span className="font-semibold text-lg">{profile.max_connections}</span>
+                      </div>
+                    )}
+                    {profile.connections_expiry_date && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Expires On</span>
+                        <span className="font-semibold text-sm">
+                          {new Date(profile.connections_expiry_date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {profile.connections_expiry_date && (
+                      <div className="pt-2 border-t border-primary/10">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Days Remaining</span>
+                          <span className={`font-semibold ${
+                            Math.ceil((new Date(profile.connections_expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) <= 7
+                              ? 'text-destructive'
+                              : 'text-green-600'
+                          }`}>
+                            {Math.max(0, Math.ceil((new Date(profile.connections_expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} days
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <p>Need to increase your limits? Contact your administrator for more information.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <CreditCard className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No billing limits set</p>
+                <p className="text-xs mt-2">Contact your administrator to set up connection limits</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
