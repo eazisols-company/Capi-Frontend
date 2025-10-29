@@ -32,12 +32,16 @@ const CountriesChart: React.FC<CountriesChartProps> = ({
   
   // Commission calculation function (same logic as Dashboard)
   const calculateCommissionForSubmission = (submission: any) => {
-    // For Purchase events, deposit_amount IS the commission
+    // For Purchase events, deposit_amount IS the commission (if it exists and is non-zero)
     if (submission.custom_event_name === "Purchase") {
-      return parseFloat(submission.deposit_amount) || 0;
+      const depositAmount = parseFloat(submission.deposit_amount) || 0;
+      if (depositAmount > 0) {
+        return depositAmount;
+      }
+      // If deposit_amount is 0, fall through to connection country config
     }
     
-    // For Deposit events, use the standard logic:
+    // For Deposit events or Purchase events with 0 deposit_amount:
     // Priority 1: Use explicit commission_amount if available
     if (submission.commission_amount && typeof submission.commission_amount === 'number') {
       return submission.commission_amount;
