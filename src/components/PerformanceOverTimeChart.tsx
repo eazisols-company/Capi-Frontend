@@ -32,6 +32,13 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
     let total = 0;
     
     submissions.forEach((submission: any) => {
+      // For Purchase events, deposit_amount IS the commission
+      if (submission.custom_event_name === "Purchase") {
+        total += parseFloat(submission.deposit_amount) || 0;
+        return;
+      }
+      
+      // For Deposit events, use the standard commission logic:
       // Priority 1: Use explicit commission_amount if available
       if (submission.commission_amount && typeof submission.commission_amount === 'number') {
         total += submission.commission_amount;
@@ -99,7 +106,13 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
 
       // Calculate metrics for the day
       const submissions = dayData.length;
-      const deposits = dayData.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
+      const deposits = dayData.reduce((sum, sub) => {
+        // For Purchase events, use display_deposit_amount; for Deposit events, use deposit_amount
+        const amount = sub.custom_event_name === "Purchase" 
+          ? (parseFloat(sub.display_deposit_amount) || 0)
+          : (parseFloat(sub.deposit_amount) || 0);
+        return sum + amount;
+      }, 0);
       const commissions = calculateCommissions(dayData);
 
       performanceData.push({

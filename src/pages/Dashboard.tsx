@@ -285,7 +285,13 @@ export default function Dashboard() {
         
       // Use backend stats for accurate counts (not limited by fetch limit)
       const totalSubmissions = backendStats.total;
-      const totalDeposits = filteredSubmissions.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
+      const totalDeposits = filteredSubmissions.reduce((sum, sub) => {
+        // For Purchase events, use display_deposit_amount; for Deposit events, use deposit_amount
+        const amount = sub.custom_event_name === "Purchase" 
+          ? (parseFloat(sub.display_deposit_amount) || 0)
+          : (parseFloat(sub.deposit_amount) || 0);
+        return sum + amount;
+      }, 0);
       const depositsCount = backendStats.submitted || filteredSubmissions.filter(sub => sub.status === 'submitted').length;
       const conversionRate = totalSubmissions > 0 ? (depositsCount / totalSubmissions) * 100 : 0;
       
@@ -341,7 +347,13 @@ export default function Dashboard() {
 
         // Calculate previous period stats using backend data
         const prevTotalSubmissions = prevBackendStats.total;
-        const prevTotalDeposits = previousFilteredSubmissions.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
+        const prevTotalDeposits = previousFilteredSubmissions.reduce((sum, sub) => {
+          // For Purchase events, use display_deposit_amount; for Deposit events, use deposit_amount
+          const amount = sub.custom_event_name === "Purchase" 
+            ? (parseFloat(sub.display_deposit_amount) || 0)
+            : (parseFloat(sub.deposit_amount) || 0);
+          return sum + amount;
+        }, 0);
         const prevDepositsCount = prevBackendStats.submitted || previousFilteredSubmissions.filter(sub => sub.status === 'submitted').length;
         const prevConversionRate = prevTotalSubmissions > 0 ? (prevDepositsCount / prevTotalSubmissions) * 100 : 0;
         const prevTotalCommissions = calculateTotalCommissions(previousFilteredSubmissions);
@@ -381,6 +393,13 @@ export default function Dashboard() {
     let total = 0;
     
     submissions.forEach((submission: any) => {
+      // For Purchase events, deposit_amount IS the commission
+      if (submission.custom_event_name === "Purchase") {
+        total += parseFloat(submission.deposit_amount) || 0;
+        return;
+      }
+      
+      // For Deposit events, use the standard commission logic:
       // Priority 1: Use explicit commission_amount if available
       if (submission.commission_amount && typeof submission.commission_amount === 'number') {
         total += submission.commission_amount;
