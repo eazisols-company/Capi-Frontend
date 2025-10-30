@@ -128,8 +128,8 @@ export function SubmissionDetailsModal({
 
   const getCurrency = () => {
     // Get from submission data or connection settings
-    if (submission.currency) return submission.currency;
-    if (submission.deposit_currency) return submission.deposit_currency;
+    // if (submission.currency) return submission.currency;
+    if (submission.user_system_currency) return submission.user_system_currency;
     return 'US Dollar ($)'; // Default
   };
 

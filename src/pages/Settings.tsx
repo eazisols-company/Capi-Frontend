@@ -314,6 +314,7 @@ export default function Settings() {
               <Select
                 value={formData.system_currency}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, system_currency: value as "EUR" | "USD" }))}
+                disabled={true} // Disable changing currency after initial setup
               >
                 <SelectTrigger>
                   <SelectValue>

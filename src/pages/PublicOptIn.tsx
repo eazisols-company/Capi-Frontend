@@ -254,7 +254,7 @@ export default function PublicOptIn() {
         country_code: formData.country_code,
         country: formData.country,
         deposit_amount: depositAmount,
-        currency: formData.currency,
+        deposit_currency: formData.currency,
         source_url: window.location.href,
         user_agent: navigator.userAgent,
         ip_address: '' // Will be set by backend

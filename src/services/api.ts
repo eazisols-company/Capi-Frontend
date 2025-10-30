@@ -123,7 +123,9 @@ class ApiClient {
       postal_code?: string;
     };
   }) {
-    return this.client.put('/api/users/profile', profileData);
+    // Ensure system_currency is never sent in the payload
+    const { system_currency, ...sanitizedProfileData } = profileData as any;
+    return this.client.put('/api/users/profile', sanitizedProfileData);
   }
 
   // Connections methods

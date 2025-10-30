@@ -974,7 +974,7 @@ export default function Submissions() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                          {submission.currency || 'USD'}
+                          {submission.user_system_currency || 'USD'}
                         </Badge>
                       </TableCell>
                       <TableCell>
