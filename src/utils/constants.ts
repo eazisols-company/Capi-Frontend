@@ -154,7 +154,8 @@ export const CURRENCIES = [
  */
 export const SYSTEM_CURRENCIES = [
   { code: "USD", name: "US Dollar", symbol: "$", flagCode: "US" },
-  { code: "EUR", name: "Euro", symbol: "€", flagCode: "EU" }
+  { code: "EUR", name: "Euro", symbol: "€", flagCode: "EU" },
+  { code: "GBP", name: "British Pound", symbol: "£", flagCode: "GB" }
 ];
 
 // =============================================================================
