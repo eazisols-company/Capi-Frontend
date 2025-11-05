@@ -12,10 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DateRangePicker, DateRange } from "@/components/ui/date-range-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { 
-  Users, 
-  Search, 
-  Filter, 
+import {
+  Search,
+  Filter,
   Calendar,
   Globe,
   Mail,
@@ -29,7 +28,8 @@ import {
   Eye,
   FileSearch,
   Copy,
-  Edit
+  Edit,
+  FileText
 } from "lucide-react";
 import { FlagIcon } from 'react-flag-kit';
 import { apiClient } from "@/services/api";
@@ -678,112 +678,129 @@ export default function Submissions() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Total Submissions */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Submissions</p>
-                  <p className="text-3xl font-bold text-foreground">{stats.total || filteredCount}</p>
-                  <div className="flex items-center mt-2">
-                    <div className="flex items-center text-green-500 text-sm">
-                      <span className="mr-1">↗</span>
-                      <span>
-                        {totalCount > 0 
-                          ? Math.round(((stats.total || filteredCount) / totalCount) * 100)
-                          : 100}% of all time
-                      </span>
-                    </div>
+          <Card className="bg-card border-border transition-all duration-200" style={{ borderColor: 'transparent' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#17B75E4D'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#17B75E1A' }}>
+                    <FileText className="h-5 w-5" style={{ color: '#17B75E' }} />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Matching current filters</p>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Total</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.total || filteredCount}</p>
+                  </div>
                 </div>
-                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-green-500" />
+                <Badge variant="outline" className="text-xs">
+                  {totalCount > 0
+                    ? Math.round(((stats.total || filteredCount) / totalCount) * 100)
+                    : 100}%
+                </Badge>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">of {totalCount.toLocaleString()} all time</p>
+                <div className="w-full bg-muted/30 rounded-full h-1 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      backgroundColor: '#17B75E',
+                      width: `${totalCount > 0 ? Math.round(((stats.total || filteredCount) / totalCount) * 100) : 100}%`
+                    }}
+                  />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Pending Submissions */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {stats.pending || 0}
-                  </p>
-                  <div className="flex items-center mt-2">
-                    <div className="flex items-center text-yellow-500 text-sm">
-                      <span className="mr-1">↗</span>
-                      <span>
-                        {stats.total > 0 
-                          ? Math.round((stats.pending / stats.total) * 100)
-                          : 0}% of total
-                      </span>
-                    </div>
+          <Card className="bg-card border-border hover:border-amber-500/30 transition-all duration-200">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-amber-500" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">pending submissions</p>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Pending</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.pending || 0}</p>
+                  </div>
                 </div>
-                <div className="h-12 w-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-yellow-500" />
+                <Badge variant="outline" className="text-xs">
+                  {stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}%
+                </Badge>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">awaiting submission</p>
+                <div className="w-full bg-muted/30 rounded-full h-1 overflow-hidden">
+                  <div
+                    className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}%`
+                    }}
+                  />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Handled Submissions */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Handled</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {stats.submitted || 0}
-                  </p>
-                  <div className="flex items-center mt-2">
-                    <div className="flex items-center text-green-500 text-sm">
-                      <span className="mr-1">↗</span>
-                      <span>
-                        {stats.total > 0 
-                          ? Math.round((stats.submitted / stats.total) * 100)
-                          : 0}% of total
-                      </span>
-                    </div>
+          <Card className="bg-card border-border hover:border-emerald-500/30 transition-all duration-200">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 text-emerald-500" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">handled submissions</p>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Handled</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.submitted || 0}</p>
+                  </div>
                 </div>
-                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-green-500" />
+                <Badge variant="outline" className="text-xs">
+                  {stats.total > 0 ? Math.round((stats.submitted / stats.total) * 100) : 0}%
+                </Badge>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">successfully submitted</p>
+                <div className="w-full bg-muted/30 rounded-full h-1 overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.total > 0 ? Math.round((stats.submitted / stats.total) * 100) : 0}%`
+                    }}
+                  />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Canceled Submissions */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Canceled</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {stats.failed || 0}
-                  </p>
-                  <div className="flex items-center mt-2">
-                    <div className="flex items-center text-red-500 text-sm">
-                      <span className="mr-1">↗</span>
-                      <span>
-                        {stats.total > 0 
-                          ? Math.round((stats.failed / stats.total) * 100)
-                          : 0}% of total
-                      </span>
-                    </div>
+          <Card className="bg-card border-border hover:border-rose-500/30 transition-all duration-200">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                    <XCircle className="h-5 w-5 text-rose-500" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">canceled submissions</p>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Canceled</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.failed || 0}</p>
+                  </div>
                 </div>
-                <div className="h-12 w-12 rounded-lg bg-red-500/10 flex items-center justify-center">
-                  <XCircle className="h-6 w-6 text-red-500" />
+                <Badge variant="outline" className="text-xs">
+                  {stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}%
+                </Badge>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">failed submissions</p>
+                <div className="w-full bg-muted/30 rounded-full h-1 overflow-hidden">
+                  <div
+                    className="h-full bg-rose-500 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}%`
+                    }}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -888,7 +905,7 @@ export default function Submissions() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
+            <FileText className="h-5 w-5 text-primary" />
             {/* Submissions ({filteredSubmissions.length}) */}
             Submissions
           </CardTitle>
@@ -1053,7 +1070,7 @@ export default function Submissions() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-semibold text-foreground mb-2">No submissions found</h3>
               <p className="text-muted-foreground">
                 {searchTerm || statusFilter !== "all" || countryFilter !== "all" || connectionFilter !== "all" || eventFilter !== "all" || timeFilter !== "all"
