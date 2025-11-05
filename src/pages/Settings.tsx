@@ -480,7 +480,7 @@ export default function Settings() {
             <CardDescription>View your plan details and limits</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {profile?.max_connections || profile?.connections_expiry_date ? (
+            {profile?.max_connections || profile?.connections_expiry_date || profile?.connections_start_date ? (
               <div className="space-y-4">
                 <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
                   <h3 className="font-semibold text-sm mb-3 text-primary">Connection Limits</h3>
@@ -489,6 +489,18 @@ export default function Settings() {
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Maximum Connections</span>
                         <span className="font-semibold text-lg">{profile.max_connections}</span>
+                      </div>
+                    )}
+                    {profile.connections_start_date && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Start Date</span>
+                        <span className="font-semibold text-sm">
+                          {new Date(profile.connections_start_date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </span>
                       </div>
                     )}
                     {profile.connections_expiry_date && (
@@ -512,7 +524,7 @@ export default function Settings() {
                               ? 'text-destructive'
                               : 'text-green-600'
                           }`}>
-                            {Math.max(0, Math.ceil((new Date(profile.connections_expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} days
+                            {Math.max(0, Math.ceil((new Date(profile.connections_expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))-1)} days
                           </span>
                         </div>
                       </div>

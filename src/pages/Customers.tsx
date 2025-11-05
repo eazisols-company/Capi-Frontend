@@ -12,13 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  Plus, 
-  User, 
-  Mail, 
+import {
+  Users,
+  Search,
+  Filter,
+  Plus,
+  User,
+  Mail,
   Calendar,
   ChevronLeft,
   ChevronRight,
@@ -44,6 +44,7 @@ interface Customer {
   block_login?: boolean;
   max_connections?: number;
   connections_expiry_date?: string;
+  connections_start_date?: string;
 }
 
 interface CustomersResponse {
@@ -69,13 +70,14 @@ export default function Customers() {
   const [updatingCustomerId, setUpdatingCustomerId] = useState<string | null>(null);
   const [blockingCustomerId, setBlockingCustomerId] = useState<string | null>(null);
   const [deletingCustomerId, setDeletingCustomerId] = useState<string | null>(null);
-  
-// Add these new states for the Settings modal
-const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-const [selectedCustomerForSettings, setSelectedCustomerForSettings] = useState<Customer | null>(null);
-const [numberOfConnections, setNumberOfConnections] = useState<number>(1);
-const [expiryDate, setExpiryDate] = useState<string>("");
-const [savingSettings, setSavingSettings] = useState(false);
+
+  // Add these new states for the Settings modal
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [selectedCustomerForSettings, setSelectedCustomerForSettings] = useState<Customer | null>(null);
+  const [numberOfConnections, setNumberOfConnections] = useState<number>(1);
+  const [expiryDate, setExpiryDate] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [savingSettings, setSavingSettings] = useState(false);
 
 
   // Pagination state
@@ -83,16 +85,16 @@ const [savingSettings, setSavingSettings] = useState(false);
   const [perPage, setPerPage] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCustomers, setTotalCustomers] = useState(0);
-  
+
   // Search debounce
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const handleSaveCustomerSettings = async () => {
     if (!selectedCustomerForSettings) return;
-    
+
     try {
       setSavingSettings(true);
-      
+
       // Validation
       if (!numberOfConnections || numberOfConnections < 1) {
         toast({
@@ -102,7 +104,7 @@ const [savingSettings, setSavingSettings] = useState(false);
         });
         return;
       }
-      
+
       if (!expiryDate) {
         toast({
           title: "Validation Error",
@@ -111,45 +113,61 @@ const [savingSettings, setSavingSettings] = useState(false);
         });
         return;
       }
-      
-      // Convert date to ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
+
+      if (!startDate) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a start date",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Convert dates to ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
       const expiryDateTime = new Date(expiryDate);
       // Set time to end of day (23:59:59)
       expiryDateTime.setHours(23, 59, 59, 999);
       const isoExpiryDate = expiryDateTime.toISOString();
-      
+
+      const startDateTime = new Date(startDate);
+      // Set time to start of day (00:00:00)
+      startDateTime.setHours(0, 0, 0, 0);
+      const isoStartDate = startDateTime.toISOString();
+
       // Call API to update customer limits
       const response = await apiClient.updateCustomerLimits(
         selectedCustomerForSettings._id,
         {
           max_connections: numberOfConnections,
-          connections_expiry_date: isoExpiryDate
+          connections_expiry_date: isoExpiryDate,
+          connections_start_date: isoStartDate
         }
       );
-      
+
       const { customer, current_connections_count } = response.data;
-      
+
       toast({
         title: "Success",
         description: `Settings updated for ${selectedCustomerForSettings.first_name} ${selectedCustomerForSettings.last_name}. Current connections: ${current_connections_count}/${numberOfConnections}`,
         variant: "default"
       });
-      
+
       // Close modal and reset form
       setShowSettingsDialog(false);
       setSelectedCustomerForSettings(null);
       setNumberOfConnections(1);
       setExpiryDate("");
-      
+      setStartDate("");
+
       // Optionally refresh customers list
       fetchCustomers();
-      
+
     } catch (error: any) {
       console.error('Error saving customer settings:', error);
-      const errorMessage = error?.response?.data?.error || 
-                          error?.response?.data?.message || 
-                          "Failed to save customer settings";
-      
+      const errorMessage = error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to save customer settings";
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -198,7 +216,7 @@ const [savingSettings, setSavingSettings] = useState(false);
 
       const response = await apiClient.getCustomers(params);
       const data: CustomersResponse = response.data;
-      
+
       const nonAdminCustomers = data.customers.filter(customer => customer.admin !== 'true');
       setCustomers(nonAdminCustomers);
 
@@ -206,16 +224,16 @@ const [savingSettings, setSavingSettings] = useState(false);
       setTotalCustomers(data.customers.length);
     } catch (error: any) {
       console.error('Error fetching customers:', error);
-      const errorMessage = error?.response?.data?.error || 
-                          error?.response?.data?.message || 
-                          "Failed to fetch customers";
-      
+      const errorMessage = error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to fetch customers";
+
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive"
       });
-      
+
       // Set empty state on error
       setCustomers([]);
       setTotalPages(1);
@@ -227,7 +245,7 @@ const [savingSettings, setSavingSettings] = useState(false);
 
   // Since search is now handled by the API, we only need to filter by verified status on the client side
   const filteredCustomers = customers.filter(customer => {
-    const matchesVerified = verifiedFilter === "all" || 
+    const matchesVerified = verifiedFilter === "all" ||
       (verifiedFilter === "verified" && customer.verified) ||
       (verifiedFilter === "unverified" && !customer.verified);
     return matchesVerified;
@@ -269,7 +287,7 @@ const [savingSettings, setSavingSettings] = useState(false);
     try {
       // Get customer session data
       const result = await loginAsCustomer(customer._id);
-      
+
       if (result.error) {
         toast({
           title: "Error",
@@ -278,32 +296,32 @@ const [savingSettings, setSavingSettings] = useState(false);
         });
         return;
       }
-      
+
       // Type assertion since we know data exists if no error
       console.log('API Response data:', (result as { data: any; error: null }).data);
       const { access_token, customer: customerUser } = (result as { data: any; error: null }).data;
       console.log('Extracted customerUser:', customerUser);
-      
+
       // Store customer session data temporarily for new tab
       const tempSessionData = {
         access_token,
         user: customerUser, // customerUser is already the customer object from API
         timestamp: Date.now()
       };
-      
+
       // Store in sessionStorage (cleared when tab closes) with unique key
       const sessionKey = `temp_customer_session_${Date.now()}`;
       sessionStorage.setItem(sessionKey, JSON.stringify(tempSessionData));
-      
+
       console.log('Stored temp session data:', {
         sessionKey,
         customerEmail: customerUser.email,
         hasToken: !!access_token
       });
-      
+
       // Open new tab with session key
       window.open(`/dashboard?temp_session=${sessionKey}`, "_blank");
-      
+
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to login as customer";
       toast({
@@ -317,30 +335,30 @@ const [savingSettings, setSavingSettings] = useState(false);
   const handleUpdateVerificationStatus = async (customerId: string) => {
     try {
       setUpdatingCustomerId(customerId);
-      
+
       await apiClient.updateVerificationStatus(customerId);
-      
+
       // Update the customer's verification status in the local state
-      setCustomers(prevCustomers => 
-        prevCustomers.map(customer => 
-          customer._id === customerId 
+      setCustomers(prevCustomers =>
+        prevCustomers.map(customer =>
+          customer._id === customerId
             ? { ...customer, verified: true }
             : customer
         )
       );
-      
+
       toast({
         title: "Success",
         description: "Customer verification status updated successfully",
         variant: "default"
       });
-      
+
     } catch (error: any) {
       console.error('Error updating verification status:', error);
-      const errorMessage = error?.response?.data?.error || 
-                          error?.response?.data?.message || 
-                          "Failed to update verification status";
-      
+      const errorMessage = error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to update verification status";
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -354,32 +372,32 @@ const [savingSettings, setSavingSettings] = useState(false);
   const handleBlockUnblockCustomer = async (customerId: string) => {
     try {
       setBlockingCustomerId(customerId);
-      
+
       const response = await apiClient.blockUnblockCustomer(customerId);
       const { customer } = response.data;
-      
+
       // Update the customer's block status in the local state
-      setCustomers(prevCustomers => 
-        prevCustomers.map(customerItem => 
-          customerItem._id === customerId 
+      setCustomers(prevCustomers =>
+        prevCustomers.map(customerItem =>
+          customerItem._id === customerId
             ? { ...customerItem, block_login: customer.block_login }
             : customerItem
         )
       );
-      
+
       const action = customer.block_login ? "blocked" : "unblocked";
       toast({
         title: "Success",
         description: `Customer has been ${action} successfully`,
         variant: "default"
       });
-      
+
     } catch (error: any) {
       console.error('Error blocking/unblocking customer:', error);
-      const errorMessage = error?.response?.data?.error || 
-                          error?.response?.data?.message || 
-                          "Failed to update customer access";
-      
+      const errorMessage = error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to update customer access";
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -393,30 +411,30 @@ const [savingSettings, setSavingSettings] = useState(false);
   const handleDeleteCustomer = async (customerId: string) => {
     try {
       setDeletingCustomerId(customerId);
-      
+
       const response = await apiClient.deleteCustomer(customerId);
       const { message, deleted } = response.data;
-      
+
       // Remove the customer from the local state
-      setCustomers(prevCustomers => 
+      setCustomers(prevCustomers =>
         prevCustomers.filter(customer => customer._id !== customerId)
       );
-      
+
       toast({
         title: "Customer Deleted",
         description: `Successfully deleted customer. Removed ${deleted.user} user, ${deleted.opt_in_settings} opt-in settings, ${deleted.connections} connections, and ${deleted.submissions} submissions.`,
         variant: "default"
       });
-      
+
       // Refresh the customers list to update counts
       fetchCustomers();
-      
+
     } catch (error: any) {
       console.error('Error deleting customer:', error);
-      const errorMessage = error?.response?.data?.error || 
-                          error?.response?.data?.message || 
-                          "Failed to delete customer";
-      
+      const errorMessage = error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to delete customer";
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -473,7 +491,7 @@ const [savingSettings, setSavingSettings] = useState(false);
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Verified Customers</CardTitle>
@@ -488,7 +506,7 @@ const [savingSettings, setSavingSettings] = useState(false);
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unverified Customers</CardTitle>
@@ -503,7 +521,7 @@ const [savingSettings, setSavingSettings] = useState(false);
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">New This Month</CardTitle>
@@ -752,29 +770,38 @@ const [savingSettings, setSavingSettings] = useState(false);
                             </Tooltip>
                           </TooltipProvider>
                           <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedCustomerForSettings(customer);
-                                // Set existing values or defaults
-                                setNumberOfConnections(customer.max_connections || 1);
-                                
-                                // Format expiry date for input field (YYYY-MM-DD)
-                                if (customer.connections_expiry_date) {
-                                  const expiryDate = new Date(customer.connections_expiry_date);
-                                  const formattedDate = expiryDate.toISOString().split('T')[0];
-                                  setExpiryDate(formattedDate);
-                                } else {
-                                  setExpiryDate("");
-                                }
-                                
-                                setShowSettingsDialog(true);
-                              }}
-                              className="interactive-button"
-                            >
-                              <Settings className="h-3 w-3 mr-1" />
-                              Settings
-                            </Button>
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCustomerForSettings(customer);
+                              // Set existing values or defaults
+                              setNumberOfConnections(customer.max_connections || 1);
+
+                              // Format start date for input field (YYYY-MM-DD)
+                              if (customer.connections_start_date) {
+                                const startDate = new Date(customer.connections_start_date);
+                                const formattedStartDate = startDate.toISOString().split('T')[0];
+                                setStartDate(formattedStartDate);
+                              } else {
+                                setStartDate("");
+                              }
+
+                              // Format expiry date for input field (YYYY-MM-DD)
+                              if (customer.connections_expiry_date) {
+                                const expiryDate = new Date(customer.connections_expiry_date);
+                                const formattedDate = expiryDate.toISOString().split('T')[0];
+                                setExpiryDate(formattedDate);
+                              } else {
+                                setExpiryDate("");
+                              }
+
+                              setShowSettingsDialog(true);
+                            }}
+                            className="interactive-button"
+                          >
+                            <Settings className="h-3 w-3 mr-1" />
+                            Settings
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -830,8 +857,8 @@ const [savingSettings, setSavingSettings] = useState(false);
           )}
         </DialogContent>
       </Dialog>
-{/* Customer Settings Dialog */}
-<Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+      {/* Customer Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Customer Settings</DialogTitle>
@@ -847,13 +874,16 @@ const [savingSettings, setSavingSettings] = useState(false);
                   {selectedCustomerForSettings.email}
                 </p>
                 {selectedCustomerForSettings.max_connections && (
-    <p className="text-xs text-muted-foreground mt-2">
-      <span className="font-medium">Current Limits:</span> {selectedCustomerForSettings.max_connections} connections
-      {selectedCustomerForSettings.connections_expiry_date && (
-        <> • Expires: {new Date(selectedCustomerForSettings.connections_expiry_date).toLocaleDateString()}</>
-      )}
-    </p>
-  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <span className="font-medium">Current Limits:</span> {selectedCustomerForSettings.max_connections} connections
+                    {selectedCustomerForSettings.connections_start_date && (
+                      <> • Starts: {new Date(selectedCustomerForSettings.connections_start_date).toLocaleDateString()}</>
+                    )}
+                    {selectedCustomerForSettings.connections_expiry_date && (
+                      <> • Expires: {new Date(selectedCustomerForSettings.connections_expiry_date).toLocaleDateString()}</>
+                    )}
+                  </p>
+                )}
               </div>
 
               {/* Number of Connections Input */}
@@ -874,6 +904,23 @@ const [savingSettings, setSavingSettings] = useState(false);
                 </p>
               </div>
 
+              {/* Start Date Input */}
+              <div className="space-y-2">
+                <Label htmlFor="startDate">
+                  Start Date <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]} // Today's date as minimum
+                />
+                <p className="text-xs text-muted-foreground">
+                  Select when the connections will start
+                </p>
+              </div>
+
               {/* Expiry Date Input */}
               <div className="space-y-2">
                 <Label htmlFor="expiryDate">
@@ -884,7 +931,7 @@ const [savingSettings, setSavingSettings] = useState(false);
                   type="date"
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]} // Today's date as minimum
+                  min={startDate || new Date().toISOString().split('T')[0]} // Start date or today's date as minimum
                 />
                 <p className="text-xs text-muted-foreground">
                   Select when the connections will expire
@@ -900,6 +947,7 @@ const [savingSettings, setSavingSettings] = useState(false);
                     setSelectedCustomerForSettings(null);
                     setNumberOfConnections(1);
                     setExpiryDate("");
+                    setStartDate("");
                   }}
                   disabled={savingSettings}
                 >

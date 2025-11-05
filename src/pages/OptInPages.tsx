@@ -1446,8 +1446,18 @@ export default function OptInPages() {
 
       {/* Bottom Save Buttons */}
       <div className="flex justify-end gap-3">
-        <Button 
-          onClick={() => {
+        {selectedConnectionId && connections.find(c => c._id === selectedConnectionId)?.optin_page_url && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(connections.find(c => c._id === selectedConnectionId)?.optin_page_url, '_blank')}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            View Live Page
+          </Button>
+        )}
+          <Button 
+            onClick={() => {
             setFormData({
               connection_id: selectedConnectionId,
               primary_color: "#E16A14",
