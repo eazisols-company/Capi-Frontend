@@ -14,10 +14,20 @@ import { apiClient } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { getCurrencySymbol } from "@/lib/utils";
 import { FONT_OPTIONS, COUNTRY_CODES, CURRENCIES, getCountryFlagCode } from "@/utils/constants";
+import { getMetaCookies } from "@/utils/metaCookies";
+
+// Declare Meta Pixel fbq function on window object
+declare global {
+  interface Window {
+    fbq?: (action: string, eventName: string, params?: Record<string, unknown>) => void;
+    _fbq?: Window['fbq'];
+  }
+}
 
 interface OptInSettings {
   connection_id: string;
   user_id: string;
+  pixel_id: string; // pixel_id is at root level, not inside connection
   expiry_date?: string;
   settings: {
     primary_color: string;
@@ -126,6 +136,70 @@ export default function PublicOptIn() {
       updateFavicon();
     }
   }, [optInData?.settings?.logo_url]);
+
+  // Dynamic Meta Pixel script injection
+  useEffect(() => {
+    console.log('[Meta Pixel] useEffect triggered, optInData:', optInData);
+    console.log('[Meta Pixel] Pixel ID:', optInData?.pixel_id);
+
+    if (!optInData?.pixel_id) {
+      console.log('[Meta Pixel] No pixel_id found, aborting initialization');
+      return;
+    }
+
+    const pixelId = optInData.pixel_id;
+    console.log('[Meta Pixel] Initializing with Pixel ID:', pixelId);
+
+    // Check if Meta Pixel script is already loaded
+    if (window.fbq) {
+      console.log('[Meta Pixel] Script already loaded, reinitializing...');
+      window.fbq('init', pixelId);
+      window.fbq('track', 'PageView');
+      return;
+    }
+
+    // Create and inject Meta Pixel script
+    const script = document.createElement('script');
+    script.id = 'meta-pixel-script';
+    script.innerHTML = `
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '${pixelId}');
+      fbq('track', 'PageView');
+      console.log('[Meta Pixel] Script loaded and PageView tracked');
+    `;
+    document.head.appendChild(script);
+    console.log('[Meta Pixel] Script injected into DOM');
+
+    // Add noscript fallback
+    const noscript = document.createElement('noscript');
+    noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1" />`;
+    document.body.appendChild(noscript);
+
+    // Wait for pixel to initialize and check cookies
+    setTimeout(() => {
+      const fbpCookie = document.cookie.match(new RegExp('(^| )_fbp=([^;]+)'));
+      const fbcCookie = document.cookie.match(new RegExp('(^| )_fbc=([^;]+)'));
+      console.log('[Meta Pixel] Cookies after initialization:', {
+        fbp: fbpCookie ? fbpCookie[2] : 'not set',
+        fbc: fbcCookie ? fbcCookie[2] : 'not set'
+      });
+    }, 2000);
+
+    // Cleanup function to remove script when component unmounts
+    return () => {
+      const pixelScript = document.getElementById('meta-pixel-script');
+      if (pixelScript) {
+        pixelScript.remove();
+      }
+    };
+  }, [optInData?.pixel_id]);
 
   const fetchOptInSettings = async () => {
     try {
@@ -245,6 +319,30 @@ export default function PublicOptIn() {
         }
       }
 
+      // Fire Lead event to Meta Pixel
+      if (window.fbq) {
+        window.fbq('track', 'Lead', {
+          content_name: 'Lead Submission',
+          value: depositAmount,
+          currency: formData.currency
+        });
+        console.log('[Meta Pixel] Lead event tracked');
+      }
+
+      // Capture Meta Pixel tracking cookies with retry logic
+      let { fbp, fbc } = getMetaCookies();
+
+      // If cookies are not available, wait a bit and retry (pixel might still be initializing)
+      if (!fbp) {
+        console.log('[Meta Pixel] Cookies not found, retrying in 500ms...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const retry = getMetaCookies();
+        fbp = retry.fbp;
+        fbc = retry.fbc;
+      }
+
+      console.log('[Meta Pixel] Captured cookies for submission:', { fbp, fbc });
+
       const submissionData = {
         connection_id: optInData.connection_id,
         first_name: formData.first_name,
@@ -257,7 +355,9 @@ export default function PublicOptIn() {
         deposit_currency: formData.currency,
         source_url: window.location.href,
         user_agent: navigator.userAgent,
-        ip_address: '' // Will be set by backend
+        ip_address: '', // Will be set by backend
+        fbp: fbp,
+        fbc: fbc
       };
 
       const response = await apiClient.createPublicSubmission(submissionData);

@@ -322,9 +322,12 @@ class ApiClient {
     country_code: string;
     country: string;
     deposit_amount: number;
+    deposit_currency?: string;
     source_url?: string;
     user_agent?: string;
     ip_address?: string;
+    fbp?: string | null;
+    fbc?: string | null;
   }) {
     // Create a new client instance without auth headers for public endpoints
     const publicClient = axios.create({
