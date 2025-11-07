@@ -28,6 +28,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatDateDetailed } from "@/lib/timezone-utils";
+import { SYSTEM_CURRENCIES } from "@/utils/constants";
 
 interface SubmissionDetailsModalProps {
   submission: any;
@@ -131,6 +132,21 @@ export function SubmissionDetailsModal({
     // if (submission.currency) return submission.currency;
     if (submission.user_system_currency) return submission.user_system_currency;
     return 'US Dollar ($)'; // Default
+  };
+
+  const getCurrencySymbol = () => {
+    // Get currency from submission data
+    const userCurrency = submission.user_system_currency || '';
+    
+    // Try to find matching currency in SYSTEM_CURRENCIES
+    // Support matching by code, name, or partial string match
+    const currencyMatch = SYSTEM_CURRENCIES.find(currency => 
+      userCurrency.toUpperCase().includes(currency.code) || 
+      userCurrency.toLowerCase().includes(currency.name.toLowerCase())
+    );
+    
+    // Return the symbol if found, otherwise default to dollar
+    return currencyMatch?.symbol || '$';
   };
 
   const getDuration = () => {
@@ -359,14 +375,14 @@ export function SubmissionDetailsModal({
                 {/* Financial Details */}
                 <div>
                   <h4 className="font-medium mb-4 flex items-center gap-2">
-                    <span className="text-green-600">$</span>
+                    <span className="text-green-600">{getCurrencySymbol()}</span>
                     Financial Details
                   </h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm text-muted-foreground">Deposit Amount</label>
                       <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                        <span className="text-sm font-medium">${submission.display_deposit_amount}</span>
+                        <span className="text-sm font-medium">{getCurrencySymbol()}{submission.display_deposit_amount}</span>
                       </div>
                     </div>
                     <div>
