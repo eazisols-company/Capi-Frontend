@@ -16,6 +16,38 @@ interface User {
   admin?: boolean;
 }
 
+interface LoggedInCustomerInfo {
+  id: string;
+  email: string;
+  name: string;
+}
+
+const extractLoggedInCustomerInfo = (rawCustomer: any): LoggedInCustomerInfo | null => {
+  if (!rawCustomer) {
+    return null;
+  }
+
+  const customerId: string | undefined = rawCustomer?._id || rawCustomer?.id || rawCustomer?.account_id;
+
+  if (!customerId) {
+    return null;
+  }
+
+  const email: string = typeof rawCustomer?.email === 'string' ? rawCustomer.email : '';
+  const firstName: string = typeof rawCustomer?.first_name === 'string' ? rawCustomer.first_name : '';
+  const lastName: string = typeof rawCustomer?.last_name === 'string' ? rawCustomer.last_name : '';
+  const nameField: string = typeof rawCustomer?.name === 'string' ? rawCustomer.name : '';
+
+  const fullName = `${firstName} ${lastName}`.trim();
+  const name = fullName || nameField || email || customerId;
+
+  return {
+    id: customerId,
+    email,
+    name,
+  };
+};
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -33,7 +65,7 @@ interface AuthContextType {
   isImpersonating: boolean;
   originalAdminUser: User | null;
   isCustomerLoggedIn: boolean;
-  getLoggedInCustomerInfo: () => { email: string; name: string } | null;
+  getLoggedInCustomerInfo: () => LoggedInCustomerInfo | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -421,16 +453,84 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Check if admin already has a customer session active
       if (localStorage.getItem('admin_has_customer_session') === 'true') {
-        return { 
-          data: null, 
-          error: { 
-            message: 'You already have a customer session active. Please logout the current customer first.' 
-          } 
+        try {
+          const storedCustomer = localStorage.getItem('customer_user');
+          const storedToken = localStorage.getItem('customer_access_token');
+          const storedAdminInfo = localStorage.getItem('admin_logged_in_customer_info');
+          const storedAdminRaw = localStorage.getItem('admin_logged_in_customer_raw');
+
+          if (storedCustomer) {
+            const parsedCustomer = JSON.parse(storedCustomer);
+            const existingCustomerId: string | undefined = parsedCustomer?._id || parsedCustomer?.id || parsedCustomer?.account_id;
+
+            if (existingCustomerId && existingCustomerId === customerId && storedToken) {
+              const info = extractLoggedInCustomerInfo(parsedCustomer);
+              if (info) {
+                localStorage.setItem('admin_logged_in_customer_info', JSON.stringify(info));
+              }
+              localStorage.setItem('admin_logged_in_customer_raw', storedCustomer);
+
+              return {
+                data: {
+                  access_token: storedToken,
+                  customer: parsedCustomer,
+                },
+                error: null,
+              };
+            }
+          }
+
+          if (storedAdminInfo && storedToken) {
+            try {
+              const parsedInfo: LoggedInCustomerInfo = JSON.parse(storedAdminInfo);
+              if (parsedInfo.id === customerId) {
+                let customerPayload: any = parsedInfo;
+                if (storedAdminRaw) {
+                  try {
+                    const parsedRaw = JSON.parse(storedAdminRaw);
+                    if (parsedRaw && (parsedRaw._id || parsedRaw.id || parsedRaw.account_id)) {
+                      customerPayload = parsedRaw;
+                    }
+                  } catch (rawError) {
+                    console.warn('Unable to parse stored admin customer raw data:', rawError);
+                  }
+                }
+
+                return {
+                  data: {
+                    access_token: storedToken,
+                    customer: customerPayload,
+                  },
+                  error: null,
+                };
+              }
+            } catch (infoError) {
+              console.warn('Unable to parse stored admin customer info:', infoError);
+            }
+          }
+        } catch (reuseError) {
+          console.warn('Unable to reuse existing customer session:', reuseError);
+        }
+
+        return {
+          data: null,
+          error: {
+            message: 'You already have a customer session active. Please logout the current customer first.'
+          }
         };
       }
 
       // Get customer data and create a temporary session
       const response = await apiClient.loginAsCustomer(customerId);
+      const responseData = response.data;
+      const info = extractLoggedInCustomerInfo(responseData?.customer);
+
+      if (info) {
+        localStorage.setItem('admin_logged_in_customer_info', JSON.stringify(info));
+      }
+      if (responseData?.customer) {
+        localStorage.setItem('admin_logged_in_customer_raw', JSON.stringify(responseData.customer));
+      }
       
       // Mark that admin has an active customer session
       localStorage.setItem('admin_has_customer_session', 'true');
@@ -483,6 +583,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.removeItem('customer_user');
       sessionStorage.removeItem('is_customer_session');
       localStorage.removeItem('admin_has_customer_session');
+      localStorage.removeItem('admin_logged_in_customer_info');
+      localStorage.removeItem('admin_logged_in_customer_raw');
       setHasActiveCustomerSession(false);
       
       // Clear current user state
@@ -515,21 +617,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Get logged in customer info (from admin's perspective)
   const getLoggedInCustomerInfo = () => {
-    // Check if admin has an active customer session
-    if (hasActiveCustomerSession) {
-      const customerUser = localStorage.getItem('customer_user');
-      if (customerUser) {
-        try {
-          const user = JSON.parse(customerUser);
-          return {
-            email: user.email,
-            name: `${user.first_name} ${user.last_name}`
-          };
-        } catch (error) {
-          return null;
+    if (!hasActiveCustomerSession) {
+      return null;
+    }
+
+    const customerUser = localStorage.getItem('customer_user');
+    if (customerUser) {
+      try {
+        const rawCustomer = JSON.parse(customerUser);
+        const info = extractLoggedInCustomerInfo(rawCustomer);
+        if (info) {
+          localStorage.setItem('admin_logged_in_customer_info', JSON.stringify(info));
+          localStorage.setItem('admin_logged_in_customer_raw', JSON.stringify(rawCustomer));
+          return info;
         }
+      } catch (error) {
+        console.warn('Unable to parse customer_user for logged in info:', error);
       }
     }
+
+    const storedAdminInfo = localStorage.getItem('admin_logged_in_customer_info');
+    if (storedAdminInfo) {
+      try {
+        return JSON.parse(storedAdminInfo) as LoggedInCustomerInfo;
+      } catch (error) {
+        console.warn('Unable to parse admin_logged_in_customer_info:', error);
+        localStorage.removeItem('admin_logged_in_customer_info');
+        localStorage.removeItem('admin_logged_in_customer_raw');
+      }
+    }
+
     return null;
   };
 

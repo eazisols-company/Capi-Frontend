@@ -89,6 +89,8 @@ export default function Customers() {
   // Search debounce
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  const loggedInCustomerInfo = getLoggedInCustomerInfo();
+
   const handleSaveCustomerSettings = async () => {
     if (!selectedCustomerForSettings) return;
 
@@ -618,194 +620,219 @@ export default function Customers() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCustomers.map((customer) => (
-                    <TableRow key={customer._id}>
-                      <TableCell>
-                        <div className="font-mono text-sm">
-                          {customer.account_id}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">
-                          {customer.first_name} {customer.last_name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center text-sm">
-                          <Mail className="h-3 w-3 mr-1" />
-                          {customer.email}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getVerifiedBadge(customer.verified)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={!customer.block_login}
-                            onCheckedChange={() => handleBlockUnblockCustomer(customer._id)}
-                            disabled={blockingCustomerId === customer._id}
-                            className="data-[state=checked]:bg-green-600"
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {customer.block_login ? "Blocked" : "Active"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center text-sm">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {formatDate(customer.created_at)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          {/* <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedCustomer(customer);
-                              setShowCustomerDialog(true);
-                            }}
-                            className="interactive-button"
-                          >
-                            <User className="h-3 w-3 mr-1" />
-                            View Details
-                          </Button> */}
-                          {!customer.verified && (
-                            <Button
+                  filteredCustomers.map((customer) => {
+                    const isCurrentCustomerLoggedIn = loggedInCustomerInfo?.id === customer._id;
+                    const isViewAsDisabled = isCustomerLoggedIn && !isCurrentCustomerLoggedIn;
+                    const viewAsTooltipContent = (() => {
+                      if (isViewAsDisabled) {
+                        return (
+                          <>
+                            <p>1 customer is already logged in. You need to logout that customer first.</p>
+                            {loggedInCustomerInfo && (
+                              <p className="text-xs mt-1 text-muted-foreground">
+                                Currently logged in: {loggedInCustomerInfo.name}
+                              </p>
+                            )}
+                          </>
+                        );
+                      }
+
+                      if (isCurrentCustomerLoggedIn) {
+                        return (
+                          <>
+                            <p>You are currently logged in as this customer.</p>
+                            <p className="text-xs mt-1 text-muted-foreground">Click to reopen their session.</p>
+                          </>
+                        );
+                      }
+
+                      return null;
+                    })();
+
+                    return (
+                      <TableRow key={customer._id}>
+                        <TableCell>
+                          <div className="font-mono text-sm">
+                            {customer.account_id}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">
+                            {customer.first_name} {customer.last_name}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center text-sm">
+                            <Mail className="h-3 w-3 mr-1" />
+                            {customer.email}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {getVerifiedBadge(customer.verified)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              checked={!customer.block_login}
+                              onCheckedChange={() => handleBlockUnblockCustomer(customer._id)}
+                              disabled={blockingCustomerId === customer._id}
+                              className="data-[state=checked]:bg-green-600"
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {customer.block_login ? "Blocked" : "Active"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center text-sm">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {formatDate(customer.created_at)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            {/* <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleUpdateVerificationStatus(customer._id)}
-                              disabled={updatingCustomerId === customer._id}
+                              onClick={() => {
+                                setSelectedCustomer(customer);
+                                setShowCustomerDialog(true);
+                              }}
                               className="interactive-button"
                             >
-                              {updatingCustomerId === customer._id ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-1"></div>
-                                  Updating...
-                                </>
-                              ) : (
-                                <>
-                                  <User className="h-3 w-3 mr-1" />
-                                  Update Status
-                                </>
-                              )}
-                            </Button>
-                          )}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
+                              <User className="h-3 w-3 mr-1" />
+                              View Details
+                            </Button> */}
+                            {!customer.verified && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={deletingCustomerId === customer._id}
-                                className="interactive-button text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleUpdateVerificationStatus(customer._id)}
+                                disabled={updatingCustomerId === customer._id}
+                                className="interactive-button"
                               >
-                                {deletingCustomerId === customer._id ? (
+                                {updatingCustomerId === customer._id ? (
                                   <>
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-destructive mr-1"></div>
-                                    Deleting...
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-1"></div>
+                                    Updating...
                                   </>
                                 ) : (
                                   <>
-                                    <Trash2 className="h-3 w-3 mr-1" />
-                                    Delete
+                                    <User className="h-3 w-3 mr-1" />
+                                    Update Status
                                   </>
                                 )}
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. Deleting this customer will permanently remove:
-                                  <ul className="list-disc list-inside mt-2 space-y-1">
-                                    <li>The user account</li>
-                                    <li>All opt-in settings</li>
-                                    <li>All connections</li>
-                                    <li>All submissions</li>
-                                  </ul>
-                                  <p className="mt-2 font-semibold">
-                                    Customer: {customer.first_name} {customer.last_name} ({customer.email})
-                                  </p>
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteCustomer(customer._id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            )}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={deletingCustomerId === customer._id}
+                                  className="interactive-button text-destructive hover:text-destructive hover:bg-destructive/10"
                                 >
-                                  Delete Customer
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="inline-block">
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => handleLoginAsCustomer(customer)}
-                                    disabled={isCustomerLoggedIn}
-                                    className="interactive-button bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    <User className="h-3 w-3 mr-1" />
-                                    View As
-                                  </Button>
-                                </span>
-                              </TooltipTrigger>
-                              {isCustomerLoggedIn && (
-                                <TooltipContent>
-                                  <p>1 customer is already logged in. You need to logout that customer first.</p>
-                                  {getLoggedInCustomerInfo() && (
-                                    <p className="text-xs mt-1 text-muted-foreground">
-                                      Currently logged in: {getLoggedInCustomerInfo()?.name}
-                                    </p>
+                                  {deletingCustomerId === customer._id ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-destructive mr-1"></div>
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="h-3 w-3 mr-1" />
+                                      Delete
+                                    </>
                                   )}
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedCustomerForSettings(customer);
-                              // Set existing values or defaults
-                              setNumberOfConnections(customer.max_connections || 1);
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. Deleting this customer will permanently remove:
+                                    <ul className="list-disc list-inside mt-2 space-y-1">
+                                      <li>The user account</li>
+                                      <li>All opt-in settings</li>
+                                      <li>All connections</li>
+                                      <li>All submissions</li>
+                                    </ul>
+                                    <p className="mt-2 font-semibold">
+                                      Customer: {customer.first_name} {customer.last_name} ({customer.email})
+                                    </p>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteCustomer(customer._id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete Customer
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <TooltipProvider delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-block">
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => handleLoginAsCustomer(customer)}
+                                      disabled={isViewAsDisabled}
+                                      className="interactive-button bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <User className="h-3 w-3 mr-1" />
+                                      View As
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                {viewAsTooltipContent && (
+                                  <TooltipContent>
+                                    {viewAsTooltipContent}
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedCustomerForSettings(customer);
+                                // Set existing values or defaults
+                                setNumberOfConnections(customer.max_connections || 1);
 
-                              // Format start date for input field (YYYY-MM-DD)
-                              if (customer.connections_start_date) {
-                                const startDate = new Date(customer.connections_start_date);
-                                const formattedStartDate = startDate.toISOString().split('T')[0];
-                                setStartDate(formattedStartDate);
-                              } else {
-                                setStartDate("");
-                              }
+                                // Format start date for input field (YYYY-MM-DD)
+                                if (customer.connections_start_date) {
+                                  const startDate = new Date(customer.connections_start_date);
+                                  const formattedStartDate = startDate.toISOString().split('T')[0];
+                                  setStartDate(formattedStartDate);
+                                } else {
+                                  setStartDate("");
+                                }
 
-                              // Format expiry date for input field (YYYY-MM-DD)
-                              if (customer.connections_expiry_date) {
-                                const expiryDate = new Date(customer.connections_expiry_date);
-                                const formattedDate = expiryDate.toISOString().split('T')[0];
-                                setExpiryDate(formattedDate);
-                              } else {
-                                setExpiryDate("");
-                              }
+                                // Format expiry date for input field (YYYY-MM-DD)
+                                if (customer.connections_expiry_date) {
+                                  const expiryDate = new Date(customer.connections_expiry_date);
+                                  const formattedDate = expiryDate.toISOString().split('T')[0];
+                                  setExpiryDate(formattedDate);
+                                } else {
+                                  setExpiryDate("");
+                                }
 
-                              setShowSettingsDialog(true);
-                            }}
-                            className="interactive-button"
-                          >
-                            <Settings className="h-3 w-3 mr-1" />
-                            Settings
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                                setShowSettingsDialog(true);
+                              }}
+                              className="interactive-button"
+                            >
+                              <Settings className="h-3 w-3 mr-1" />
+                              Settings
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
