@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,13 @@ import { SubmissionEditModal } from "@/components/SubmissionEditModal";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatDateForTable, formatDateForExport, getTimezoneDisplayName } from "@/lib/timezone-utils";
 import { COUNTRY_CODES, getCountryCodeByPhone } from "@/utils/constants";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip
+} from "@/components/ui/chart";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, XAxis, YAxis } from "recharts";
 
 // Helper function to get date range for presets
 const getDateRangeForPreset = (preset: string) => {
@@ -116,7 +123,7 @@ export default function Submissions() {
   const [serverFilteredSubmissions, setServerFilteredSubmissions] = useState<any[]>([]);
   const [allAvailableCountries, setAllAvailableCountries] = useState<string[]>([]);
   const [allAvailableEventNames, setAllAvailableEventNames] = useState<string[]>([]);
-  const [stats, setStats] = useState<any>({ pending: 0, submitted: 0, failed: 0, total: 0 });
+  const [stats, setStats] = useState<any>({ pending: 0, submitted: 0, failed: 0, total: 0, connection_breakdown: [] });
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -230,10 +237,56 @@ export default function Submissions() {
         id: submission.id || submission._id // Normalize ID field
       })).filter(submission => submission.id); // Filter out submissions without valid IDs
       
+      const computedConnectionBreakdownMap = normalizedSubmissions.reduce((acc, submission) => {
+        const connectionId = submission.connection_id ? String(submission.connection_id) : "unknown";
+        if (!acc[connectionId]) {
+          acc[connectionId] = {
+            connection_id: connectionId,
+            total: 0,
+            pending: 0,
+            submitted: 0,
+            failed: 0
+          };
+        }
+        acc[connectionId].total += 1;
+        switch (submission.status) {
+          case "submitted":
+            acc[connectionId].submitted += 1;
+            break;
+          case "failed":
+            acc[connectionId].failed += 1;
+            break;
+          default:
+            acc[connectionId].pending += 1;
+            break;
+        }
+        return acc;
+      }, {} as Record<string, { connection_id: string; total: number; pending: number; submitted: number; failed: number }>);
+
+      const computedConnectionBreakdown = Object.values(
+        computedConnectionBreakdownMap
+      ) as Array<{ connection_id: string; total: number; pending: number; submitted: number; failed: number }>;
+
+      const connectionBreakdown =
+        Array.isArray(response.data.connection_breakdown) && response.data.connection_breakdown.length
+          ? response.data.connection_breakdown
+          : Array.isArray(response.data.connection_stats) && response.data.connection_stats.length
+            ? response.data.connection_stats
+            : computedConnectionBreakdown.filter((item) => item.total > 0);
+
+      const normalizedStats = {
+        ...responseStats,
+        pending: responseStats.pending ?? responseStats.pending_count ?? responseStats.waiting ?? 0,
+        submitted: responseStats.submitted ?? responseStats.handled ?? responseStats.success ?? 0,
+        failed: responseStats.failed ?? responseStats.canceled ?? responseStats.failed_count ?? 0,
+        total: responseStats.total ?? responseStats.count ?? filtered,
+        connection_breakdown: connectionBreakdown
+      };
+      
       setServerFilteredSubmissions(normalizedSubmissions);
       setTotalCount(total);
       setFilteredCount(filtered);
-      setStats(responseStats);
+      setStats(normalizedStats);
       
       // Set submissions for backward compatibility (stats cards, etc.)
       setSubmissions(normalizedSubmissions);
@@ -627,6 +680,319 @@ export default function Submissions() {
   const uniqueCountries = allAvailableCountries;
   const uniqueEventNames = allAvailableEventNames;
 
+  const brandStatusColors = {
+    total: "#F97415",
+    pending: "#F59E0B",
+    handled: "#17B75E",
+    canceled: "#EF4444"
+  } as const;
+
+  const donutChartConfig = {
+    handled: {
+      label: "Handled",
+      color: brandStatusColors.handled
+    },
+    pending: {
+      label: "Pending",
+      color: brandStatusColors.pending
+    },
+    canceled: {
+      label: "Canceled",
+      color: brandStatusColors.canceled
+    }
+  } as const;
+
+  const connectionChartConfig = {
+    handled: {
+      label: "Handled",
+      color: brandStatusColors.handled
+    },
+    pending: {
+      label: "Pending",
+      color: brandStatusColors.pending
+    },
+    canceled: {
+      label: "Canceled",
+      color: brandStatusColors.canceled
+    }
+  } as const;
+
+  const statusDescriptions: Record<string, string> = {
+    total: "All submissions recorded during the selected period.",
+    pending: "Awaiting processing or automatic submission.",
+    handled: "Successfully delivered and marked as submitted.",
+    canceled: "Failed or canceled submissions that need attention."
+  };
+
+  const totalSubmissionsForPeriod = useMemo(() => {
+    const pendingCount = Number(stats.pending) || 0;
+    const submittedCount = Number(stats.submitted) || 0;
+    const failedCount = Number(stats.failed) || 0;
+    const rawTotal = Number(stats.total) || 0;
+    const computedTotal = pendingCount + submittedCount + failedCount;
+    return rawTotal > 0 ? rawTotal : computedTotal;
+  }, [stats.failed, stats.pending, stats.submitted, stats.total]);
+
+  const circleSummary = useMemo(() => {
+    const pendingCount = Number(stats.pending) || 0;
+    const submittedCount = Number(stats.submitted) || 0;
+    const failedCount = Number(stats.failed) || 0;
+
+    return [
+      { key: "total", label: "Total", value: totalSubmissionsForPeriod, color: brandStatusColors.total },
+      { key: "pending", label: "Pending", value: pendingCount, color: brandStatusColors.pending },
+      { key: "handled", label: "Handled", value: submittedCount, color: brandStatusColors.handled },
+      { key: "canceled", label: "Canceled", value: failedCount, color: brandStatusColors.canceled }
+    ];
+  }, [stats.failed, stats.pending, stats.submitted, totalSubmissionsForPeriod]);
+
+  const circleChartData = useMemo(
+    () => circleSummary.filter((item) => item.key !== "total"),
+    [circleSummary]
+  );
+
+  const statusDescriptionItems = useMemo(
+    () =>
+      circleSummary.map((item) => ({
+        ...item,
+        description: statusDescriptions[item.key] || ""
+      })),
+    [circleSummary]
+  );
+
+  const connectionNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    connections.forEach((connection) => {
+      if (connection?.id) {
+        map.set(String(connection.id), connection.name || `Connection ${connection.id}`);
+      }
+      if (connection?._id) {
+        map.set(String(connection._id), connection.name || `Connection ${connection._id}`);
+      }
+    });
+    return map;
+  }, [connections]);
+
+  const connectionPerformanceData = useMemo(() => {
+    const normalizeEntry = (entry: any) => {
+      if (!entry) {
+        return null;
+      }
+      const connectionId = entry.connection_id ?? entry.id ?? entry.connectionId ?? entry._id ?? "unknown";
+      const pendingCount = Number(entry.pending ?? entry.pending_count ?? entry.waiting ?? 0);
+      const handledCount = Number(entry.submitted ?? entry.handled ?? entry.success ?? entry.submitted_count ?? 0);
+      const canceledCount = Number(entry.failed ?? entry.canceled ?? entry.failed_count ?? 0);
+      const totalCount = Number(entry.total ?? entry.count ?? entry.total_count ?? pendingCount + handledCount + canceledCount);
+
+      if (totalCount <= 0) {
+        return null;
+      }
+
+      const name =
+        entry.name ??
+        entry.connection_name ??
+        connectionNameMap.get(String(connectionId)) ??
+        "Unknown";
+
+      return {
+        connectionId: String(connectionId),
+        name,
+        total: totalCount,
+        pending: pendingCount,
+        handled: handledCount,
+        canceled: canceledCount,
+        avg: totalCount > 0 ? (handledCount / totalCount) * 100 : 0
+      };
+    };
+
+    const breakdown = Array.isArray(stats.connection_breakdown) ? stats.connection_breakdown : [];
+    const normalizedFromStats = breakdown
+      .map((entry) => normalizeEntry(entry))
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+
+    if (normalizedFromStats.length) {
+      return normalizedFromStats.sort((a, b) => b.total - a.total).slice(0, 8);
+    }
+
+    const fallbackMap = new Map<
+      string,
+      {
+        connectionId: string;
+        name: string;
+        total: number;
+        pending: number;
+        handled: number;
+        canceled: number;
+        avg: number;
+      }
+    >();
+
+    (serverFilteredSubmissions || []).forEach((submission) => {
+      const connectionId = submission.connection_id ? String(submission.connection_id) : "unknown";
+      if (!fallbackMap.has(connectionId)) {
+        const name =
+          connectionNameMap.get(connectionId) ??
+          submission.connection_name ??
+          "Unknown";
+        fallbackMap.set(connectionId, {
+          connectionId,
+          name,
+          total: 0,
+          pending: 0,
+          handled: 0,
+          canceled: 0,
+          avg: 0
+        });
+      }
+
+      const record = fallbackMap.get(connectionId)!;
+      record.total += 1;
+
+      switch (submission.status) {
+        case "submitted":
+          record.handled += 1;
+          break;
+        case "failed":
+          record.canceled += 1;
+          break;
+        default:
+          record.pending += 1;
+          break;
+      }
+
+      record.avg = record.total > 0 ? (record.handled / record.total) * 100 : 0;
+    });
+
+    return Array.from(fallbackMap.values())
+      .filter((entry) => entry.total > 0)
+      .map((entry) => ({
+        ...entry,
+        avg: entry.total > 0 ? (entry.handled / entry.total) * 100 : 0
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+  }, [connectionNameMap, serverFilteredSubmissions, stats.connection_breakdown]);
+
+  const CircleTooltip = ({ active }: { active?: boolean }) => {
+    if (!active) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-lg">
+        <div className="space-y-1">
+          {circleSummary.map((item) => (
+            <div key={item.key} className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="text-muted-foreground">{item.label}</span>
+              </div>
+              <span className="font-medium text-foreground">
+                {item.value.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const ConnectionTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) {
+      return null;
+    }
+
+    const totalForConnection = payload.reduce(
+      (sum: number, entry: any) => sum + (Number(entry.value) || 0),
+      0
+    );
+    const meta = payload[0]?.payload;
+    const successRate = meta?.avg ?? 0;
+
+    return (
+      <div className="rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-lg">
+        <div className="mb-1 font-medium text-foreground max-w-[240px]">{label}</div>
+        <div className="text-[11px] text-muted-foreground mb-2">
+          Success rate: {successRate.toFixed(1)}%
+        </div>
+        <div className="space-y-1">
+          {payload.map((entry: any) => {
+            const key = entry.dataKey as keyof typeof connectionChartConfig;
+            return (
+              <div key={entry.dataKey} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: entry.fill }}
+                  />
+                  <span className="text-muted-foreground">
+                    {connectionChartConfig[key]?.label ?? entry.name}
+                  </span>
+                </div>
+                <span className="font-medium text-foreground">
+                  {Number(entry.value || 0).toLocaleString()}
+                </span>
+              </div>
+            );
+          })}
+          <div className="mt-2 flex items-center justify-between border-t border-border/60 pt-1">
+            <span className="text-muted-foreground">Total</span>
+            <span className="font-semibold text-foreground">
+              {totalForConnection.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderConnectionAxisTick = ({ x, y, payload }: any) => {
+    const rawLabel: string = payload?.value ?? "";
+    const words = rawLabel.split(/\s+/);
+    const lines: string[] = [];
+    let currentLine = "";
+
+    words.forEach((word) => {
+      const trial = currentLine ? `${currentLine} ${word}` : word;
+      if (trial.length > 14) {
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+        currentLine = word;
+      } else {
+        currentLine = trial;
+      }
+    });
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return (
+      <g transform={`translate(${x},${y + 8})`}>
+        {lines.map((line, index) => {
+          const isLast = index === lines.length - 1;
+          return (
+            <text
+              key={index}
+              x={0}
+              y={index * 12}
+              fill="#FFFFFF"
+              fontSize={11}
+              fontWeight={isLast ? 600 : 500}
+              textAnchor="middle"
+            >
+              {line}
+            </text>
+          );
+        })}
+      </g>
+    );
+  };
+
   return (
     <div className="space-y-6 slide-in">
       {/* Header */}
@@ -803,6 +1169,130 @@ export default function Submissions() {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="h-full overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle>Submission Overview</CardTitle>
+              <CardDescription>Distribution of statuses for the selected period</CardDescription>
+            </CardHeader>
+            <CardContent className="flex h-full flex-col min-h-[360px]">
+              {totalSubmissionsForPeriod > 0 ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="relative w-full max-w-[340px]">
+                    <ChartContainer config={donutChartConfig} className="aspect-square w-full mx-auto">
+                      <PieChart>
+                        <Pie
+                          data={circleChartData}
+                          dataKey="value"
+                          nameKey="key"
+                          innerRadius={90}
+                          outerRadius={150}
+                          stroke="#1F2937"
+                          strokeWidth={1}
+                          paddingAngle={2}
+                        >
+                          {circleChartData.map((entry) => (
+                            <Cell key={entry.key} fill={`var(--color-${entry.key})`} stroke="transparent" />
+                          ))}
+                        </Pie>
+                        <ChartTooltip 
+                          cursor={{ fill: "transparent" }} 
+                          content={<CircleTooltip />}
+                          wrapperStyle={{ zIndex: 1000 }}
+                        />
+                      </PieChart>
+                </ChartContainer>
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">Total</span>
+                      <span className="text-3xl font-bold text-foreground">
+                        {totalSubmissionsForPeriod.toLocaleString()}
+                      </span>
+                      <span className="text-xs text-muted-foreground">Selected period</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border/60 text-sm text-muted-foreground">
+                  No submissions available for the selected period
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="h-full overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle>Connection Performance</CardTitle>
+              <CardDescription>Submission volume by connection</CardDescription>
+            </CardHeader>
+            <CardContent className="flex h-full flex-col min-h-[360px]">
+              {connectionPerformanceData.length ? (
+                <div className="flex-1">
+                  <ChartContainer
+                    config={connectionChartConfig}
+                    className="h-[360px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-white"
+                  >
+                    <BarChart
+                        data={connectionPerformanceData}
+                        margin={{ top: 22, right: 24, bottom: 12, left: 12 }}
+                        barCategoryGap="28%"
+                        barGap={6}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
+                        <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        height={44}
+                        interval={0}
+                        tick={renderConnectionAxisTick}
+                      />
+                        <YAxis
+                          allowDecimals={false}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "#E2E8F0" }}
+                        />
+                        <ChartTooltip cursor={{ fill: "rgba(148, 163, 184, 0.12)" }} content={<ConnectionTooltip />} />
+                        <Bar dataKey="handled" fill="var(--color-handled)" radius={[6, 6, 0, 0]}>
+                          <LabelList
+                            dataKey="handled"
+                            position="top"
+                            fill="#F8FAFC"
+                            fontSize={11}
+                            formatter={(value: number) => value?.toLocaleString?.() ?? value}
+                          />
+                      </Bar>
+                        <Bar dataKey="pending" fill="var(--color-pending)" radius={[6, 6, 0, 0]}>
+                          <LabelList
+                            dataKey="pending"
+                            position="top"
+                            fill="#F8FAFC"
+                            fontSize={11}
+                            formatter={(value: number) => value?.toLocaleString?.() ?? value}
+                          />
+                      </Bar>
+                        <Bar dataKey="canceled" fill="var(--color-canceled)" radius={[6, 6, 0, 0]}>
+                          <LabelList
+                            dataKey="canceled"
+                            position="top"
+                            fill="#F8FAFC"
+                            fontSize={11}
+                            formatter={(value: number) => value?.toLocaleString?.() ?? value}
+                          />
+                      </Bar>
+                    </BarChart>
+                </ChartContainer>
+                </div>
+              ) : (
+                <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border/60 text-sm text-muted-foreground">
+                  Not enough data to compare connections
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
