@@ -118,7 +118,7 @@ export default function OptInPages() {
           secondary_color: "#E16A14",
           text_color: "#FFFFFF",
           button_text_color: "#FFFFFF",
-          logo_url: "",
+          logo_url: "https://capi-trackit-prod.s3.us-east-1.amazonaws.com/logos/68b5a890ac742871c4d9fed5/trackaff_logo_background_removed.png",
           uploaded_logo_url: "",
           page_bg_color: "#000000",
           page_bg_image_url: "",
