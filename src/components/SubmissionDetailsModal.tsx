@@ -382,13 +382,15 @@ export function SubmissionDetailsModal({
                     <div>
                       <label className="text-sm text-muted-foreground">Deposit Amount</label>
                       <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                        <span className="text-sm font-medium">{getCurrencySymbol()}{submission.display_deposit_amount}</span>
+                        {/* <span className="text-sm font-medium">{getCurrencySymbol()}{submission.deposit_amount}</span> */}
+                        <span className="text-sm font-medium">{submission.deposit_amount}</span>
                       </div>
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">Currency</label>
                       <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                        <span className="text-sm">{getCurrency()}</span>
+                        {/* <span className="text-sm">{getCurrency()}</span> */}
+                        <span className="text-sm">{submission.deposit_currency || 'US Dollar ($)'}</span>
                       </div>
                     </div>
                   </div>

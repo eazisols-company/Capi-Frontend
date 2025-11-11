@@ -1509,12 +1509,12 @@ export default function Submissions() {
                        </TableCell>
                       <TableCell>
                         <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-sm font-medium">
-                          {submission.display_deposit_amount}
+                          {submission.deposit_amount}
                         </span>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                          {submission.user_system_currency || 'USD'}
+                          {submission.deposit_currency || 'USD'}
                         </Badge>
                       </TableCell>
                       <TableCell>
