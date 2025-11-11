@@ -125,6 +125,7 @@ export default function Submissions() {
   const [allAvailableEventNames, setAllAvailableEventNames] = useState<string[]>([]);
   const [stats, setStats] = useState<any>({ pending: 0, submitted: 0, failed: 0, total: 0, connection_breakdown: [] });
   const [isExporting, setIsExporting] = useState(false);
+  const [connectionStatsLimited, setConnectionStatsLimited] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -170,53 +171,48 @@ export default function Submissions() {
     try {
       setLoading(true);
       
-      // Calculate offset from current page
       const offset = (currentPage - 1) * pageSize;
-      
-      // Prepare server-side filter params
-      const params: any = {
-        limit: pageSize,
-        offset: offset,
-      };
-      
-      // Add server-side filters
+
+      const baseFilterParams: any = {};
+
       if (statusFilter !== "all") {
-        params.status = statusFilter;
+        baseFilterParams.status = statusFilter;
       }
-      
+
       if (countryFilter !== "all") {
-        params.country = countryFilter;
+        baseFilterParams.country = countryFilter;
       }
-      
+
       if (connectionFilter && connectionFilter !== "all") {
-        params.connection_id = connectionFilter;
+        baseFilterParams.connection_id = connectionFilter;
       }
-      
-      // Add date range filters
+
       if (timeFilter !== "all") {
         let dateRange = customDateRange;
-        
-        // If using a preset (not custom), convert it to actual dates
+
         if ((!customDateRange.from || !customDateRange.to) && timeFilter !== "custom") {
           dateRange = getDateRangeForPreset(timeFilter);
         }
-        
-        // Send dates to backend in ISO format
+
         if (dateRange.from && dateRange.to) {
-          // Set start of day for 'from' date
           const startDate = new Date(dateRange.from);
           startDate.setHours(0, 0, 0, 0);
-          
-          // Set end of day for 'to' date
+
           const endDate = new Date(dateRange.to);
           endDate.setHours(23, 59, 59, 999);
-          
-          params.start_date = startDate.toISOString();
-          params.end_date = endDate.toISOString();
+
+          baseFilterParams.start_date = startDate.toISOString();
+          baseFilterParams.end_date = endDate.toISOString();
         }
       }
-      
-      const response = await apiClient.getSubmissions(params);
+
+      const paginatedParams = {
+        ...baseFilterParams,
+        limit: pageSize,
+        offset
+      };
+
+      const response = await apiClient.getSubmissions(paginatedParams);
       const submissionsData = response.data.submissions || [];
       
       // Get counts from response
@@ -267,19 +263,160 @@ export default function Submissions() {
         computedConnectionBreakdownMap
       ) as Array<{ connection_id: string; total: number; pending: number; submitted: number; failed: number }>;
 
-      const connectionBreakdown =
-        Array.isArray(response.data.connection_breakdown) && response.data.connection_breakdown.length
-          ? response.data.connection_breakdown
-          : Array.isArray(response.data.connection_stats) && response.data.connection_stats.length
-            ? response.data.connection_stats
-            : computedConnectionBreakdown.filter((item) => item.total > 0);
+      const computeBreakdownTotal = (entries: any[]) =>
+        entries.reduce((sum, entry) => {
+          const totalValue =
+            Number(entry.total ?? entry.count ?? entry.total_count ?? 0);
+          return sum + (Number.isFinite(totalValue) ? totalValue : 0);
+        }, 0);
 
+      const selectResponseBreakdown = (data: any) => {
+        if (Array.isArray(data?.connection_breakdown) && data.connection_breakdown.length) {
+          return data.connection_breakdown;
+        }
+        if (Array.isArray(data?.connection_stats) && data.connection_stats.length) {
+          return data.connection_stats;
+        }
+        return [];
+      };
+
+      let connectionBreakdown = selectResponseBreakdown(response.data);
+      let breakdownSourceTotal = computeBreakdownTotal(connectionBreakdown);
+
+      if (!connectionBreakdown.length) {
+        connectionBreakdown = computedConnectionBreakdown.filter((item) => item.total > 0);
+        breakdownSourceTotal = computeBreakdownTotal(connectionBreakdown);
+      }
+
+      setConnectionStatsLimited(false);
+
+      const MAX_STATS_FETCH_LIMIT = 2000;
+      let aggregateStats = responseStats;
+
+      if (
+        filtered > normalizedSubmissions.length &&
+        filtered > breakdownSourceTotal &&
+        filtered <= MAX_STATS_FETCH_LIMIT
+      ) {
+        try {
+          const aggregationParams = {
+            ...baseFilterParams,
+            limit: Math.min(filtered, MAX_STATS_FETCH_LIMIT),
+            offset: 0
+          };
+
+          const aggregateResponse = await apiClient.getSubmissions(aggregationParams);
+          const aggregateSubmissions = (aggregateResponse.data.submissions || []).map(submission => ({
+            ...submission,
+            id: submission.id || submission._id
+          })).filter(submission => submission.id);
+
+          const aggregateBreakdownFromResponse = selectResponseBreakdown(aggregateResponse.data);
+          const aggregateBreakdown = (aggregateBreakdownFromResponse.length
+            ? aggregateBreakdownFromResponse
+            : aggregateSubmissions.reduce((acc, submission) => {
+                const connectionId = submission.connection_id ? String(submission.connection_id) : "unknown";
+                if (!acc[connectionId]) {
+                  acc[connectionId] = {
+                    connection_id: connectionId,
+                    total: 0,
+                    pending: 0,
+                    submitted: 0,
+                    failed: 0
+                  };
+                }
+                acc[connectionId].total += 1;
+                switch (submission.status) {
+                  case "submitted":
+                    acc[connectionId].submitted += 1;
+                    break;
+                  case "failed":
+                    acc[connectionId].failed += 1;
+                    break;
+                  default:
+                    acc[connectionId].pending += 1;
+                    break;
+                }
+                return acc;
+              }, {} as Record<string, { connection_id: string; total: number; pending: number; submitted: number; failed: number }>)
+          );
+
+          const aggregateBreakdownArray = Array.isArray(aggregateBreakdown)
+            ? aggregateBreakdown
+            : Object.values(aggregateBreakdown);
+
+          const aggregateTotal = computeBreakdownTotal(aggregateBreakdownArray);
+
+          if (aggregateTotal >= filtered) {
+            connectionBreakdown = aggregateBreakdownArray;
+            breakdownSourceTotal = aggregateTotal;
+            const aggregateStatsData = aggregateResponse.data.stats;
+            if (aggregateStatsData) {
+              aggregateStats = {
+                ...aggregateStatsData,
+                pending: aggregateStatsData.pending ?? aggregateStatsData.pending_count ?? aggregateStatsData.waiting ?? 0,
+                submitted: aggregateStatsData.submitted ?? aggregateStatsData.handled ?? aggregateStatsData.success ?? 0,
+                failed: aggregateStatsData.failed ?? aggregateStatsData.canceled ?? aggregateStatsData.failed_count ?? 0,
+                total: aggregateStatsData.total ?? aggregateStatsData.count ?? aggregateTotal,
+                connection_breakdown: connectionBreakdown
+              };
+            }
+          } else {
+            setConnectionStatsLimited(true);
+          }
+        } catch (aggError) {
+          console.error("Error fetching aggregate submission stats:", aggError);
+          setConnectionStatsLimited(true);
+        }
+      } else if (filtered > breakdownSourceTotal) {
+        setConnectionStatsLimited(true);
+      }
+
+      const statsSource = aggregateStats ?? responseStats;
       const normalizedStats = {
-        ...responseStats,
-        pending: responseStats.pending ?? responseStats.pending_count ?? responseStats.waiting ?? 0,
-        submitted: responseStats.submitted ?? responseStats.handled ?? responseStats.success ?? 0,
-        failed: responseStats.failed ?? responseStats.canceled ?? responseStats.failed_count ?? 0,
-        total: responseStats.total ?? responseStats.count ?? filtered,
+        ...statsSource,
+        pending:
+          Number(
+            statsSource.pending ??
+            statsSource.pending_count ??
+            statsSource.waiting ??
+            responseStats.pending ??
+            responseStats.pending_count ??
+            responseStats.waiting ??
+            0
+          ) || 0,
+        submitted:
+          Number(
+            statsSource.submitted ??
+            statsSource.handled ??
+            statsSource.success ??
+            statsSource.submitted_count ??
+            responseStats.submitted ??
+            responseStats.handled ??
+            responseStats.success ??
+            responseStats.submitted_count ??
+            0
+          ) || 0,
+        failed:
+          Number(
+            statsSource.failed ??
+            statsSource.canceled ??
+            statsSource.failed_count ??
+            responseStats.failed ??
+            responseStats.canceled ??
+            responseStats.failed_count ??
+            0
+          ) || 0,
+        total:
+          Number(
+            statsSource.total ??
+            statsSource.count ??
+            statsSource.total_count ??
+            responseStats.total ??
+            responseStats.count ??
+            responseStats.total_count ??
+            filtered
+          ) || 0,
         connection_breakdown: connectionBreakdown
       };
       
@@ -728,10 +865,23 @@ export default function Submissions() {
     const pendingCount = Number(stats.pending) || 0;
     const submittedCount = Number(stats.submitted) || 0;
     const failedCount = Number(stats.failed) || 0;
-    const rawTotal = Number(stats.total) || 0;
     const computedTotal = pendingCount + submittedCount + failedCount;
-    return rawTotal > 0 ? rawTotal : computedTotal;
-  }, [stats.failed, stats.pending, stats.submitted, stats.total]);
+    if (computedTotal > 0) {
+      return computedTotal;
+    }
+
+    const filteredTotal = Number(filteredCount) || 0;
+    if (filteredTotal > 0) {
+      return filteredTotal;
+    }
+
+    const rawTotal = Number(stats.total) || 0;
+    if (rawTotal > 0) {
+      return rawTotal;
+    }
+
+    return serverFilteredSubmissions.length;
+  }, [filteredCount, serverFilteredSubmissions.length, stats.failed, stats.pending, stats.submitted, stats.total]);
 
   const circleSummary = useMemo(() => {
     const pendingCount = Number(stats.pending) || 0;
@@ -1194,7 +1344,7 @@ export default function Submissions() {
             </CardHeader>
             <CardContent className="flex h-full flex-col min-h-[360px]">
               {connectionPerformanceData.length ? (
-                <div className="flex-1">
+                <div className="flex-1 space-y-3">
                   <ChartContainer
                     config={connectionChartConfig}
                     className="h-[360px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-white"
@@ -1250,6 +1400,11 @@ export default function Submissions() {
                       </Bar>
                     </BarChart>
                 </ChartContainer>
+                  {connectionStatsLimited && (
+                    <p className="text-xs text-muted-foreground">
+                      Showing a partial view of connection performance. Narrow your filters to see full totals.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border/60 text-sm text-muted-foreground">
