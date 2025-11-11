@@ -1301,7 +1301,7 @@ export default function Submissions() {
             <CardContent className="flex h-full flex-col min-h-[360px]">
               {totalSubmissionsForPeriod > 0 ? (
                 <div className="flex flex-1 items-center justify-center">
-                  <div className="relative w-full max-w-[340px]">
+                  <div className="relative w-full max-w-[340px] mb-16">
                     <ChartContainer config={donutChartConfig} className="aspect-square w-full mx-auto">
                       <PieChart>
                         <Pie
