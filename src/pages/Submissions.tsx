@@ -1043,6 +1043,99 @@ export default function Submissions() {
           </div>
         </div>
 
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+               <div className="relative sm:col-span-2 lg:col-span-1">
+                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                 <Input
+                   placeholder="Search submissions..."
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                   className="pl-10"
+                 />
+               </div>
+
+               <div className="sm:col-span-2 lg:col-span-1 xl:col-span-1">
+                 <DateRangePicker
+                   value={timeFilter}
+                   onChange={handleTimeFilterChange}
+                   placeholder="Select date range"
+                   className="w-full"
+                 />
+               </div>
+               
+               <Select value={statusFilter} onValueChange={setStatusFilter}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Filter by status" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">All Statuses</SelectItem>
+                   <SelectItem value="pending">Pending</SelectItem>
+                   <SelectItem value="submitted">Submitted</SelectItem>
+                   <SelectItem value="failed">Failed</SelectItem>
+                 </SelectContent>
+               </Select>
+
+               <SearchableSubmissionCountrySelect
+                 countries={uniqueCountries}
+                 value={countryFilter === "all" ? "" : countryFilter}
+                 onValueChange={(value) => setCountryFilter(value || "all")}
+                 placeholder="Filter by country"
+                 emptyText="No countries found"
+               />
+
+               <Select 
+                 value={connectionFilter || "all"} 
+                 onValueChange={(value) => setConnectionFilter(value || "all")}
+               >
+                 <SelectTrigger>
+                   <SelectValue placeholder="Filter by connection" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">All Connections</SelectItem>
+                   {connections.filter(conn => conn.id && conn.name).map((connection, index) => (
+                     <SelectItem key={`connection-${connection.id}-${index}`} value={String(connection.id)}>
+                       {connection.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+
+               <Select value={eventFilter} onValueChange={setEventFilter}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Filter by event" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">All Events</SelectItem>
+                   {uniqueEventNames.map(eventName => (
+                     <SelectItem key={eventName} value={eventName}>{eventName}</SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+
+               <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm("");
+                  setTimeFilter("7d");
+                  setCustomDateRange({ from: undefined, to: undefined });
+                  setStatusFilter("all");
+                  setCountryFilter("all");
+                  setConnectionFilter("all");
+                  setEventFilter("all");
+                  setCurrentPage(1); // Reset to first page
+                }}
+                className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Charts */}
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="h-full overflow-hidden">
@@ -1166,99 +1259,6 @@ export default function Submissions() {
             </CardContent>
           </Card>
         </div>
-
-         {/* Filters */}
-         <Card>
-           <CardContent className="pt-6">
-             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-               <div className="relative sm:col-span-2 lg:col-span-1">
-                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                 <Input
-                   placeholder="Search submissions..."
-                   value={searchTerm}
-                   onChange={(e) => setSearchTerm(e.target.value)}
-                   className="pl-10"
-                 />
-               </div>
-
-               <div className="sm:col-span-2 lg:col-span-1 xl:col-span-1">
-                 <DateRangePicker
-                   value={timeFilter}
-                   onChange={handleTimeFilterChange}
-                   placeholder="Select date range"
-                   className="w-full"
-                 />
-               </div>
-               
-               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                 <SelectTrigger>
-                   <SelectValue placeholder="Filter by status" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="all">All Statuses</SelectItem>
-                   <SelectItem value="pending">Pending</SelectItem>
-                   <SelectItem value="submitted">Submitted</SelectItem>
-                   <SelectItem value="failed">Failed</SelectItem>
-                 </SelectContent>
-               </Select>
-
-               <SearchableSubmissionCountrySelect
-                 countries={uniqueCountries}
-                 value={countryFilter === "all" ? "" : countryFilter}
-                 onValueChange={(value) => setCountryFilter(value || "all")}
-                 placeholder="Filter by country"
-                 emptyText="No countries found"
-               />
-
-               <Select 
-                 value={connectionFilter || "all"} 
-                 onValueChange={(value) => setConnectionFilter(value || "all")}
-               >
-                 <SelectTrigger>
-                   <SelectValue placeholder="Filter by connection" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="all">All Connections</SelectItem>
-                   {connections.filter(conn => conn.id && conn.name).map((connection, index) => (
-                     <SelectItem key={`connection-${connection.id}-${index}`} value={String(connection.id)}>
-                       {connection.name}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-
-               <Select value={eventFilter} onValueChange={setEventFilter}>
-                 <SelectTrigger>
-                   <SelectValue placeholder="Filter by event" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="all">All Events</SelectItem>
-                   {uniqueEventNames.map(eventName => (
-                     <SelectItem key={eventName} value={eventName}>{eventName}</SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-
-               <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchTerm("");
-                  setTimeFilter("7d");
-                  setCustomDateRange({ from: undefined, to: undefined });
-                  setStatusFilter("all");
-                  setCountryFilter("all");
-                  setConnectionFilter("all");
-                  setEventFilter("all");
-                  setCurrentPage(1); // Reset to first page
-                }}
-                className="interactive-button hover:bg-[#F97415] hover:text-white hover:border-[#F97415]"
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-             </div>
-           </CardContent>
-         </Card>
       </div>
 
       {/* Submissions List */}
