@@ -147,6 +147,23 @@
       transform: translateY(0);
     }
   }
+
+  .transparent-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .transparent-scrollbar::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .transparent-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .transparent-scrollbar::-webkit-scrollbar-thumb {
+    background-color: transparent;
+  }
 }
 
 /* 🎨 Extra Themes (optional: apply on <body> or <html>) */

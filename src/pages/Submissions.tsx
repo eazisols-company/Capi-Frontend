@@ -961,7 +961,7 @@ export default function Submissions() {
       .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
     if (normalizedFromStats.length) {
-      return normalizedFromStats.sort((a, b) => b.total - a.total).slice(0, 8);
+      return normalizedFromStats.sort((a, b) => b.total - a.total);
     }
 
     const fallbackMap = new Map<
@@ -1019,9 +1019,14 @@ export default function Submissions() {
         ...entry,
         avg: entry.total > 0 ? (entry.handled / entry.total) * 100 : 0
       }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 8);
+      .sort((a, b) => b.total - a.total);
   }, [connectionNameMap, serverFilteredSubmissions, stats.connection_breakdown]);
+
+  const connectionChartWidth = useMemo(() => {
+    const baseWidth = 720;
+    const perConnectionWidth = 120;
+    return Math.max(connectionPerformanceData.length * perConnectionWidth, baseWidth);
+  }, [connectionPerformanceData.length]);
 
   const CircleTooltip = ({ active }: { active?: boolean }) => {
     if (!active) {
@@ -1287,8 +1292,8 @@ export default function Submissions() {
         </Card>
 
         {/* Charts */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="h-full overflow-hidden">
+        <div className="grid gap-4 lg:grid-cols-5">
+          <Card className="h-full overflow-hidden lg:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle>Submission Overview</CardTitle>
               <CardDescription>Distribution of statuses for the selected period</CardDescription>
@@ -1337,7 +1342,7 @@ export default function Submissions() {
             </CardContent>
           </Card>
 
-          <Card className="h-full overflow-hidden">
+          <Card className="h-full overflow-hidden lg:col-span-3">
             <CardHeader className="pb-2">
               <CardTitle>Connection Performance</CardTitle>
               <CardDescription>Submission volume by connection</CardDescription>
@@ -1345,13 +1350,15 @@ export default function Submissions() {
             <CardContent className="flex h-full flex-col min-h-[360px]">
               {connectionPerformanceData.length ? (
                 <div className="flex-1 space-y-3">
-                  <ChartContainer
-                    config={connectionChartConfig}
-                    className="h-[360px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-white"
-                  >
-                    <BarChart
+                  <div className="overflow-x-auto transparent-scrollbar">
+                    <ChartContainer
+                      config={connectionChartConfig}
+                      className="h-[400px] w-full aspect-auto [&_.recharts-cartesian-axis-tick_text]:fill-white min-w-[720px]"
+                      style={{ minWidth: connectionChartWidth }}
+                    >
+                      <BarChart
                         data={connectionPerformanceData}
-                        margin={{ top: 22, right: 24, bottom: 12, left: 12 }}
+                        margin={{ top: 22, right: 24, bottom: 32, left: 12 }}
                         barCategoryGap="28%"
                         barGap={6}
                       >
@@ -1360,7 +1367,7 @@ export default function Submissions() {
                         dataKey="name"
                         axisLine={false}
                         tickLine={false}
-                        height={44}
+                        height={58}
                         interval={0}
                         tick={renderConnectionAxisTick}
                       />
@@ -1379,7 +1386,7 @@ export default function Submissions() {
                             fontSize={11}
                             formatter={(value: number) => value?.toLocaleString?.() ?? value}
                           />
-                      </Bar>
+                        </Bar>
                         <Bar dataKey="pending" fill="var(--color-pending)" radius={[6, 6, 0, 0]}>
                           <LabelList
                             dataKey="pending"
@@ -1388,7 +1395,7 @@ export default function Submissions() {
                             fontSize={11}
                             formatter={(value: number) => value?.toLocaleString?.() ?? value}
                           />
-                      </Bar>
+                        </Bar>
                         <Bar dataKey="canceled" fill="var(--color-canceled)" radius={[6, 6, 0, 0]}>
                           <LabelList
                             dataKey="canceled"
@@ -1397,9 +1404,10 @@ export default function Submissions() {
                             fontSize={11}
                             formatter={(value: number) => value?.toLocaleString?.() ?? value}
                           />
-                      </Bar>
+                        </Bar>
                     </BarChart>
-                </ChartContainer>
+                    </ChartContainer>
+                  </div>
                   {connectionStatsLimited && (
                     <p className="text-xs text-muted-foreground">
                       Showing a partial view of connection performance. Narrow your filters to see full totals.
