@@ -111,10 +111,8 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
       // Calculate metrics for the day
       const submissions = dayData.length;
       const deposits = dayData.reduce((sum, sub) => {
-        // For Purchase events, use display_deposit_amount; for Deposit events, use deposit_amount
-        const amount = sub.custom_event_name === "Purchase" 
-          ? (parseFloat(sub.display_deposit_amount) || 0)
-          : (parseFloat(sub.deposit_amount) || 0);
+        // Use display_deposit_amount (converted amount) for all events
+        const amount = parseFloat(sub.display_deposit_amount) || 0;
         return sum + amount;
       }, 0);
       const commissions = calculateCommissions(dayData);

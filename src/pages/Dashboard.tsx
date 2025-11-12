@@ -286,10 +286,8 @@ export default function Dashboard() {
       // Use backend stats for accurate counts (not limited by fetch limit)
       const totalSubmissions = backendStats.total;
       const totalDeposits = filteredSubmissions.reduce((sum, sub) => {
-        // For Purchase events, use display_deposit_amount; for Deposit events, use deposit_amount
-        const amount = sub.custom_event_name === "Purchase" 
-          ? (parseFloat(sub.display_deposit_amount) || 0)
-          : (parseFloat(sub.deposit_amount) || 0);
+        // Use display_deposit_amount (converted amount) for all events
+        const amount = parseFloat(sub.display_deposit_amount) || 0;
         return sum + amount;
       }, 0);
       const depositsCount = backendStats.submitted || filteredSubmissions.filter(sub => sub.status === 'submitted').length;
@@ -348,10 +346,8 @@ export default function Dashboard() {
         // Calculate previous period stats using backend data
         const prevTotalSubmissions = prevBackendStats.total;
         const prevTotalDeposits = previousFilteredSubmissions.reduce((sum, sub) => {
-          // For Purchase events, use display_deposit_amount; for Deposit events, use deposit_amount
-          const amount = sub.custom_event_name === "Purchase" 
-            ? (parseFloat(sub.display_deposit_amount) || 0)
-            : (parseFloat(sub.deposit_amount) || 0);
+          // Use display_deposit_amount (converted amount) for all events
+          const amount = parseFloat(sub.display_deposit_amount) || 0;
           return sum + amount;
         }, 0);
         const prevDepositsCount = prevBackendStats.submitted || previousFilteredSubmissions.filter(sub => sub.status === 'submitted').length;
@@ -644,7 +640,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-foreground">
-                      {getCurrencySymbol(profile?.system_currency)}{parseFloat(submission.deposit_amount).toLocaleString()}
+                      {getCurrencySymbol(profile?.system_currency)}{(parseFloat(submission.display_deposit_amount) || 0).toLocaleString()}
                     </p>
                     <Badge 
                       variant={submission.status === 'submitted' ? 'default' : 

@@ -78,10 +78,8 @@ const CountriesChart: React.FC<CountriesChartProps> = ({
       };
     }
     acc[country].count += 1;
-    // For Purchase events, use display_deposit_amount; for Deposit events, use deposit_amount
-    const depositAmount = submission.custom_event_name === "Purchase"
-      ? (parseFloat(submission.display_deposit_amount) || 0)
-      : (parseFloat(submission.deposit_amount) || 0);
+    // Use display_deposit_amount (converted amount) for all events
+    const depositAmount = parseFloat(submission.display_deposit_amount) || 0;
     acc[country].amount += depositAmount;
     
     // Calculate commission for this submission using the same logic as Dashboard
@@ -94,7 +92,7 @@ const CountriesChart: React.FC<CountriesChartProps> = ({
 
   // Convert to array and calculate percentages
   const totalSubmissions = chartData.length;
-  const totalAmount = chartData.reduce((sum, sub) => sum + (parseFloat(sub.deposit_amount) || 0), 0);
+  const totalAmount = chartData.reduce((sum, sub) => sum + (parseFloat(sub.display_deposit_amount) || 0), 0);
 
   const allCountriesData: CountryData[] = Object.entries(countryStats)
     .map(([country, stats]) => ({
