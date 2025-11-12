@@ -622,21 +622,9 @@ export default function Customers() {
                 ) : (
                   filteredCustomers.map((customer) => {
                     const isCurrentCustomerLoggedIn = loggedInCustomerInfo?.id === customer._id;
-                    const isViewAsDisabled = isCustomerLoggedIn && !isCurrentCustomerLoggedIn;
+                    // Allow multiple customer sessions - no restriction
+                    const isViewAsDisabled = false;
                     const viewAsTooltipContent = (() => {
-                      if (isViewAsDisabled) {
-                        return (
-                          <>
-                            <p>1 customer is already logged in. You need to logout that customer first.</p>
-                            {loggedInCustomerInfo && (
-                              <p className="text-xs mt-1 text-muted-foreground">
-                                Currently logged in: {loggedInCustomerInfo.name}
-                              </p>
-                            )}
-                          </>
-                        );
-                      }
-
                       if (isCurrentCustomerLoggedIn) {
                         return (
                           <>

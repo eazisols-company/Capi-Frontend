@@ -451,7 +451,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { data: null, error: { message: 'Only admin users can impersonate customers' } };
       }
 
-      // Check if admin already has a customer session active
+      // Try to reuse existing session if it's for the same customer (optimization)
+      // But allow new sessions for different customers or multiple sessions
       if (localStorage.getItem('admin_has_customer_session') === 'true') {
         try {
           const storedCustomer = localStorage.getItem('customer_user');
@@ -463,6 +464,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const parsedCustomer = JSON.parse(storedCustomer);
             const existingCustomerId: string | undefined = parsedCustomer?._id || parsedCustomer?.id || parsedCustomer?.account_id;
 
+            // Only reuse if it's the same customer - otherwise proceed to create new session
             if (existingCustomerId && existingCustomerId === customerId && storedToken) {
               const info = extractLoggedInCustomerInfo(parsedCustomer);
               if (info) {
@@ -483,6 +485,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (storedAdminInfo && storedToken) {
             try {
               const parsedInfo: LoggedInCustomerInfo = JSON.parse(storedAdminInfo);
+              // Only reuse if it's the same customer - otherwise proceed to create new session
               if (parsedInfo.id === customerId) {
                 let customerPayload: any = parsedInfo;
                 if (storedAdminRaw) {
@@ -511,13 +514,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (reuseError) {
           console.warn('Unable to reuse existing customer session:', reuseError);
         }
-
-        return {
-          data: null,
-          error: {
-            message: 'You already have a customer session active. Please logout the current customer first.'
-          }
-        };
+        // If we reach here, it's a different customer or reuse failed - proceed to create new session
+        // No error returned - allow multiple sessions
       }
 
       // Get customer data and create a temporary session
