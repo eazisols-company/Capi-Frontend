@@ -40,6 +40,7 @@ import { SubmissionEditModal } from "@/components/SubmissionEditModal";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatDateForTable, formatDateForExport, getTimezoneDisplayName } from "@/lib/timezone-utils";
 import { COUNTRY_CODES, getCountryCodeByPhone } from "@/utils/constants";
+import { calculateRealDepositAmount } from "@/utils/submission-utils";
 import {
   ChartContainer,
   ChartLegend,
@@ -1509,7 +1510,7 @@ export default function Submissions() {
                        </TableCell>
                       <TableCell>
                         <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-sm font-medium">
-                          {submission.deposit_amount}
+                          {calculateRealDepositAmount(submission)}
                         </span>
                       </TableCell>
                       <TableCell>

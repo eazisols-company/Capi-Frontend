@@ -29,6 +29,7 @@ import { toast } from "@/hooks/use-toast";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatDateDetailed } from "@/lib/timezone-utils";
 import { SYSTEM_CURRENCIES } from "@/utils/constants";
+import { calculateRealDepositAmount } from "@/utils/submission-utils";
 
 interface SubmissionDetailsModalProps {
   submission: any;
@@ -382,8 +383,9 @@ export function SubmissionDetailsModal({
                     <div>
                       <label className="text-sm text-muted-foreground">Deposit Amount</label>
                       <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
-                        {/* <span className="text-sm font-medium">{getCurrencySymbol()}{submission.deposit_amount}</span> */}
-                        <span className="text-sm font-medium">{submission.deposit_amount}</span>
+                        <span className="text-sm font-medium">
+                          {calculateRealDepositAmount(submission)}
+                        </span>
                       </div>
                     </div>
                     <div>
