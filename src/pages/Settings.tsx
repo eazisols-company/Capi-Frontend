@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OptimizedCountryCodeSelect } from "@/components/ui/optimized-country-code-select";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings as SettingsIcon, User, CreditCard, Save, Lock, Eye, EyeOff } from "lucide-react";
+import { Settings as SettingsIcon, User, CreditCard, Save, Lock, Eye, EyeOff, Mail } from "lucide-react";
 import { FlagIcon } from 'react-flag-kit';
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +54,13 @@ export default function Settings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Email change states (admin only)
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [newEmail, setNewEmail] = useState<string>("");
+  const [changingEmail, setChangingEmail] = useState(false);
+
   // Utility function to check if form data has changed
   const hasFormDataChanged = () => {
     return (
@@ -70,6 +77,10 @@ export default function Settings() {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      // Fetch users if admin
+      if (user.admin) {
+        fetchUsers();
+      }
     }
   }, [user]);
 
@@ -228,6 +239,86 @@ export default function Settings() {
       });
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      // Fetch all users (including admins) using admin endpoint
+      const response = await apiClient.getAllUsersAdmin({ per_page: 1000 });
+      const usersData = response.data.users || response.data || [];
+      setUsers(usersData);
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Failed to fetch users";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleChangeEmail = async () => {
+    // Validation
+    if (!selectedUserId) {
+      toast({
+        title: "Error",
+        description: "Please select a user",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!newEmail || !newEmail.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a new email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setChangingEmail(true);
+      await apiClient.changeUserEmail(selectedUserId, newEmail);
+
+      toast({
+        title: "Success",
+        description: "Email changed successfully"
+      });
+
+      // Clear form and refresh users list
+      setSelectedUserId("");
+      setNewEmail("");
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error changing email:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          "Failed to change email";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setChangingEmail(false);
     }
   };
 
@@ -540,6 +631,81 @@ export default function Settings() {
                 <CreditCard className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No billing limits set</p>
                 <p className="text-xs mt-2">Contact your administrator to set up connection limits</p>
+              </div>
+            )}
+
+            {user?.admin && (
+              <div className="pt-4 border-t space-y-4">
+                <div>
+                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-[#F97316]" />
+                    Change User Email
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Select User</Label>
+                      <Select
+                        value={selectedUserId}
+                        onValueChange={(value) => {
+                          setSelectedUserId(value);
+                          const selectedUser = users.find(u => u._id === value);
+                          if (selectedUser) {
+                            setNewEmail(selectedUser.email || "");
+                          }
+                        }}
+                        disabled={loadingUsers || changingEmail}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={loadingUsers ? "Loading users..." : "Select a user"}>
+                            {selectedUserId && (() => {
+                              const selectedUser = users.find(u => u._id === selectedUserId);
+                              if (selectedUser) {
+                                const username = selectedUser.first_name && selectedUser.last_name
+                                  ? `${selectedUser.first_name} ${selectedUser.last_name}`
+                                  : selectedUser.email || "Unknown";
+                                return `${username} (${selectedUser.email})`;
+                              }
+                              return "Select a user";
+                            })()}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60 overflow-y-auto">
+                          {users.map((userItem) => {
+                            const username = userItem.first_name && userItem.last_name
+                              ? `${userItem.first_name} ${userItem.last_name}`
+                              : userItem.email || "Unknown";
+                            return (
+                              <SelectItem key={userItem._id} value={userItem._id}>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{username}</span>
+                                  <span className="text-xs text-muted-foreground">{userItem.email}</span>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>New Email</Label>
+                      <Input
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        placeholder="Enter new email address"
+                        disabled={!selectedUserId || changingEmail}
+                      />
+                    </div>
+                    <Button 
+                      onClick={handleChangeEmail} 
+                      disabled={!selectedUserId || !newEmail || changingEmail || loadingUsers}
+                      className="w-full bg-[#F97316] hover:bg-[#ea6820] text-white"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      {changingEmail ? "Changing Email..." : "Change Email"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

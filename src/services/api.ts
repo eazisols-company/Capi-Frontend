@@ -374,6 +374,48 @@ class ApiClient {
     return this.client.get(url);
   }
 
+  async getAllUsers(params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = queryParams.toString() 
+      ? `/api/users?${queryParams.toString()}` 
+      : '/api/users';
+    
+    return this.client.get(url);
+  }
+
+  async getAllUsersAdmin(params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = queryParams.toString() 
+      ? `/api/admin/users?${queryParams.toString()}` 
+      : '/api/admin/users';
+    
+    return this.client.get(url);
+  }
+
   async loginAsCustomer(customerId: string) {
     return this.client.post('/api/admin/login-as-customer', { customer_id: customerId });
   }
@@ -400,6 +442,13 @@ class ApiClient {
       max_connections: limitsData.max_connections,
       connections_expiry_date: limitsData.connections_expiry_date,
       connections_start_date: limitsData.connections_start_date
+    });
+  }
+
+  async changeUserEmail(userId: string, newEmail: string) {
+    return this.client.put('/api/admin/change-email', {
+      user_id: userId,
+      new_email: newEmail
     });
   }
 
