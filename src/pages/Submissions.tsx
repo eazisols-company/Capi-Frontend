@@ -292,78 +292,154 @@ export default function Submissions() {
       setConnectionStatsLimited(false);
 
       const MAX_STATS_FETCH_LIMIT = 2000;
+      const BATCH_SIZE = 1000; // Fetch in batches of 1000
       let aggregateStats = responseStats;
+
+      // Helper function to calculate connection breakdown from submissions
+      const calculateBreakdownFromSubmissions = (submissions: any[]) => {
+        return submissions.reduce((acc, submission) => {
+          const connectionId = submission.connection_id ? String(submission.connection_id) : "unknown";
+          if (!acc[connectionId]) {
+            acc[connectionId] = {
+              connection_id: connectionId,
+              total: 0,
+              pending: 0,
+              submitted: 0,
+              failed: 0
+            };
+          }
+          acc[connectionId].total += 1;
+          switch (submission.status) {
+            case "submitted":
+              acc[connectionId].submitted += 1;
+              break;
+            case "failed":
+              acc[connectionId].failed += 1;
+              break;
+            default:
+              acc[connectionId].pending += 1;
+              break;
+          }
+          return acc;
+        }, {} as Record<string, { connection_id: string; total: number; pending: number; submitted: number; failed: number }>);
+      };
 
       if (
         filtered > normalizedSubmissions.length &&
-        filtered > breakdownSourceTotal &&
-        filtered <= MAX_STATS_FETCH_LIMIT
+        filtered > breakdownSourceTotal
       ) {
         try {
-          const aggregationParams = {
-            ...baseFilterParams,
-            limit: Math.min(filtered, MAX_STATS_FETCH_LIMIT),
-            offset: 0
-          };
+          const MAX_FETCH_FOR_STATS = 50000; // Cap at 50k for performance
+          let allAggregateSubmissions: any[] = [];
+          let aggregateBreakdownMap: Record<string, { connection_id: string; total: number; pending: number; submitted: number; failed: number }> = {};
+          let hasCompleteBreakdown = false;
 
-          const aggregateResponse = await apiClient.getSubmissions(aggregationParams);
-          const aggregateSubmissions = (aggregateResponse.data.submissions || []).map(submission => ({
-            ...submission,
-            id: submission.id || submission._id
-          })).filter(submission => submission.id);
+          // Check if backend provides breakdown in response
+          const responseBreakdown = selectResponseBreakdown(response.data);
+          if (responseBreakdown.length > 0) {
+            const responseBreakdownTotal = computeBreakdownTotal(responseBreakdown);
+            if (responseBreakdownTotal >= filtered) {
+              connectionBreakdown = responseBreakdown;
+              breakdownSourceTotal = responseBreakdownTotal;
+              hasCompleteBreakdown = true;
+            }
+          }
 
-          const aggregateBreakdownFromResponse = selectResponseBreakdown(aggregateResponse.data);
-          const aggregateBreakdown = (aggregateBreakdownFromResponse.length
-            ? aggregateBreakdownFromResponse
-            : aggregateSubmissions.reduce((acc, submission) => {
-                const connectionId = submission.connection_id ? String(submission.connection_id) : "unknown";
-                if (!acc[connectionId]) {
-                  acc[connectionId] = {
-                    connection_id: connectionId,
-                    total: 0,
-                    pending: 0,
-                    submitted: 0,
-                    failed: 0
-                  };
-                }
-                acc[connectionId].total += 1;
-                switch (submission.status) {
-                  case "submitted":
-                    acc[connectionId].submitted += 1;
-                    break;
-                  case "failed":
-                    acc[connectionId].failed += 1;
-                    break;
-                  default:
-                    acc[connectionId].pending += 1;
-                    break;
-                }
-                return acc;
-              }, {} as Record<string, { connection_id: string; total: number; pending: number; submitted: number; failed: number }>)
-          );
+          // If backend doesn't provide complete breakdown, fetch all submissions in batches
+          if (!hasCompleteBreakdown && filtered > 0) {
+            const totalBatches = Math.ceil(Math.min(filtered, MAX_FETCH_FOR_STATS) / BATCH_SIZE);
+            
+            for (let batch = 0; batch < totalBatches; batch++) {
+              const offset = batch * BATCH_SIZE;
+              const limit = Math.min(BATCH_SIZE, filtered - offset);
+              
+              if (limit <= 0) break;
 
-          const aggregateBreakdownArray = Array.isArray(aggregateBreakdown)
-            ? aggregateBreakdown
-            : Object.values(aggregateBreakdown);
+              const batchParams = {
+                ...baseFilterParams,
+                limit,
+                offset
+              };
 
-          const aggregateTotal = computeBreakdownTotal(aggregateBreakdownArray);
+              const batchResponse = await apiClient.getSubmissions(batchParams);
+              const batchSubmissions = (batchResponse.data.submissions || []).map(submission => ({
+                ...submission,
+                id: submission.id || submission._id
+              })).filter(submission => submission.id);
 
-          if (aggregateTotal >= filtered) {
-            connectionBreakdown = aggregateBreakdownArray;
-            breakdownSourceTotal = aggregateTotal;
-            const aggregateStatsData = aggregateResponse.data.stats;
-            if (aggregateStatsData) {
+              allAggregateSubmissions.push(...batchSubmissions);
+
+              // Check if this batch response has breakdown data
+              const batchBreakdown = selectResponseBreakdown(batchResponse.data);
+              if (batchBreakdown.length > 0) {
+                batchBreakdown.forEach((entry: any) => {
+                  const connectionId = String(entry.connection_id ?? entry.id ?? "unknown");
+                  if (!aggregateBreakdownMap[connectionId]) {
+                    aggregateBreakdownMap[connectionId] = {
+                      connection_id: connectionId,
+                      total: 0,
+                      pending: 0,
+                      submitted: 0,
+                      failed: 0
+                    };
+                  }
+                  aggregateBreakdownMap[connectionId].total += Number(entry.total ?? entry.count ?? entry.total_count ?? 0);
+                  aggregateBreakdownMap[connectionId].pending += Number(entry.pending ?? entry.pending_count ?? entry.waiting ?? 0);
+                  aggregateBreakdownMap[connectionId].submitted += Number(entry.submitted ?? entry.handled ?? entry.success ?? entry.submitted_count ?? 0);
+                  aggregateBreakdownMap[connectionId].failed += Number(entry.failed ?? entry.canceled ?? entry.failed_count ?? 0);
+                });
+              } else {
+                // Calculate from submissions if no breakdown provided
+                const batchBreakdownMap = calculateBreakdownFromSubmissions(batchSubmissions);
+                Object.keys(batchBreakdownMap).forEach(connectionId => {
+                  if (!aggregateBreakdownMap[connectionId]) {
+                    aggregateBreakdownMap[connectionId] = {
+                      connection_id: connectionId,
+                      total: 0,
+                      pending: 0,
+                      submitted: 0,
+                      failed: 0
+                    };
+                  }
+                  aggregateBreakdownMap[connectionId].total += batchBreakdownMap[connectionId].total;
+                  aggregateBreakdownMap[connectionId].pending += batchBreakdownMap[connectionId].pending;
+                  aggregateBreakdownMap[connectionId].submitted += batchBreakdownMap[connectionId].submitted;
+                  aggregateBreakdownMap[connectionId].failed += batchBreakdownMap[connectionId].failed;
+                });
+              }
+
+              // Stop if we've fetched enough or reached the limit
+              if (allAggregateSubmissions.length >= filtered || allAggregateSubmissions.length >= MAX_FETCH_FOR_STATS) {
+                break;
+              }
+            }
+
+            // Convert breakdown map to array
+            const aggregateBreakdownArray = Object.values(aggregateBreakdownMap);
+            const aggregateTotal = computeBreakdownTotal(aggregateBreakdownArray);
+
+            // If we have a complete breakdown, use it
+            if (aggregateTotal > 0 && (aggregateTotal >= filtered || allAggregateSubmissions.length >= filtered)) {
+              connectionBreakdown = aggregateBreakdownArray;
+              breakdownSourceTotal = aggregateTotal;
+              
+              // Calculate stats from aggregated data
+              const totalPending = aggregateBreakdownArray.reduce((sum, entry) => sum + entry.pending, 0);
+              const totalSubmitted = aggregateBreakdownArray.reduce((sum, entry) => sum + entry.submitted, 0);
+              const totalFailed = aggregateBreakdownArray.reduce((sum, entry) => sum + entry.failed, 0);
+              
               aggregateStats = {
-                ...aggregateStatsData,
-                pending: aggregateStatsData.pending ?? aggregateStatsData.pending_count ?? aggregateStatsData.waiting ?? 0,
-                submitted: aggregateStatsData.submitted ?? aggregateStatsData.handled ?? aggregateStatsData.success ?? 0,
-                failed: aggregateStatsData.failed ?? aggregateStatsData.canceled ?? aggregateStatsData.failed_count ?? 0,
-                total: aggregateStatsData.total ?? aggregateStatsData.count ?? aggregateTotal,
+                ...responseStats,
+                pending: totalPending,
+                submitted: totalSubmitted,
+                failed: totalFailed,
+                total: aggregateTotal,
                 connection_breakdown: connectionBreakdown
               };
+            } else if (filtered > MAX_FETCH_FOR_STATS) {
+              // If filtered count is extremely large (>50k), show limited message
+              setConnectionStatsLimited(true);
             }
-          } else {
-            setConnectionStatsLimited(true);
           }
         } catch (aggError) {
           console.error("Error fetching aggregate submission stats:", aggError);
