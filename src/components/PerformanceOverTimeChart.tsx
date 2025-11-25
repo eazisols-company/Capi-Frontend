@@ -15,121 +15,26 @@ import {
 import { Activity } from 'lucide-react';
 
 interface PerformanceOverTimeChartProps {
-  data: any[];
+  timeSeriesData: any[];  // Backend aggregated time series
   timeFilter: string;
   currency: string;
-  connections: any[];
+  loading?: boolean;
 }
 
 const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
-  data,
+  timeSeriesData,
   timeFilter,
   currency,
-  connections
+  loading = false
 }) => {
-  // Commission calculation function (same logic as Dashboard)
-  const calculateCommissions = (submissions: any[]) => {
-    let total = 0;
-    
-    submissions.forEach((submission: any) => {
-      // For Purchase events, deposit_amount IS the commission (if it exists and is non-zero)
-      if (submission.custom_event_name === "Purchase") {
-        const depositAmount = parseFloat(submission.deposit_amount) || 0;
-        if (depositAmount > 0) {
-          total += depositAmount;
-          return;
-        }
-        // If deposit_amount is 0, fall through to connection country config
-      }
-      
-      // For Deposit events or Purchase events with 0 deposit_amount:
-      // Priority 1: Use explicit commission_amount if available
-      if (submission.commission_amount && typeof submission.commission_amount === 'number') {
-        total += submission.commission_amount;
-        return;
-      }
-      
-      // Priority 2: Fallback to connection country configuration
-      const connection = connections.find(conn => 
-        conn.id === submission.connection_id || conn._id === submission.connection_id
-      );
-      
-      if (connection && connection.countries) {
-        // Find the fee for this submission's country
-        const countryConfig = connection.countries.find((c: any) => 
-          c.country === submission.country
-        );
-        
-        if (countryConfig && countryConfig.value) {
-          total += parseFloat(countryConfig.value) || 0;
-        }
-      }
-    });
-    
-    return total;
-  };
-
-  // Generate performance data based on time filter
-  const generatePerformanceDataFromSubmissions = () => {
-    const performanceData = [];
-    const today = new Date();
-    let daysToShow = 30; // default
-    
-    // Determine number of days based on time filter
-    switch (timeFilter) {
-      case 'today':
-        daysToShow = 1;
-        break;
-      case 'yesterday':
-        daysToShow = 1;
-        break;
-      case '7d':
-        daysToShow = 7;
-        break;
-      case '14d':
-        daysToShow = 14;
-        break;
-      case '28d':
-        daysToShow = 28;
-        break;
-      case 'all':
-        daysToShow = 30; // Show last 30 days for "all time"
-        break;
-      default:
-        daysToShow = 30;
-    }
-    
-    for (let i = daysToShow - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      const dayData = data.filter(submission => {
-        const submissionDate = new Date(submission.created_at);
-        return submissionDate.toDateString() === date.toDateString();
-      });
-
-      // Calculate metrics for the day
-      const submissions = dayData.length;
-      const deposits = dayData.reduce((sum, sub) => {
-        // Use display_deposit_amount (converted amount) for all events
-        const amount = parseFloat(sub.display_deposit_amount) || 0;
-        return sum + amount;
-      }, 0);
-      const commissions = calculateCommissions(dayData);
-
-      performanceData.push({
-        date: date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }),
-        submissions: submissions,
-        deposits: deposits,
-        commissions: commissions
-      });
-    }
-    
-    return performanceData;
-  };
-
-  // Always use the actual filtered data from the dashboard
-  const performanceData = generatePerformanceDataFromSubmissions();
+  // Use backend aggregated time series data (100% accurate, all submissions counted)
+  // Format: [{ date: '2025-11-19', count: 95, submitted: 95, pending: 0, failed: 0, total_deposits: 1234.56, total_commissions: 567.89 }]
+  const performanceData = timeSeriesData.map((item: any) => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }),
+    submissions: item.submitted || item.count,  // Number of submissions per day
+    deposits: item.total_deposits || 0,  // Backend aggregates daily deposit totals
+    commissions: item.total_commissions || 0  // Backend aggregates daily commission totals
+  }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -173,9 +78,10 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={performanceData}>
+        <div className="relative">
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={performanceData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis 
                 dataKey="date" 
@@ -233,22 +139,33 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
               />
             </ComposedChart>
           </ResponsiveContainer>
-        </div>
-        
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-6 mt-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500 opacity-30"></div>
-            <span className="text-sm text-muted-foreground">Submissions</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-            <span className="text-sm text-muted-foreground">Deposits</span>
+          
+          {/* Legend */}
+          <div className="flex items-center justify-center gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500 opacity-30"></div>
+              <span className="text-sm text-muted-foreground">Submissions</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              <span className="text-sm text-muted-foreground">Deposits</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+              <span className="text-sm text-muted-foreground">Commissions</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-            <span className="text-sm text-muted-foreground">Commissions</span>
-          </div>
+
+          {/* Loading Overlay */}
+          {loading && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+              <div className="text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-2"></div>
+                <p className="text-sm text-muted-foreground">Loading performance data...</p>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

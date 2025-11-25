@@ -248,6 +248,52 @@ class ApiClient {
     return this.client.get(url);
   }
 
+  // Submissions stats endpoint (optimized aggregation)
+  async getSubmissionsStats(params?: {
+    status?: string;
+    country?: string;
+    connection_id?: string;
+    custom_event_name?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = queryParams.toString() 
+      ? `/api/submissions/stats?${queryParams.toString()}` 
+      : '/api/submissions/stats';
+    
+    return this.client.get(url);
+  }
+
+  // Filter options endpoint (optimized for dropdowns)
+  async getSubmissionsFilterOptions(params?: {
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = queryParams.toString() 
+      ? `/api/submissions/filter-options?${queryParams.toString()}` 
+      : '/api/submissions/filter-options';
+    
+    return this.client.get(url);
+  }
+
   // Analytics methods
   async getDashboardAnalytics(period: string = '7d') {
     return this.client.get(`/api/analytics/dashboard?period=${period}`);

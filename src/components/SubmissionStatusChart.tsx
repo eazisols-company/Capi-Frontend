@@ -1,80 +1,39 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 interface SubmissionStatusChartProps {
-  data: any[];
+  timeSeriesData: any[];
   timeFilter: string;
+  backendStats?: {
+    submitted: number;
+    pending: number;
+    failed: number;
+    total: number;
+  };
+  loading?: boolean;
 }
 
 const SubmissionStatusChart: React.FC<SubmissionStatusChartProps> = ({
-  data,
-  timeFilter
+  timeSeriesData,
+  timeFilter,
+  backendStats,
+  loading = false
 }) => {
-  // Always use the actual filtered data from the dashboard
-  const chartData = data;
-  
-  // Calculate status counts
-  const statusCounts = chartData.reduce((acc, submission) => {
-    acc[submission.status] = (acc[submission.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Use backend aggregated counts (100% accurate from MongoDB)
+  const handled = backendStats?.submitted || 0;
+  const pending = backendStats?.pending || 0;
+  const canceled = backendStats?.failed || 0;
+  const total = backendStats?.total || 0;
 
-  const handled = statusCounts.submitted || 0;
-  const pending = statusCounts.pending || 0;
-  const canceled = statusCounts.canceled || 0;
-  const total = handled + pending + canceled;
-
-  // Generate chart data based on time filter
-  const generateChartData = () => {
-    const barChartData = [];
-    const today = new Date();
-    let daysToShow = 7; // default
-    
-    // Determine number of days based on time filter
-    switch (timeFilter) {
-      case 'today':
-        daysToShow = 1;
-        break;
-      case 'yesterday':
-        daysToShow = 1;
-        break;
-      case '7d':
-        daysToShow = 7;
-        break;
-      case '14d':
-        daysToShow = 14;
-        break;
-      case '28d':
-        daysToShow = 28;
-        break;
-      case 'all':
-        daysToShow = 30; // Show last 30 days for "all time"
-        break;
-      default:
-        daysToShow = 7;
-    }
-    
-    for (let i = daysToShow - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      const dayData = chartData.filter(submission => {
-        const submissionDate = new Date(submission.created_at);
-        return submissionDate.toDateString() === date.toDateString();
-      });
-
-      barChartData.push({
-        date: date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }),
-        count: dayData.length
-      });
-    }
-    
-    return barChartData;
-  };
-
-  const barChartData = generateChartData();
+  // Use backend time series data (already aggregated by MongoDB)
+  // Format: [{ date: '2025-11-19', count: 95, submitted: 95, pending: 0, failed: 0 }]
+  const barChartData = timeSeriesData.map((item: any) => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }),
+    count: item.count
+  }));
 
   const statusCards = [
     {
@@ -127,25 +86,26 @@ const SubmissionStatusChart: React.FC<SubmissionStatusChartProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        {/* Status Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          {statusCards.map((status) => (
-            <div key={status.label} className="flex items-center gap-3">
-              <div className={`p-2 rounded-full ${status.bgColor}`}>
-                <status.icon className={`h-4 w-4 ${status.color}`} />
+        <div className="relative">
+          {/* Status Cards */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {statusCards.map((status) => (
+              <div key={status.label} className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${status.bgColor}`}>
+                  <status.icon className={`h-4 w-4 ${status.color}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{status.label}</p>
+                  <p className="text-lg font-bold text-foreground">{status.value}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{status.label}</p>
-                <p className="text-lg font-bold text-foreground">{status.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {/* Bar Chart */}
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barChartData}>
+          {/* Bar Chart */}
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barChartData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis 
                 dataKey="date" 
@@ -173,6 +133,17 @@ const SubmissionStatusChart: React.FC<SubmissionStatusChartProps> = ({
               />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+
+          {/* Loading Overlay */}
+          {loading && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+              <div className="text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-2"></div>
+                <p className="text-sm text-muted-foreground">Loading chart data...</p>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

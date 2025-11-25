@@ -19,7 +19,8 @@ import {
   X,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  Loader2
 } from "lucide-react";
 import { apiClient } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -165,6 +166,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [timeFilter, setTimeFilter] = useState("7d");
   const [customDateRange, setCustomDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalSubmissions: 0,
     totalDeposits: 0,
@@ -173,7 +175,15 @@ export default function Dashboard() {
     recentSubmissions: [],
     totalCommissions: 0,
     allSubmissions: [],
-    activeCountries: 0
+    activeCountries: 0,
+    backendStats: {
+      submitted: 0,
+      pending: 0,
+      failed: 0,
+      total: 0
+    },
+    countryBreakdown: [],
+    timeSeries: []
   });
   const [previousStats, setPreviousStats] = useState({
     totalSubmissions: 0,
@@ -243,13 +253,12 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Prepare filter params for server-side filtering
-      const params: any = {
-        limit: 10000, // Get a large amount for dashboard calculations
-        offset: 0,
-      };
+      setLoading(true);
       
-      // Add date range filters for server-side filtering
+      // Prepare base filter params
+      const baseParams: any = {};
+      
+      // Add date range filters
       if (timeFilter !== "all") {
         let dateRange = customDateRange;
         
@@ -266,99 +275,72 @@ export default function Dashboard() {
           const endDate = new Date(dateRange.to);
           endDate.setHours(23, 59, 59, 999);
           
-          params.start_date = startDate.toISOString();
-          params.end_date = endDate.toISOString();
+          baseParams.start_date = startDate.toISOString();
+          baseParams.end_date = endDate.toISOString();
         }
       }
       
-      // Fetch submissions with server-side filtering
-      const submissionsResponse = await apiClient.getSubmissions(params);
-      const filteredSubmissions = submissionsResponse.data.submissions || [];
+      // Fetch stats from NEW optimized endpoint (uses MongoDB aggregation)
+      const statsResponse = await apiClient.getSubmissionsStats(baseParams);
+      const backendStats = statsResponse.data;
       
-      // Get stats from backend response (for accurate counts)
-      const backendStats = submissionsResponse.data.stats || {
-        total: submissionsResponse.data.filtered_count || filteredSubmissions.length,
-        submitted: 0,
-        pending: 0,
-        failed: 0
-      };
-        
-      // Use backend stats for accurate counts (not limited by fetch limit)
-      const totalSubmissions = backendStats.total;
-      const totalDeposits = filteredSubmissions.reduce((sum, sub) => {
-        // Use display_deposit_amount (converted amount) for all events
-        const amount = parseFloat(sub.display_deposit_amount) || 0;
-        return sum + amount;
-      }, 0);
-      const depositsCount = backendStats.submitted || filteredSubmissions.filter(sub => sub.status === 'submitted').length;
+      console.log('Dashboard stats response:', backendStats); // Debug log
+      console.log('Deposit totals from backend:', backendStats.deposit_totals); // Debug log
+      console.log('Country breakdown from backend:', backendStats.country_breakdown); // Debug log
+      console.log('Time series from backend:', backendStats.time_series); // Debug log
+      
+      // ALL data now comes from backend aggregation - no need to fetch submissions!
+      // Use backend stats for accurate counts (from MongoDB aggregation)
+      const totalSubmissions = backendStats.total || 0;
+      const totalDeposits = backendStats.deposit_totals?.total_deposits || 0;
+      const totalCommissions = backendStats.deposit_totals?.total_commissions || 0;
+      const depositsCount = backendStats.status_counts?.submitted || 0;
       const conversionRate = totalSubmissions > 0 ? (depositsCount / totalSubmissions) * 100 : 0;
       
-      // Get top countries from filtered submissions
-      const countryStats = filteredSubmissions.reduce((acc: Record<string, number>, sub: any) => {
-          acc[sub.country] = (acc[sub.country] || 0) + 1;
-          return acc;
-        }, {});
-        
-        // Calculate total number of unique countries (before slicing)
-        const activeCountries = Object.keys(countryStats).length;
-        
-        const topCountries = Object.entries(countryStats)
-          .map(([country, count]) => ({ country, count: count as number }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5);
+      // Get top countries from backend aggregation (100% accurate)
+      const countryBreakdown = backendStats.country_breakdown || [];
+      const activeCountries = countryBreakdown.length;
+      const topCountries = countryBreakdown.slice(0, 5).map((c: any) => ({
+        country: c.country,
+        count: c.total_submissions
+      }));
 
-      // Get recent submissions (last 5) from filtered submissions
-      const recentSubmissions = filteredSubmissions
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          .slice(0, 3);
+      // Get recent submissions from backend (last 10)
+      const recentSubmissions = (backendStats.recent_submissions || []).slice(0, 3);
 
-        const totalCommissions = calculateTotalCommissions(filteredSubmissions);
+      // All data from backend aggregation - fast and accurate!
 
-        // Calculate comparison stats for percentage change
-        let previousFilteredSubmissions = [];
-        let prevBackendStats = { total: 0, submitted: 0, pending: 0, failed: 0 };
+        // Calculate comparison stats for percentage change using backend aggregation only
+        let prevBackendStats = { 
+          total: 0, 
+          status_counts: { submitted: 0, pending: 0, failed: 0 },
+          deposit_totals: { total_deposits: 0, total_commissions: 0, submitted_count: 0 },
+          country_breakdown: []
+        };
         
         if (timeFilter !== "all" && timeFilter !== "custom") {
           const comparisonDateRange = getComparisonDateRange(timeFilter);
           
           if (comparisonDateRange.from && comparisonDateRange.to) {
-            // Fetch previous period data with server-side filtering
-            const prevParams: any = {
-              limit: 10000,
-              offset: 0,
+            // Fetch previous period stats using NEW optimized endpoint
+            // All data comes from backend aggregation - no submissions fetch needed!
+            const prevStatsParams: any = {
               start_date: new Date(comparisonDateRange.from).toISOString(),
               end_date: new Date(comparisonDateRange.to).toISOString(),
             };
             
-            const prevResponse = await apiClient.getSubmissions(prevParams);
-            previousFilteredSubmissions = prevResponse.data.submissions || [];
-            
-            // Get stats from previous period response
-            prevBackendStats = prevResponse.data.stats || {
-              total: prevResponse.data.filtered_count || previousFilteredSubmissions.length,
-              submitted: 0,
-              pending: 0,
-              failed: 0
-            };
+            const prevStatsResponse = await apiClient.getSubmissionsStats(prevStatsParams);
+            prevBackendStats = prevStatsResponse.data;
           }
         }
 
-        // Calculate previous period stats using backend data
-        const prevTotalSubmissions = prevBackendStats.total;
-        const prevTotalDeposits = previousFilteredSubmissions.reduce((sum, sub) => {
-          // Use display_deposit_amount (converted amount) for all events
-          const amount = parseFloat(sub.display_deposit_amount) || 0;
-          return sum + amount;
-        }, 0);
-        const prevDepositsCount = prevBackendStats.submitted || previousFilteredSubmissions.filter(sub => sub.status === 'submitted').length;
+        // Calculate previous period stats using backend aggregated data (100% accurate)
+        const prevTotalSubmissions = prevBackendStats.total || 0;
+        const prevTotalDeposits = prevBackendStats.deposit_totals?.total_deposits || 0;
+        const prevTotalCommissions = prevBackendStats.deposit_totals?.total_commissions || 0;
+        const prevDepositsCount = prevBackendStats.status_counts?.submitted || 0;
         const prevConversionRate = prevTotalSubmissions > 0 ? (prevDepositsCount / prevTotalSubmissions) * 100 : 0;
-        const prevTotalCommissions = calculateTotalCommissions(previousFilteredSubmissions);
-        
-        const prevCountryStats = previousFilteredSubmissions.reduce((acc: Record<string, number>, sub: any) => {
-          acc[sub.country] = (acc[sub.country] || 0) + 1;
-          return acc;
-        }, {});
-        const prevActiveCountries = Object.keys(prevCountryStats).length;
+        const prevActiveCountries = (prevBackendStats.country_breakdown || []).length;
 
         setStats({
           totalSubmissions,
@@ -367,8 +349,18 @@ export default function Dashboard() {
           topCountries,
           recentSubmissions,
           totalCommissions,
-          allSubmissions: filteredSubmissions,
-          activeCountries
+          activeCountries,
+          // Backend aggregated data for charts
+          backendStats: {
+            submitted: backendStats.status_counts?.submitted || 0,
+            pending: backendStats.status_counts?.pending || 0,
+            failed: backendStats.status_counts?.failed || 0,
+            total: backendStats.total || 0
+          },
+          // Complete backend data for accurate charts
+          countryBreakdown: backendStats.country_breakdown || [],
+          timeSeries: backendStats.time_series || [],
+          allSubmissions: []  // Empty - no longer needed, all data from backend
         });
 
         setPreviousStats({
@@ -378,8 +370,16 @@ export default function Dashboard() {
           totalCommissions: prevTotalCommissions,
           activeCountries: prevActiveCountries
         });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      toast({
+        title: "Error",
+        description: `Failed to fetch dashboard data: ${error.response?.data?.message || error.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -541,11 +541,19 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stat.description}
-                </p>
-                {showPercentage && (
+                {loading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {stat.description}
+                    </p>
+                  </>
+                )}
+                {!loading && showPercentage && (
                   <div className="flex items-center gap-1 mt-2">
                     {isPositive && (
                       <>
@@ -586,25 +594,27 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Submission Status Chart */}
         <SubmissionStatusChart 
-          data={stats.allSubmissions}
+          timeSeriesData={stats.timeSeries}
           timeFilter={timeFilter}
+          backendStats={stats.backendStats}
+          loading={loading}
         />
 
         {/* Countries Chart */}
         <CountriesChart 
-          data={stats.allSubmissions}
+          countryData={stats.countryBreakdown}
           currency={profile?.system_currency || 'USD'}
           timeFilter={timeFilter}
-          connections={connections}
+          loading={loading}
         />
       </div>
 
       {/* Performance Over Time Chart */}
       <PerformanceOverTimeChart 
-        data={stats.allSubmissions}
+        timeSeriesData={stats.timeSeries}
         timeFilter={timeFilter}
         currency={profile?.system_currency || 'USD'}
-        connections={connections}
+        loading={loading}
       />
 
       {/* Main Content */}
