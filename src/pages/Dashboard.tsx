@@ -289,6 +289,96 @@ export default function Dashboard() {
       console.log('Country breakdown from backend:', backendStats.country_breakdown); // Debug log
       console.log('Time series from backend:', backendStats.time_series); // Debug log
       
+      // Use backend time series data directly - backend should handle all aggregation
+      let enrichedTimeSeries = backendStats.time_series || [];
+      
+      // Log and validate time series data
+      if (enrichedTimeSeries.length > 0) {
+        console.log('📊 Time series data received:', enrichedTimeSeries.length, 'days');
+        console.log('Sample time series data (first 3 entries):');
+        enrichedTimeSeries.slice(0, 3).forEach((item: any) => {
+          console.log({
+            date: item.date,
+            count: item.count,
+            submitted: item.submitted,
+            total_deposits: item.total_deposits,
+            total_commissions: item.total_commissions
+          });
+        });
+        
+        // Detect anomalies - check if some values are suspiciously high
+        const avgDeposits = enrichedTimeSeries
+          .filter((item: any) => item.total_deposits > 0)
+          .reduce((sum: number, item: any) => sum + (item.total_deposits || 0), 0) / 
+          enrichedTimeSeries.filter((item: any) => item.total_deposits > 0).length || 1;
+        
+        const avgCommissions = enrichedTimeSeries
+          .filter((item: any) => item.total_commissions > 0)
+          .reduce((sum: number, item: any) => sum + (item.total_commissions || 0), 0) / 
+          enrichedTimeSeries.filter((item: any) => item.total_commissions > 0).length || 1;
+        
+        console.log('Average daily deposits:', avgDeposits);
+        console.log('Average daily commissions:', avgCommissions);
+        
+        // Check for outliers (values > 10x the average)
+        const outliers = enrichedTimeSeries.filter((item: any) => 
+          (item.total_deposits > avgDeposits * 10 && avgDeposits > 0) ||
+          (item.total_commissions > avgCommissions * 10 && avgCommissions > 0)
+        );
+        
+        if (outliers.length > 0) {
+          console.warn('⚠️ Detected', outliers.length, 'outlier dates with unusually high values:');
+          outliers.forEach((item: any) => {
+            console.warn({
+              date: item.date,
+              deposits: item.total_deposits,
+              commissions: item.total_commissions,
+              avgDeposits: avgDeposits,
+              avgCommissions: avgCommissions
+            });
+          });
+        }
+        
+        // Check if financial data exists
+        const hasAnyFinancialData = enrichedTimeSeries.some((item: any) => 
+          (item.total_deposits !== undefined && item.total_deposits > 0) || 
+          (item.total_commissions !== undefined && item.total_commissions > 0)
+        );
+        
+        console.log('Has any financial data in time series:', hasAnyFinancialData);
+        
+        if (!hasAnyFinancialData) {
+          console.warn('⚠️ No financial data in time series. Backend aggregation may not be working.');
+        }
+        
+        // Add a global debug function to export time series data
+        if (typeof window !== 'undefined') {
+          (window as any).exportTimeSeriesData = () => {
+            console.log('📤 Exporting full time series data...');
+            console.table(enrichedTimeSeries.map((item: any) => ({
+              date: item.date,
+              submissions: item.count || item.submitted,
+              deposits: item.total_deposits,
+              commissions: item.total_commissions
+            })));
+            
+            // Also create a downloadable JSON
+            const dataStr = JSON.stringify(enrichedTimeSeries, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `time-series-data-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            console.log('✅ Time series data exported to downloads');
+            return enrichedTimeSeries;
+          };
+          console.log('💡 Debug tip: Run window.exportTimeSeriesData() to export full data');
+        }
+      }
+      
       // ALL data now comes from backend aggregation - no need to fetch submissions!
       // Use backend stats for accurate counts (from MongoDB aggregation)
       const totalSubmissions = backendStats.total || 0;
@@ -359,7 +449,7 @@ export default function Dashboard() {
           },
           // Complete backend data for accurate charts
           countryBreakdown: backendStats.country_breakdown || [],
-          timeSeries: backendStats.time_series || [],
+          timeSeries: enrichedTimeSeries, // Use enriched time series with financial data
           allSubmissions: []  // Empty - no longer needed, all data from backend
         });
 

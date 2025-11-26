@@ -29,12 +29,32 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
 }) => {
   // Use backend aggregated time series data (100% accurate, all submissions counted)
   // Format: [{ date: '2025-11-19', count: 95, submitted: 95, pending: 0, failed: 0, total_deposits: 1234.56, total_commissions: 567.89 }]
-  const performanceData = timeSeriesData.map((item: any) => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }),
-    submissions: item.submitted || item.count,  // Number of submissions per day
-    deposits: item.total_deposits || 0,  // Backend aggregates daily deposit totals
-    commissions: item.total_commissions || 0  // Backend aggregates daily commission totals
-  }));
+  const performanceData = timeSeriesData.map((item: any) => {
+    // Handle multiple possible field names for deposits
+    const deposits = item.total_deposits ?? item.totalDeposits ?? item.deposits ?? 0;
+    // Handle multiple possible field names for commissions
+    const commissions = item.total_commissions ?? item.totalCommissions ?? item.commissions ?? 0;
+    // Handle multiple possible field names for submissions
+    const submissions = item.submitted ?? item.count ?? item.submissions ?? 0;
+    
+    return {
+      date: new Date(item.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }),
+      submissions,  // Number of submissions per day
+      deposits,     // Backend aggregates daily deposit totals
+      commissions   // Backend aggregates daily commission totals
+    };
+  });
+  
+  // Debug: Log data with high values
+  const maxDeposits = Math.max(...performanceData.map(d => d.deposits));
+  const maxCommissions = Math.max(...performanceData.map(d => d.commissions));
+  
+  if (maxDeposits > 100000 || maxCommissions > 100000) {
+    console.warn('⚠️ Performance chart has unusually high values:');
+    console.warn('Max deposits:', maxDeposits);
+    console.warn('Max commissions:', maxCommissions);
+    console.warn('High value entries:', performanceData.filter(d => d.deposits > 100000 || d.commissions > 100000));
+  }
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -59,6 +79,9 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
     return null;
   };
 
+  // Check if financial data is available
+  const hasFinancialData = performanceData.some(item => item.deposits > 0 || item.commissions > 0);
+  
   return (
     <Card>
       <CardHeader>
@@ -76,6 +99,11 @@ const PerformanceOverTimeChart: React.FC<PerformanceOverTimeChartProps> = ({
              'Last 30 Days'}
           </span>
         </div>
+        {!hasFinancialData && performanceData.length > 0 && (
+          <div className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+            ⚠️ Financial data (deposits/commissions) not available for this period
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <div className="relative">
