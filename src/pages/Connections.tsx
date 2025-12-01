@@ -209,11 +209,11 @@ export default function Connections() {
         return;
       }
 
-      // Validate System Access Token length (must be more than 200 characters)
-      if (formData.pixel_access_token.length <= 200) {
+      // Validate System Access Token length (must be more than 180 characters)
+      if (formData.pixel_access_token.length <= 180) {
         toast({
           title: "Error",
-          description: "Invalid System Access Token. System Access Token must be more than 200 characters long.",
+          description: "Invalid System Access Token. System Access Token must be more than 180 characters long.",
           variant: "destructive"
         });
         return;
